@@ -1,4 +1,5 @@
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
 
 class ClubCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
@@ -11,14 +12,15 @@ class ClubCreate(BaseModel):
         if isinstance(v, str):
             return v.strip()
         return v
-    
+
     @field_validator("district_id")
     @classmethod
     def validate_district_id(cls, v: int) -> int:
         if v <= 0:
             raise ValueError("district_id must be a positive integer")
         return v
-    
+
+
 class ClubUpdate(BaseModel):
     # district_id intentionally excluded: moving a club between districts
     # is a domain-level operation that deserves its own explicit endpoint.
@@ -32,7 +34,8 @@ class ClubUpdate(BaseModel):
         if isinstance(v, str) and v is not None:
             return v.strip()
         return v
-    
+
+
 class ClubRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

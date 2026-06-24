@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+
 class DistrictCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
     abbreviation: str = Field(..., min_length=1, max_length=10)
@@ -11,6 +12,7 @@ class DistrictCreate(BaseModel):
             return v.strip()
         return v
 
+
 class DistrictUpdate(BaseModel):
     name: str | None = Field(None, min_length=2, max_length=100)
     abbreviation: str | None = Field(None, min_length=1, max_length=10)
@@ -21,7 +23,8 @@ class DistrictUpdate(BaseModel):
         if isinstance(v, str) and v is not None:
             return v.strip()
         return v
-    
+
+
 class DistrictRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

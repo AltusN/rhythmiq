@@ -1,8 +1,9 @@
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.meet_entry import MeetEntryCreate, MeetEntryUpdate, MeetEntryRead
-from app.models import Level, AgeGroup
+from app.models import AgeGroup, Level
+from app.schemas.meet_entry import MeetEntryCreate, MeetEntryRead, MeetEntryUpdate
+
 
 class TestMeetEntryCreate:
     def test_meet_entry_create_valid_all_fields(self):
@@ -12,7 +13,7 @@ class TestMeetEntryCreate:
             "level": Level.junior,
             "age_group": AgeGroup.under_8,
             "bib_number": "123",
-            "entry_fee_paid": True
+            "entry_fee_paid": True,
         }
         entry = MeetEntryCreate(**data)
 
@@ -45,7 +46,7 @@ class TestMeetEntryCreate:
             "gymnast_id": 1,
             # Missing level and age_group
             "bib_number": "123",
-            "entry_fee_paid": True
+            "entry_fee_paid": True,
         }
         with pytest.raises(ValidationError):
             MeetEntryCreate(**data)
@@ -57,7 +58,7 @@ class TestMeetEntryCreate:
             "level": Level.junior,
             "age_group": AgeGroup.under_8,
             "bib_number": "00123",
-            "entry_fee_paid": True
+            "entry_fee_paid": True,
         }
         entry = MeetEntryCreate(**data)
 
@@ -121,13 +122,14 @@ class TestMeetEntryCreate:
 
         assert entry.level == Level.junior
 
+
 class TestMeetEntryUpdate:
     def test_meet_entry_update_valid(self):
         data = {
             "level": Level.senior,
             "age_group": AgeGroup.under_10,
             "bib_number": "456",
-            "entry_fee_paid": True
+            "entry_fee_paid": True,
         }
         entry_update = MeetEntryUpdate(**data)
 
@@ -211,6 +213,7 @@ class TestMeetEntryUpdate:
         assert entry_update.bib_number == "789"
         assert entry_update.entry_fee_paid is None
 
+
 class TestMeetEntryRead:
     def test_meet_entry_read_from_dict(self):
         data = {
@@ -220,7 +223,7 @@ class TestMeetEntryRead:
             "level": Level.junior,
             "age_group": AgeGroup.under_8,
             "bib_number": "123",
-            "entry_fee_paid": True
+            "entry_fee_paid": True,
         }
         entry_read = MeetEntryRead.model_validate(data)
 
@@ -240,7 +243,7 @@ class TestMeetEntryRead:
             "level": Level.junior,
             "age_group": AgeGroup.under_8,
             "bib_number": "123",
-            "entry_fee_paid": True
+            "entry_fee_paid": True,
         }
         entry_read = MeetEntryRead.model_validate(data)
 
@@ -269,7 +272,7 @@ class TestMeetEntryRead:
             "level": Level.junior,
             "age_group": AgeGroup.under_8,
             "bib_number": "123",
-            "entry_fee_paid": True
+            "entry_fee_paid": True,
         }
         entry_read = MeetEntryRead.model_validate(data)
 
@@ -277,7 +280,9 @@ class TestMeetEntryRead:
 
     def test_meet_entry_read_from_orm_object(self):
         class DummyORM:
-            def __init__(self, id, meet_id, gymnast_id, level, age_group, bib_number, entry_fee_paid):
+            def __init__(
+                self, id, meet_id, gymnast_id, level, age_group, bib_number, entry_fee_paid
+            ):
                 self.id = id
                 self.meet_id = meet_id
                 self.gymnast_id = gymnast_id
@@ -293,7 +298,7 @@ class TestMeetEntryRead:
             level=Level.junior,
             age_group=AgeGroup.under_8,
             bib_number="123",
-            entry_fee_paid=True
+            entry_fee_paid=True,
         )
         entry_read = MeetEntryRead.model_validate(orm_obj)
 
@@ -312,7 +317,7 @@ class TestMeetEntryRead:
             "level": Level.junior,
             "age_group": AgeGroup.under_8,
             "bib_number": "123",
-            "entry_fee_paid": True
+            "entry_fee_paid": True,
         }
         with pytest.raises(ValidationError):
             MeetEntryRead.model_validate(data)

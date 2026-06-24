@@ -1,8 +1,9 @@
 from datetime import date
 
-from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models import MeetStatus
+
 
 class MeetCreate(BaseModel):
     district_id: int | None = None
@@ -16,7 +17,7 @@ class MeetCreate(BaseModel):
     # but it's already enforced on the db with the FK
     # a negative value is unlikely and will just result in a 404 from the db,
     #  which is fine. If we want to be more strict, we can add a validator later.
-    
+
     @field_validator("name", "location", mode="before")
     @classmethod
     def strip_whitespace(cls, value: str) -> str:
@@ -34,7 +35,6 @@ class MeetCreate(BaseModel):
             if self.start_date > self.end_date:
                 raise ValueError("start_date must be on or before end_date")
         return self
-
 
 
 class MeetUpdate(BaseModel):

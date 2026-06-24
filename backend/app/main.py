@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 
 from app.db import lifespan
-from app.routers import district
 
 app = FastAPI(
     title="Rhytmiq API",
@@ -10,6 +9,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
 @app.get("/", tags=["/health"])
 def root():
-    return {"status":"ok", "service": "Rhytmiq API"}
+    return {"status": "ok", "service": "Rhytmiq API"}

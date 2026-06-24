@@ -1,7 +1,8 @@
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.club import ClubCreate, ClubUpdate, ClubRead
+from app.schemas.club import ClubCreate, ClubRead, ClubUpdate
+
 
 ##-- Create
 class TestClubCreateSchema:
@@ -15,7 +16,7 @@ class TestClubCreateSchema:
         assert club_create.name == "Van Der Stel"
         assert club_create.district_id == 1
         assert club_create.abbreviation == "VDS"
-    
+
     def test_club_create_strip_whitespace(self):
         data = {
             "name": "  Van Der Stel  ",
@@ -34,7 +35,7 @@ class TestClubCreateSchema:
         }
         with pytest.raises(ValidationError):
             ClubCreate.model_validate(data)
-    
+
     def test_club_create_invalid_abbreviation_too_long(self):
         data = {
             "name": "Van Der Stel",
@@ -95,6 +96,7 @@ class TestClubCreateSchema:
         with pytest.raises(ValidationError):
             ClubCreate.model_validate(data)
 
+
 class TestClubUpdateSchema:
     def test_club_update_valid(self):
         data = {
@@ -104,7 +106,7 @@ class TestClubUpdateSchema:
         club_update = ClubUpdate(**data)
         assert club_update.name == "Van Der Stel Updated"
         assert club_update.abbreviation == "VDSU"
-    
+
     def test_club_update_strip_whitespace(self):
         data = {
             "name": "  Van Der Stel Updated  ",
@@ -121,7 +123,7 @@ class TestClubUpdateSchema:
         }
         with pytest.raises(ValidationError):
             ClubUpdate.model_validate(data)
-    
+
     def test_club_update_invalid_abbreviation_too_long(self):
         data = {
             "name": "Van Der Stel Updated",
@@ -154,6 +156,7 @@ class TestClubUpdateSchema:
         assert club_update.name == "Van Der Stel Updated"
         assert club_update.abbreviation == "VDSU"
         assert not hasattr(club_update, "district_id")  # district_id should not be present
+
 
 class TestClubReadSchema:
     def test_club_read_schema_valid(self):
@@ -202,7 +205,7 @@ class TestClubReadSchema:
         }
         with pytest.raises(ValidationError):
             ClubRead.model_validate(data)
-    
+
     def test_club_read_missing_district_id_raises_validation_error(self):
         data = {
             "id": 1,

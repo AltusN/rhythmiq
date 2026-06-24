@@ -8,12 +8,14 @@ Covers:
  - Status transitions
  - Cascade delete of entries and routines when a meet is deleted
 """
-import pytest
+
 from datetime import date
+
+import pytest
 from sqlalchemy.exc import IntegrityError
 
-from app.models import Apparatus, District, Meet, MeetEntry, Routine, MeetStatus
-from test.conftest import make_meet, make_gymnast, make_meet_entry, make_routine, make_district
+from app.models import Apparatus, District, Meet, MeetEntry, MeetStatus, Routine
+from test.conftest import make_district, make_gymnast, make_meet, make_meet_entry, make_routine
 
 
 # Create a meet with valid data
@@ -51,6 +53,7 @@ def test_meet_can_belong_to_district(db_session):
     assert fetched.district is not None
     assert fetched.district.id == district.id
 
+
 def test_meet_default_status_is_draft(db_session):
     meet = Meet(
         name="Draft Meet",
@@ -67,6 +70,7 @@ def test_meet_default_status_is_draft(db_session):
 
     assert fetched.status == MeetStatus.draft
 
+
 def test_meet_single_day_is_valid(db_session):
     make_meet(db_session, start_date=date(2026, 6, 1), end_date=date(2026, 6, 1))
     db_session.commit()
@@ -75,6 +79,7 @@ def test_meet_single_day_is_valid(db_session):
     assert fetched is not None
 
     assert fetched.start_date == fetched.end_date
+
 
 def test_meet_end_date_before_start_date_raises_error(db_session):
     meet = Meet(
@@ -102,6 +107,7 @@ def test_meet_invalid_district_id_raises_error(db_session):
     with pytest.raises(IntegrityError):
         db_session.commit()
 
+
 def test_meet_status_can_be_updated(db_session):
     meet = make_meet(db_session, status=MeetStatus.scheduled)
     db_session.commit()
@@ -112,6 +118,7 @@ def test_meet_status_can_be_updated(db_session):
     db_session.refresh(meet)
 
     assert meet.status == MeetStatus.in_progress
+
 
 def test_multiple_meets_can_be_updated(db_session):
     meet1 = make_meet(db_session, name="Meet 1", status=MeetStatus.scheduled)
@@ -129,6 +136,7 @@ def test_multiple_meets_can_be_updated(db_session):
     assert meet1.status == MeetStatus.in_progress
     assert meet2.status == MeetStatus.canceled
 
+
 def test_meet_cascade_delete(db_session):
     meet = make_meet(db_session)
     gymnast = make_gymnast(db_session)
@@ -143,6 +151,7 @@ def test_meet_cascade_delete(db_session):
     assert db_session.query(MeetEntry).filter_by(id=entry.id).first() is None
     assert db_session.query(Routine).filter_by(id=routine.id).first() is None
 
+
 def test_meet_entry_routine_relationship(db_session):
     meet = make_meet(db_session)
     gymnast = make_gymnast(db_session)
@@ -153,7 +162,7 @@ def test_meet_entry_routine_relationship(db_session):
     db_session.commit()
 
     fetched_entry = db_session.query(MeetEntry).first()
-    #Routines is a list of routines associated with the entry
+    # Routines is a list of routines associated with the entry
     assert len(fetched_entry.routines) == 2
 
 

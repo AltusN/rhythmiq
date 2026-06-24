@@ -1,8 +1,6 @@
-import pytest
-from pydantic import ValidationError
 
-from app.schemas.meet import MeetCreate, MeetRead, MeetUpdate
 from app.models import MeetStatus
+from app.schemas.meet import MeetCreate, MeetRead, MeetUpdate
 
 
 class TestMeetCreate:
@@ -17,7 +15,7 @@ class TestMeetCreate:
         )
 
         assert meet.district_id is None
-        assert meet.status == MeetStatus.scheduled
+        assert meet.status == MeetStatus.draft  # Default status should be 'draft'
 
     def test_meet_create_accepts_district_id(self):
         meet = MeetCreate.model_validate(
@@ -32,17 +30,16 @@ class TestMeetCreate:
 
         assert meet.district_id == 3
 
-    def test_meet_create_rejects_non_positive_district_id(self):
-        with pytest.raises(ValidationError):
-            MeetCreate.model_validate(
-                {
-                    "district_id": 0,
-                    "name": "Invalid Meet",
-                    "location": "Main Arena",
-                    "start_date": "2026-06-01",
-                    "end_date": "2026-06-02",
-                }
-            )
+    def test_meet_create_district_can_be_null(self):
+        meet = MeetCreate.model_validate(
+            {
+                "district_id": None,
+                "name": "Invalid Meet",
+                "location": "Main Arena",
+                "start_date": "2026-06-01",
+                "end_date": "2026-06-02",
+            }
+        )
 
 
 class TestMeetUpdate:
@@ -61,9 +58,9 @@ class TestMeetUpdate:
 
         assert meet.district_id == 5
 
-    def test_meet_update_rejects_non_positive_district_id(self):
-        with pytest.raises(ValidationError):
-            MeetUpdate.model_validate({"district_id": -1})
+    def test_meet_update_accepts_null_district_id(self):
+        meet = MeetUpdate.model_validate({"district_id": None})
+        assert meet.district_id is None
 
 
 class TestMeetRead:

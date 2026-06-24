@@ -3,7 +3,7 @@ from datetime import date
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.gymnast import GymnastCreate, GymnastUpdate, GymnastRead
+from app.schemas.gymnast import GymnastCreate, GymnastRead, GymnastUpdate
 
 
 class TestGymnastCreateSchema:
@@ -125,7 +125,7 @@ class TestGymnastCreateSchema:
             "country_code": "USAA",  # Too long
         }
         with pytest.raises(ValidationError):
-            GymnastCreate.model_validate(data) 
+            GymnastCreate.model_validate(data)
 
     def test_gymnast_create_country_code_too_short(self):
         data = {
@@ -144,6 +144,7 @@ class TestGymnastCreateSchema:
         }
         with pytest.raises(ValidationError):
             GymnastCreate.model_validate(data)
+
 
 class TestGymnastUpdateSchema:
     def test_gymnast_update_schema_valid(self):
@@ -266,6 +267,7 @@ class TestGymnastUpdateSchema:
         with pytest.raises(ValidationError):
             GymnastUpdate.model_validate(data)
 
+
 class TestGymnastReadSchema:
     def test_gymnast_read_schema_valid(self):
         data = {
@@ -283,7 +285,7 @@ class TestGymnastReadSchema:
         assert gymnast_read.last_name == "Doe"
         assert gymnast_read.date_of_birth == date(2000, 1, 1)
         assert gymnast_read.country_code == "USA"
-    
+
     def test_gymnast_read_from_orm_like_object(self):
         class ORMObject:
             def __init__(self, id, club_id, first_name, last_name, date_of_birth, country_code):
@@ -300,7 +302,7 @@ class TestGymnastReadSchema:
             first_name="John",
             last_name="Doe",
             date_of_birth=date(2000, 1, 1),
-            country_code="USA"
+            country_code="USA",
         )
         gymnast_read = GymnastRead.model_validate(orm_obj)
         assert gymnast_read.id == 1
@@ -321,7 +323,7 @@ class TestGymnastReadSchema:
         }
         with pytest.raises(ValidationError):
             GymnastRead.model_validate(data)
-    
+
     def test_gymnast_read_nullable_fields(self):
         data = {
             "id": 1,

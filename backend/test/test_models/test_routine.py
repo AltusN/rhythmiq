@@ -1,8 +1,9 @@
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from app.models import Apparatus, Meet, MeetEntry, Routine, MeetStatus
-from test.conftest import db_session, make_meet, make_gymnast, make_meet_entry, make_routine
+from app.models import Apparatus, MeetEntry, Routine
+from test.conftest import make_gymnast, make_meet, make_meet_entry, make_routine
+
 
 def test_routine_create_with_required_fields(db_session):
     meet = make_meet(db_session)
@@ -20,16 +21,17 @@ def test_routine_create_with_required_fields(db_session):
     assert fetched.music_url == "file:///c:/test_music.mp3"
     assert fetched.order_of_performance == 1
 
+
 def test_routine_order_of_performance_optional(db_session):
     meet = make_meet(db_session)
     gymnast = make_gymnast(db_session)
     entry = make_meet_entry(db_session, meet, gymnast)
 
     routine = Routine(
-        entry_id = entry.id,
-        apparatus = Apparatus.ribbon,
-        music_url = "file:///c:/test_music.mp3",
-        order_of_performance = None
+        entry_id=entry.id,
+        apparatus=Apparatus.ribbon,
+        music_url="file:///c:/test_music.mp3",
+        order_of_performance=None,
     )
     db_session.add(routine)
     db_session.commit()
@@ -38,23 +40,25 @@ def test_routine_order_of_performance_optional(db_session):
     assert fetched is not None
     assert fetched.order_of_performance is None
 
+
 def rest_routine_apparatus_not_null(db_session):
     meet = make_meet(db_session)
     gymnast = make_gymnast(db_session)
     entry = make_meet_entry(db_session, meet, gymnast)
 
     routine = Routine(
-        entry_id = entry.id,
-        apparatus = None,
-        music_url = "file:///c:/test_music.mp3",
-        order_of_performance = 1
+        entry_id=entry.id,
+        apparatus=None,
+        music_url="file:///c:/test_music.mp3",
+        order_of_performance=1,
     )
     db_session.add(routine)
 
     with pytest.raises(IntegrityError):
         db_session.commit()
 
-#== Apparatus enum ==#
+
+# == Apparatus enum ==#
 @pytest.mark.parametrize("apparatus", list(Apparatus))
 def test_routine_valid_apparatus_values(db_session, apparatus):
     meet = make_meet(db_session)
@@ -62,10 +66,10 @@ def test_routine_valid_apparatus_values(db_session, apparatus):
     entry = make_meet_entry(db_session, meet, gymnast)
 
     routine = Routine(
-        entry_id = entry.id,
-        apparatus = apparatus,
-        music_url = "file:///c:/test_music.mp3",
-        order_of_performance = 1
+        entry_id=entry.id,
+        apparatus=apparatus,
+        music_url="file:///c:/test_music.mp3",
+        order_of_performance=1,
     )
     db_session.add(routine)
     db_session.commit()
@@ -73,6 +77,7 @@ def test_routine_valid_apparatus_values(db_session, apparatus):
     fetched = db_session.query(Routine).first()
     assert fetched is not None
     assert fetched.apparatus == apparatus
+
 
 def test_same_apparatus_different_entries(db_session):
     meet = make_meet(db_session)
@@ -91,7 +96,8 @@ def test_same_apparatus_different_entries(db_session):
     assert fetched_routines[0].apparatus == Apparatus.hoop
     assert fetched_routines[1].apparatus == Apparatus.hoop
 
-#== Multiple routines per entry ==#
+
+# == Multiple routines per entry ==#
 def test_multiple_routines_per_entry(db_session):
     meet = make_meet(db_session)
     gymnast = make_gymnast(db_session)
@@ -109,6 +115,7 @@ def test_multiple_routines_per_entry(db_session):
     assert fetched_routines[1].apparatus == Apparatus.clubs
     assert fetched_routines[1].order_of_performance == 2
 
+
 def test_single_routine_per_apparatus_per_entry(db_session):
     meet = make_meet(db_session)
     gymnast = make_gymnast(db_session)
@@ -120,7 +127,8 @@ def test_single_routine_per_apparatus_per_entry(db_session):
         routine2 = make_routine(db_session, entry, apparatus=Apparatus.rope)
         db_session.commit()
 
-#== Relationships and foreign keys ==#
+
+# == Relationships and foreign keys ==#
 def test_routine_entry_relationship(db_session):
     meet = make_meet(db_session)
     gymnast = make_gymnast(db_session)
@@ -134,7 +142,8 @@ def test_routine_entry_relationship(db_session):
     assert fetched_routine.entry == entry
     assert fetched_routine.gymnast == gymnast
 
-#== Cascasde delete ==
+
+# == Cascasde delete ==
 def test_cascade_delete_entry(db_session):
     meet = make_meet(db_session)
     gymnast = make_gymnast(db_session)

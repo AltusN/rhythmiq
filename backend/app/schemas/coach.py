@@ -1,10 +1,11 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+
 class CoachCreate(BaseModel):
     first_name: str = Field(..., min_length=2, max_length=100)
     last_name: str = Field(..., min_length=2, max_length=100)
     club_id: int = Field(..., gt=0)
-    is_head_coach: bool = False # optional field, default to False
+    is_head_coach: bool = False  # optional field, default to False
 
     @field_validator("first_name", "last_name", mode="before")
     @classmethod
@@ -13,12 +14,13 @@ class CoachCreate(BaseModel):
             return v.strip()
         return v
 
+
 class CoachUpdate(BaseModel):
-    # Club id is intentionally excluded from the update schema. 
+    # Club id is intentionally excluded from the update schema.
     # Reassigning a coach to a different club should be handled through a separate endpoint or process.
     first_name: str | None = Field(None, min_length=2, max_length=100)
     last_name: str | None = Field(None, min_length=2, max_length=100)
-    is_head_coach: bool | None = None # optional field, default to
+    is_head_coach: bool | None = None  # optional field, default to
 
     @field_validator("first_name", "last_name", mode="before")
     @classmethod
@@ -26,7 +28,8 @@ class CoachUpdate(BaseModel):
         if isinstance(v, str) and v is not None:
             return v.strip()
         return v
-    
+
+
 class CoachRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

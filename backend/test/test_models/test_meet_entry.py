@@ -1,8 +1,9 @@
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from app.models import Meet, MeetEntry, Routine, MeetStatus, AgeGroup, Level
-from test.conftest import make_meet, make_gymnast, make_meet_entry
+from app.models import AgeGroup, Level, MeetEntry
+from test.conftest import make_gymnast, make_meet, make_meet_entry
+
 
 def test_meet_entry_create_with_required_fields(db_session):
     meet = make_meet(db_session)
@@ -19,6 +20,7 @@ def test_meet_entry_create_with_required_fields(db_session):
     assert fetched.level == Level.level_3
     assert fetched.bib_number == "A123"
 
+
 def test_meet_entry_meet_relationship(db_session):
     meet = make_meet(db_session)
     gymnast = make_gymnast(db_session)
@@ -28,6 +30,7 @@ def test_meet_entry_meet_relationship(db_session):
 
     fetched_entry = db_session.query(MeetEntry).first()
     assert fetched_entry.meet == meet
+
 
 def test_meet_entry_gymnast_relationship(db_session):
     meet = make_meet(db_session)
@@ -39,23 +42,25 @@ def test_meet_entry_gymnast_relationship(db_session):
     fetched_entry = db_session.query(MeetEntry).first()
     assert fetched_entry.gymnast == gymnast
 
+
 def test_meet_entry_bib_number_not_null(db_session):
     meet = make_meet(db_session)
     gymnast = make_gymnast(db_session)
 
     # Create a meet entry with a null bib
     entry = MeetEntry(
-        meet_id = meet.id,
-        gymnast_id = gymnast.id,
-        age_group = AgeGroup.under_8,
-        level = Level.level_1,
-        bib_number = None
+        meet_id=meet.id,
+        gymnast_id=gymnast.id,
+        age_group=AgeGroup.under_8,
+        level=Level.level_1,
+        bib_number=None,
     )
 
     db_session.add(entry)
 
     with pytest.raises(IntegrityError):
         db_session.commit()
+
 
 def test_meet_entry_entry_fee_defaults_to_false(db_session):
     meet = make_meet(db_session)
@@ -66,6 +71,7 @@ def test_meet_entry_entry_fee_defaults_to_false(db_session):
 
     fetched_entry = db_session.query(MeetEntry).first()
     assert fetched_entry.entry_fee_paid is False
+
 
 def test_meet_entry_entry_fee_can_be_set_to_true(db_session):
     meet = make_meet(db_session)
@@ -78,6 +84,7 @@ def test_meet_entry_entry_fee_can_be_set_to_true(db_session):
     fetched_entry = db_session.query(MeetEntry).first()
     assert fetched_entry.entry_fee_paid is True
 
+
 def test_meet_entry_level_required(db_session):
     # Missing level should raise and integrity error
     meet = make_meet(db_session)
@@ -85,16 +92,17 @@ def test_meet_entry_level_required(db_session):
 
     # Create a meet with a missing level
     entry = MeetEntry(
-        meet_id = meet.id,
-        gymnast_id = gymnast.id,
-        age_group = AgeGroup.under_8,
-        level = None,  # Missing level
-        bib_number = "A125"
+        meet_id=meet.id,
+        gymnast_id=gymnast.id,
+        age_group=AgeGroup.under_8,
+        level=None,  # Missing level
+        bib_number="A125",
     )
     db_session.add(entry)
 
     with pytest.raises(IntegrityError):
         db_session.commit()
+
 
 ## -- Unique constraints and validations -- ##
 def test_meet_entry_unique_constraint(db_session):
@@ -110,12 +118,13 @@ def test_meet_entry_unique_constraint(db_session):
         gymnast_id=gymnast.id,
         age_group=AgeGroup.under_12,
         level=Level.level_3,
-        bib_number="A124"
+        bib_number="A124",
     )
     db_session.add(entry2)
 
     with pytest.raises(IntegrityError):
         db_session.commit()
+
 
 def test_same_gymnast_can_enter_different_meets(db_session):
     meet1 = make_meet(db_session, name="Meet 1")
@@ -129,6 +138,7 @@ def test_same_gymnast_can_enter_different_meets(db_session):
 
     fetched_entries = db_session.query(MeetEntry).filter_by(gymnast_id=gymnast.id).all()
     assert len(fetched_entries) == 2
+
 
 def test_different_gymnast_can_enter_the_same_meet(db_session):
     meet = make_meet(db_session)

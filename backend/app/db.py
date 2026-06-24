@@ -1,19 +1,21 @@
+from collections.abc import Generator
 from contextlib import asynccontextmanager
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
-from typing import Generator
+from sqlalchemy.orm import Session, sessionmaker
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
 def init_db() -> None:
     from app import models
+
     models.Base.metadata.create_all(bind=engine)
+
 
 # Fastapi dependency
 def get_db() -> Generator[Session, None, None]:
@@ -23,10 +25,11 @@ def get_db() -> Generator[Session, None, None]:
     finally:
         db.close()
 
+
 @asynccontextmanager
 async def lifespan(app):
     init_db()
-    #Return control to FastAPI to start the server
+    # Return control to FastAPI to start the server
     yield
-    #Add tear down code here if needed in the future
+    # Add tear down code here if needed in the future
     engine.dispose()
