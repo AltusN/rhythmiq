@@ -10,7 +10,7 @@ def test_routine_create_with_required_fields(db_session):
     gymnast = make_gymnast(db_session)
     entry = make_meet_entry(db_session, meet, gymnast)
 
-    routine = make_routine(db_session, entry)
+    make_routine(db_session, entry)
 
     db_session.commit()
 
@@ -86,8 +86,8 @@ def test_same_apparatus_different_entries(db_session):
     entry1 = make_meet_entry(db_session, meet, gymnast1)
     entry2 = make_meet_entry(db_session, meet, gymnast2)
 
-    routine1 = make_routine(db_session, entry1, apparatus=Apparatus.hoop)
-    routine2 = make_routine(db_session, entry2, apparatus=Apparatus.hoop)
+    make_routine(db_session, entry1, apparatus=Apparatus.hoop)
+    make_routine(db_session, entry2, apparatus=Apparatus.hoop)
 
     db_session.commit()
 
@@ -103,8 +103,8 @@ def test_multiple_routines_per_entry(db_session):
     gymnast = make_gymnast(db_session)
     entry = make_meet_entry(db_session, meet, gymnast)
 
-    routine1 = make_routine(db_session, entry, apparatus=Apparatus.ball, order_of_performance=1)
-    routine2 = make_routine(db_session, entry, apparatus=Apparatus.clubs, order_of_performance=2)
+    make_routine(db_session, entry, apparatus=Apparatus.ball, order_of_performance=1)
+    make_routine(db_session, entry, apparatus=Apparatus.clubs, order_of_performance=2)
 
     db_session.commit()
 
@@ -121,10 +121,10 @@ def test_single_routine_per_apparatus_per_entry(db_session):
     gymnast = make_gymnast(db_session)
     entry = make_meet_entry(db_session, meet, gymnast)
 
-    routine1 = make_routine(db_session, entry, apparatus=Apparatus.rope)
+    make_routine(db_session, entry, apparatus=Apparatus.rope)
 
     with pytest.raises(IntegrityError):
-        routine2 = make_routine(db_session, entry, apparatus=Apparatus.rope)
+        make_routine(db_session, entry, apparatus=Apparatus.rope)
         db_session.commit()
 
 
@@ -134,7 +134,7 @@ def test_routine_entry_relationship(db_session):
     gymnast = make_gymnast(db_session)
     entry = make_meet_entry(db_session, meet, gymnast)
 
-    routine = make_routine(db_session, entry)
+    make_routine(db_session, entry)
 
     db_session.commit()
 

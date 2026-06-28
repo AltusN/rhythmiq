@@ -97,7 +97,7 @@ def test_club_same_name_abbreviation_different_districts_allowed(db_session):
 ## -- Relationship Tests -- ##
 def test_club_relationship_with_district(db_session):
     district = make_district(db_session, name="Relationship District", abbreviation="RD")
-    club = make_club(db_session, name="Relationship Club", abbreviation="RC", district=district)
+    make_club(db_session, name="Relationship Club", abbreviation="RC", district=district)
 
     db_session.commit()
 
@@ -138,7 +138,7 @@ def test_club_relationship_with_gymnasts(db_session):
 def test_club_deletion_with_associated_gymnasts_restricted(db_session):
     district = make_district(db_session, name="Delete District", abbreviation="DD")
     club = make_club(db_session, name="Delete Club", abbreviation="DC", district=district)
-    gymnast = make_gymnast(db_session, first_name="Eve", last_name="Adams", club=club)
+    make_gymnast(db_session, first_name="Eve", last_name="Adams", club=club)
 
     db_session.delete(club)
 
@@ -149,7 +149,7 @@ def test_club_deletion_with_associated_gymnasts_restricted(db_session):
 def test_club_deletion_with_associated_coaches_restricted(db_session):
     district = make_district(db_session, name="Delete Coach District", abbreviation="DCD")
     club = make_club(db_session, name="Delete Coach Club", abbreviation="DCC", district=district)
-    coach = make_coach(db_session, first_name="Frank", last_name="Green", club=club)
+    make_coach(db_session, first_name="Frank", last_name="Green", club=club)
 
     db_session.delete(club)
 

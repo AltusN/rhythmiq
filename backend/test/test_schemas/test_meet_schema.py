@@ -31,7 +31,7 @@ class TestMeetCreate:
         assert meet.district_id == 3
 
     def test_meet_create_district_can_be_null(self):
-        meet = MeetCreate.model_validate(
+        MeetCreate.model_validate(
             {
                 "district_id": None,
                 "name": "Invalid Meet",

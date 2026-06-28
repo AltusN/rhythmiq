@@ -1,5 +1,5 @@
-import enum
 from datetime import date as date_type
+from enum import StrEnum
 from typing import Optional
 
 from sqlalchemy import (
@@ -20,9 +20,7 @@ class Base(DeclarativeBase):
 
 
 # Enums
-
-
-class MeetStatus(str, enum.Enum):
+class MeetStatus(StrEnum):
     draft = "draft"
     scheduled = "scheduled"
     in_progress = "in_progress"
@@ -30,7 +28,7 @@ class MeetStatus(str, enum.Enum):
     canceled = "canceled"
 
 
-class Apparatus(str, enum.Enum):
+class Apparatus(StrEnum):
     rope = "rope"
     hoop = "hoop"
     ball = "ball"
@@ -39,7 +37,7 @@ class Apparatus(str, enum.Enum):
     freehand = "freehand"
 
 
-class AgeGroup(str, enum.Enum):
+class AgeGroup(StrEnum):
     under_8 = "u8"
     under_10 = "u10"
     under_12 = "u12"
@@ -47,7 +45,7 @@ class AgeGroup(str, enum.Enum):
     over_14 = "o14"
 
 
-class Level(str, enum.Enum):
+class Level(StrEnum):
     level_1 = "level_1"
     level_2 = "level_2"
     level_3 = "level_3"

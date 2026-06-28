@@ -20,7 +20,7 @@ from test.conftest import make_district, make_gymnast, make_meet, make_meet_entr
 
 # Create a meet with valid data
 def test_meet_create_with_required_fields(db_session):
-    meet = make_meet(db_session)
+    make_meet(db_session)
     db_session.commit()
 
     fetched = db_session.query(Meet).first()

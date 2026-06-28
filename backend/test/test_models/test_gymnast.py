@@ -133,8 +133,8 @@ def test_gymnast_registered_in_multiple_meets(db_session):
     meet1 = make_meet(db_session, name="Meet 1")
     meet2 = make_meet(db_session, name="Meet 2")
 
-    entry1 = make_meet_entry(db_session, meet1, gymnast)
-    entry2 = make_meet_entry(db_session, meet2, gymnast)
+    make_meet_entry(db_session, meet1, gymnast)
+    make_meet_entry(db_session, meet2, gymnast)
     db_session.commit()
 
     assert db_session.query(MeetEntry).filter_by(gymnast_id=gymnast.id).count() == 2

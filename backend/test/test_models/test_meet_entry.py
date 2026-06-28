@@ -8,7 +8,7 @@ from test.conftest import make_gymnast, make_meet, make_meet_entry
 def test_meet_entry_create_with_required_fields(db_session):
     meet = make_meet(db_session)
     gymnast = make_gymnast(db_session)
-    entry = make_meet_entry(db_session, meet, gymnast)
+    make_meet_entry(db_session, meet, gymnast)
 
     db_session.commit()
 
@@ -24,7 +24,7 @@ def test_meet_entry_create_with_required_fields(db_session):
 def test_meet_entry_meet_relationship(db_session):
     meet = make_meet(db_session)
     gymnast = make_gymnast(db_session)
-    entry = make_meet_entry(db_session, meet, gymnast)
+    make_meet_entry(db_session, meet, gymnast)
 
     db_session.commit()
 
@@ -35,7 +35,7 @@ def test_meet_entry_meet_relationship(db_session):
 def test_meet_entry_gymnast_relationship(db_session):
     meet = make_meet(db_session)
     gymnast = make_gymnast(db_session)
-    entry = make_meet_entry(db_session, meet, gymnast)
+    make_meet_entry(db_session, meet, gymnast)
 
     db_session.commit()
 
@@ -65,7 +65,7 @@ def test_meet_entry_bib_number_not_null(db_session):
 def test_meet_entry_entry_fee_defaults_to_false(db_session):
     meet = make_meet(db_session)
     gymnast = make_gymnast(db_session)
-    entry = make_meet_entry(db_session, meet, gymnast)
+    make_meet_entry(db_session, meet, gymnast)
 
     db_session.commit()
 
@@ -108,7 +108,7 @@ def test_meet_entry_level_required(db_session):
 def test_meet_entry_unique_constraint(db_session):
     meet = make_meet(db_session)
     gymnast = make_gymnast(db_session)
-    entry1 = make_meet_entry(db_session, meet, gymnast, bib_number="A123")
+    make_meet_entry(db_session, meet, gymnast, bib_number="A123")
 
     db_session.commit()
 
@@ -131,8 +131,8 @@ def test_same_gymnast_can_enter_different_meets(db_session):
     meet2 = make_meet(db_session, name="Meet 2")
     gymnast = make_gymnast(db_session)
 
-    entry1 = make_meet_entry(db_session, meet1, gymnast, bib_number="A123")
-    entry2 = make_meet_entry(db_session, meet2, gymnast, bib_number="B456")
+    make_meet_entry(db_session, meet1, gymnast, bib_number="A123")
+    make_meet_entry(db_session, meet2, gymnast, bib_number="B456")
 
     db_session.commit()
 
@@ -145,8 +145,8 @@ def test_different_gymnast_can_enter_the_same_meet(db_session):
     gymnast1 = make_gymnast(db_session, first_name="Anna", last_name="Petrov")
     gymnast2 = make_gymnast(db_session, first_name="Maria", last_name="Ivanova")
 
-    entry1 = make_meet_entry(db_session, meet, gymnast1, bib_number="A123")
-    entry2 = make_meet_entry(db_session, meet, gymnast2, bib_number="A124")
+    make_meet_entry(db_session, meet, gymnast1, bib_number="A123")
+    make_meet_entry(db_session, meet, gymnast2, bib_number="A124")
 
     db_session.commit()
 

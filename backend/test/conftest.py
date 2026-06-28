@@ -1,10 +1,24 @@
+from datetime import date
 from itertools import count
 
 import pytest
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
-from app.models import Base
+from app.models import (
+    AgeGroup,
+    Apparatus,
+    Base,
+    Club,
+    Coach,
+    District,
+    Gymnast,
+    Level,
+    Meet,
+    MeetEntry,
+    MeetStatus,
+    Routine,
+)
 
 _district_seq = count(1)
 _club_seq = count(1)
@@ -41,21 +55,6 @@ def db_session():
 
 
 # == Helper functions to create database objects for testing ==#
-from datetime import date
-
-from app.models import (
-    AgeGroup,
-    Apparatus,
-    Club,
-    Coach,
-    District,
-    Gymnast,
-    Level,
-    Meet,
-    MeetEntry,
-    MeetStatus,
-    Routine,
-)
 
 
 def make_meet(

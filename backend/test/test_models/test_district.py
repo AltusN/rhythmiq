@@ -67,7 +67,7 @@ def test_district_name_is_unque_across_districts(db_session):
 
 def test_district_deletion_with_associated_clubs_restricted(db_session):
     district = make_district(db_session)
-    club = make_club(db_session, district=district)
+    make_club(db_session, district=district)
 
     db_session.delete(district)
 
@@ -89,8 +89,8 @@ def test_club_create_with_valid_data(db_session):
 
 def test_district_can_have_many_clubs(db_session):
     district = make_district(db_session)
-    club1 = make_club(db_session, district=district, name="Club One", abbreviation="C1")
-    club2 = make_club(db_session, district=district, name="Club Two", abbreviation="C2")
+    make_club(db_session, district=district, name="Club One", abbreviation="C1")
+    make_club(db_session, district=district, name="Club Two", abbreviation="C2")
 
     db_session.commit()
 

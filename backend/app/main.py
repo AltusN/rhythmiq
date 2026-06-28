@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 
 from app.db import lifespan
+from app.routers.club import router as club_router
+from app.routers.district import router as district_router
 
 app = FastAPI(
     title="Rhytmiq API",
@@ -8,6 +10,9 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+app.include_router(club_router)
+app.include_router(district_router)
 
 
 @app.get("/", tags=["/health"])
