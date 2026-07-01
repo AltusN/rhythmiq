@@ -127,14 +127,14 @@ def test_multiple_meets_can_be_updated(db_session):
 
     # Update both meets
     meet1.status = MeetStatus.in_progress
-    meet2.status = MeetStatus.canceled
+    meet2.status = MeetStatus.cancelled
     db_session.commit()
 
     db_session.refresh(meet1)
     db_session.refresh(meet2)
 
     assert meet1.status == MeetStatus.in_progress
-    assert meet2.status == MeetStatus.canceled
+    assert meet2.status == MeetStatus.cancelled
 
 
 def test_meet_cascade_delete(db_session):

@@ -25,7 +25,7 @@ class MeetStatus(StrEnum):
     scheduled = "scheduled"
     in_progress = "in_progress"
     completed = "completed"
-    canceled = "canceled"
+    cancelled = "cancelled"
 
 
 class Apparatus(StrEnum):
