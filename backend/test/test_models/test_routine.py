@@ -1,8 +1,17 @@
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from app.models import Apparatus, MeetEntry, Routine
-from test.conftest import make_gymnast, make_meet, make_meet_entry, make_routine
+from app.models import Apparatus, Level, MeetEntry, Routine
+from test.conftest import (
+    make_club,
+    make_district,
+    make_group,
+    make_gymnast,
+    make_meet,
+    make_meet_entry,
+    make_routine,
+    make_routine_profile,
+)
 
 
 def test_routine_create_with_required_fields(db_session):
@@ -18,7 +27,6 @@ def test_routine_create_with_required_fields(db_session):
     assert fetched is not None
     assert fetched.entry_id == entry.id
     assert fetched.apparatus == Apparatus.freehand
-    assert fetched.music_url == "file:///c:/test_music.mp3"
     assert fetched.order_of_performance == 1
 
 
@@ -30,7 +38,6 @@ def test_routine_order_of_performance_optional(db_session):
     routine = Routine(
         entry_id=entry.id,
         apparatus=Apparatus.ribbon,
-        music_url="file:///c:/test_music.mp3",
         order_of_performance=None,
     )
     db_session.add(routine)
@@ -49,7 +56,6 @@ def rest_routine_apparatus_not_null(db_session):
     routine = Routine(
         entry_id=entry.id,
         apparatus=None,
-        music_url="file:///c:/test_music.mp3",
         order_of_performance=1,
     )
     db_session.add(routine)
@@ -68,7 +74,6 @@ def test_routine_valid_apparatus_values(db_session, apparatus):
     routine = Routine(
         entry_id=entry.id,
         apparatus=apparatus,
-        music_url="file:///c:/test_music.mp3",
         order_of_performance=1,
     )
     db_session.add(routine)
@@ -159,3 +164,62 @@ def test_cascade_delete_entry(db_session):
     routines = db_session.query(Routine).filter_by(entry_id=entry.id).all()
     assert len(routines) == 0
     assert db_session.query(MeetEntry).count() == 0
+
+
+# == RoutineProfile resolution (music_url join) ==#
+def test_routine_music_url_resolves_from_gymnast_profile(db_session):
+    district = make_district(db_session)
+    club = make_club(db_session, district)
+    gymnast = make_gymnast(db_session, club=club)
+    make_routine_profile(
+        db_session,
+        gymnast=gymnast,
+        apparatus=Apparatus.hoop,
+        level=Level.level_3,
+        music_url="gymnast-track.mp3",
+    )
+    meet = make_meet(db_session)
+    entry = make_meet_entry(db_session, meet, gymnast=gymnast, level=Level.level_3)
+    routine = make_routine(db_session, entry, apparatus=Apparatus.hoop)
+    db_session.commit()
+
+    assert routine.music_url == "gymnast-track.mp3"
+
+
+def test_routine_music_url_resolves_from_group_profile(db_session):
+    district = make_district(db_session)
+    club = make_club(db_session, district)
+    group = make_group(db_session, club, name="Team Group")
+    make_routine_profile(
+        db_session,
+        group=group,
+        apparatus=Apparatus.ball,
+        level=Level.level_3,
+        music_url="group-track.mp3",
+    )
+    meet = make_meet(db_session)
+    entry = make_meet_entry(db_session, meet, group=group, level=Level.level_3)
+    routine = make_routine(db_session, entry, apparatus=Apparatus.ball)
+    db_session.commit()
+
+    assert routine.music_url == "group-track.mp3"
+
+
+def test_routine_music_url_none_when_no_matching_profile(db_session):
+    district = make_district(db_session)
+    club = make_club(db_session, district)
+    gymnast = make_gymnast(db_session, club=club)
+    # Profile exists for level_3, but the entry below is registered at level_4.
+    make_routine_profile(
+        db_session,
+        gymnast=gymnast,
+        apparatus=Apparatus.hoop,
+        level=Level.level_3,
+        music_url="gymnast-track.mp3",
+    )
+    meet = make_meet(db_session)
+    entry = make_meet_entry(db_session, meet, gymnast=gymnast, level=Level.level_4)
+    routine = make_routine(db_session, entry, apparatus=Apparatus.hoop)
+    db_session.commit()
+
+    assert routine.music_url is None

@@ -12,7 +12,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, object_session, relationship
 
 
 class Base(DeclarativeBase):
@@ -180,6 +180,29 @@ class Gymnast(Base):
         UniqueConstraint("first_name", "last_name", "date_of_birth", name="uq_gymnast_identity"),
     )
 
+class RoutineProfile(Base):
+    """
+    Represents a predefined routine profile for a specific gymnast or group.
+    The music and choreography details can be stored here for reference during competitions."""
+    __tablename__ = "routine_profiles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    gymnast_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("gymnasts.id", ondelete="CASCADE"), nullable=True)
+    group_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("groups.id", ondelete="CASCADE"), nullable=True)
+    apparatus: Mapped[Apparatus] = mapped_column(Enum(Apparatus), nullable=False)
+    level: Mapped[Level] = mapped_column(Enum(Level), nullable=False)
+    music_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    choreography_notes: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("gymnast_id", "apparatus", "level", name="uq_routine_profile_gymnast_apparatus_level"),
+        UniqueConstraint("group_id", "apparatus", "level", name="uq_routine_profile_group_apparatus_level"),
+        CheckConstraint(
+            "(gymnast_id IS NOT NULL AND group_id IS NULL) OR (group_id IS NOT NULL AND gymnast_id IS NULL)",
+            name="ck_routine_profile_gymnast_or_group_not_null"
+        )
+    )
+
 class Group(Base):
     """
     Represents a group of gymnasts within a meet, typically based on age group and level.
@@ -246,12 +269,24 @@ class Routine(Base):
     entry_id: Mapped[int] = mapped_column(Integer, ForeignKey("meet_entries.id"), nullable=False)
     apparatus: Mapped[Apparatus] = mapped_column(Enum(Apparatus), nullable=False)
     order_of_performance: Mapped[int] = mapped_column(Integer, nullable=True)
-    music_url: Mapped[str | None] = mapped_column(String, nullable=True)
 
     entry: Mapped["MeetEntry"] = relationship("MeetEntry", back_populates="routines")
 
     @property
-    def gymnast(self) -> Optional["Gymnast"]:
+    def gymnast(self) -> Gymnast | None:
         return self.entry.gymnast if self.entry else None
+
+    @property
+    def music_url(self) -> str | None:
+        session = object_session(self)
+        if session is None or self.entry is None:
+            return None
+        routine_profile = session.query(RoutineProfile).filter_by(
+            gymnast_id=self.gymnast.id if self.gymnast else None,
+            group_id=self.entry.group_id if self.entry else None,
+            apparatus=self.apparatus,
+            level=self.entry.level if self.entry else None
+        ).first()
+        return routine_profile.music_url if routine_profile else None
 
     __table_args__ = (UniqueConstraint("entry_id", "apparatus", name="uq_entry_apparatus"),)

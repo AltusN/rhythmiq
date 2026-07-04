@@ -19,6 +19,7 @@ from app.models import (
     MeetEntry,
     MeetStatus,
     Routine,
+    RoutineProfile,
 )
 
 _district_seq = count(1)
@@ -177,18 +178,36 @@ def make_meet_entry(
     db_session.flush()  # Get entry.id populated
     return entry
 
+def make_routine_profile(
+    db_session,
+    gymnast=None,
+    group=None,
+    apparatus=Apparatus.freehand,
+    level=Level.level_3,
+    music_url="file:///c:/test_music.mp3",
+) -> RoutineProfile:
+    if gymnast is None and group is None:
+        gymnast = make_gymnast(db_session)  # Create a default gymnast if none provided
+    routine_profile = RoutineProfile(
+        gymnast_id=gymnast.id if gymnast else None,
+        group_id=group.id if group else None,
+        apparatus=apparatus,
+        level = level,
+        music_url=music_url,
+    )
+    db_session.add(routine_profile)
+    db_session.flush()  # Get routine_profile.id populated
+    return routine_profile
 
 def make_routine(
     db_session,
     meet_entry,
     apparatus=Apparatus.freehand,
-    music_url="file:///c:/test_music.mp3",
     order_of_performance=1,
 ) -> Routine:
     routine = Routine(
         entry_id=meet_entry.id,
         apparatus=apparatus,
-        music_url=music_url,
         order_of_performance=order_of_performance,
     )
     db_session.add(routine)
