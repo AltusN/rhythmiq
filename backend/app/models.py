@@ -277,13 +277,17 @@ class Routine(Base):
         return self.entry.gymnast if self.entry else None
 
     @property
+    def group(self) -> Group | None:
+        return self.entry.group if self.entry else None
+
+    @property
     def music_url(self) -> str | None:
         session = object_session(self)
         if session is None or self.entry is None:
             return None
         routine_profile = session.query(RoutineProfile).filter_by(
             gymnast_id=self.gymnast.id if self.gymnast else None,
-            group_id=self.entry.group_id if self.entry else None,
+            group_id=self.group.id if self.group else None,
             apparatus=self.apparatus,
             level=self.entry.level if self.entry else None
         ).first()

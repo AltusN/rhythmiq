@@ -148,6 +148,32 @@ def test_routine_entry_relationship(db_session):
     assert fetched_routine.gymnast == gymnast
 
 
+def test_routine_gymnast_property_for_gymnast_entry(db_session):
+    meet = make_meet(db_session)
+    gymnast = make_gymnast(db_session)
+    entry = make_meet_entry(db_session, meet, gymnast=gymnast)
+
+    routine = make_routine(db_session, entry)
+    db_session.commit()
+
+    assert routine.gymnast == gymnast
+    assert routine.group is None
+
+
+def test_routine_group_property_for_group_entry(db_session):
+    district = make_district(db_session)
+    club = make_club(db_session, district)
+    group = make_group(db_session, club)
+    meet = make_meet(db_session)
+    entry = make_meet_entry(db_session, meet, group=group)
+
+    routine = make_routine(db_session, entry)
+    db_session.commit()
+
+    assert routine.group == group
+    assert routine.gymnast is None
+
+
 # == Cascasde delete ==
 def test_cascade_delete_entry(db_session):
     meet = make_meet(db_session)
