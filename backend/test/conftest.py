@@ -12,6 +12,7 @@ from app.models import (
     Club,
     Coach,
     District,
+    Group,
     Gymnast,
     Level,
     Meet,
@@ -119,7 +120,8 @@ def make_gymnast(
     db_session,
     first_name="Anna",
     last_name="Petrov",
-    club=None,
+    club=None, # Optional[Club] = None,
+    group=None, # Optional[Group] = None,
     date_of_birth=date(2016, 10, 1),
     country_code="BLR",
     create_club_if_none=True,
@@ -132,6 +134,7 @@ def make_gymnast(
         first_name=first_name,
         last_name=last_name,
         club_id=club.id if club else None,
+        group_id=group.id if group else None,
         date_of_birth=date_of_birth,
         country_code=country_code,
     )
@@ -139,13 +142,33 @@ def make_gymnast(
     db_session.flush()  # Get gymnast.id populated
     return gymnast
 
+def make_group(
+    db_session,
+    club,
+    name="Test Group",
+):
+    group = Group(
+        name=name,
+        club_id=club.id,
+    )
+    db_session.add(group)
+    db_session.flush()  # Get group.id populated
+    return group
+
 
 def make_meet_entry(
-    db_session, meet, gymnast, age_group=AgeGroup.under_12, level=Level.level_3, bib_number="A123"
+    db_session,
+    meet,
+    gymnast=None,
+    group=None,
+    age_group=AgeGroup.under_12,
+    level=Level.level_3,
+    bib_number="A123",
 ) -> MeetEntry:
     entry = MeetEntry(
         meet_id=meet.id,
-        gymnast_id=gymnast.id,
+        gymnast_id=gymnast.id if gymnast else None,
+        group_id=group.id if group else None,
         age_group=age_group,
         level=level,
         bib_number=bib_number,

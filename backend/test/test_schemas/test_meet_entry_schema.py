@@ -30,6 +30,7 @@ class TestMeetEntryCreate:
             "gymnast_id": 1,
             "level": Level.junior,
             "age_group": AgeGroup.under_8,
+            "bib_number": "123",
         }
         entry = MeetEntryCreate.model_validate(data)
 
@@ -37,8 +38,18 @@ class TestMeetEntryCreate:
         assert entry.gymnast_id == 1
         assert entry.level == Level.junior
         assert entry.age_group == AgeGroup.under_8
-        assert entry.bib_number is None
+        assert entry.bib_number == "123"
         assert entry.entry_fee_paid is False
+
+    def test_meet_entry_create_bib_number_required(self):
+        data = {
+            "meet_id": 1,
+            "gymnast_id": 1,
+            "level": Level.junior,
+            "age_group": AgeGroup.under_8,
+        }
+        with pytest.raises(ValidationError):
+            MeetEntryCreate.model_validate(data)
 
     def test_invalid_meet_entry_create_missing_fields(self):
         data = {
@@ -73,9 +84,34 @@ class TestMeetEntryCreate:
         with pytest.raises(ValidationError):
             MeetEntryCreate(**data)
 
-    def test_meet_entry_gymnast_id_required(self):
+    def test_meet_entry_gymnast_or_group_id_required(self):
         data = {
             "meet_id": 1,
+            "level": Level.junior,
+            "age_group": AgeGroup.under_8,
+        }
+        with pytest.raises(ValidationError):
+            MeetEntryCreate(**data)
+
+    def test_meet_entry_create_with_group_id(self):
+        data = {
+            "meet_id": 1,
+            "group_id": 1,
+            "level": Level.junior,
+            "age_group": AgeGroup.under_8,
+            "bib_number": "123",
+        }
+        entry = MeetEntryCreate(**data)
+
+        assert entry.meet_id == 1
+        assert entry.gymnast_id is None
+        assert entry.group_id == 1
+
+    def test_meet_entry_create_both_gymnast_and_group_id_fails(self):
+        data = {
+            "meet_id": 1,
+            "gymnast_id": 1,
+            "group_id": 1,
             "level": Level.junior,
             "age_group": AgeGroup.under_8,
         }
@@ -117,6 +153,7 @@ class TestMeetEntryCreate:
             "gymnast_id": 1,
             "level": "junior",
             "age_group": AgeGroup.under_8,
+            "bib_number": "123",
         }
         entry = MeetEntryCreate(**data)
 
@@ -259,10 +296,25 @@ class TestMeetEntryRead:
         data = {
             "id": 1,
             "meet_id": 1,
-            # Missing gymnast_id, level, age_group, bib_number, entry_fee_paid
+            # Missing level, age_group, bib_number, entry_fee_paid
         }
         with pytest.raises(ValidationError):
             MeetEntryRead.model_validate(data)
+
+    def test_meet_entry_read_group_entry(self):
+        data = {
+            "id": 1,
+            "meet_id": 1,
+            "group_id": 1,
+            "level": Level.junior,
+            "age_group": AgeGroup.under_8,
+            "bib_number": "123",
+            "entry_fee_paid": True,
+        }
+        entry_read = MeetEntryRead.model_validate(data)
+
+        assert entry_read.gymnast_id is None
+        assert entry_read.group_id == 1
 
     def test_meet_entry_read_level_serialization(self):
         data = {
@@ -281,11 +333,12 @@ class TestMeetEntryRead:
     def test_meet_entry_read_from_orm_object(self):
         class DummyORM:
             def __init__(
-                self, id, meet_id, gymnast_id, level, age_group, bib_number, entry_fee_paid
+                self, id, meet_id, gymnast_id, group_id, level, age_group, bib_number, entry_fee_paid
             ):
                 self.id = id
                 self.meet_id = meet_id
                 self.gymnast_id = gymnast_id
+                self.group_id = group_id
                 self.level = level
                 self.age_group = age_group
                 self.bib_number = bib_number
@@ -295,6 +348,7 @@ class TestMeetEntryRead:
             id=1,
             meet_id=1,
             gymnast_id=1,
+            group_id=None,
             level=Level.junior,
             age_group=AgeGroup.under_8,
             bib_number="123",
