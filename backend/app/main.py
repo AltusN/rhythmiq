@@ -9,6 +9,7 @@ from app.routers.gymnast import router as gymnast_router
 from app.routers.meet import router as meet_router
 from app.routers.meet_entry import router as meet_entry_router
 from app.routers.routine import router as routine_router
+from app.routers.routine_profile import router as routine_profile_router
 
 app = FastAPI(
     title="Rhytmiq API",
@@ -25,6 +26,8 @@ app.include_router(meet_router)
 app.include_router(meet_entry_router)
 app.include_router(group_router)
 app.include_router(routine_router)
+app.include_router(routine_profile_router)
+
 
 @app.get("/", tags=["/health"])
 def root():
