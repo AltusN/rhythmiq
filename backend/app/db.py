@@ -1,12 +1,19 @@
 from collections.abc import Generator
 from contextlib import asynccontextmanager
+import os
 
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+load_dotenv()
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+POSTGRESQL_DATABASE_URL = os.environ.get("POSTGRESQL_DATABASE_URL", None)
+
+if POSTGRESQL_DATABASE_URL is None:
+    raise ValueError("POSTGRESQL_DATABASE_URL environment variable is not set")
+
+engine = create_engine(POSTGRESQL_DATABASE_URL)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

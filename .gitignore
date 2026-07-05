@@ -10,9 +10,10 @@ venv/
 env/
 .venv/
 
-# --- db --- 
+# --- db ---
 *.db
 *.sqlite
+db_data/
 
 # --- Pytest ---
 .cache/
