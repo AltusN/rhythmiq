@@ -5,8 +5,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project
 
 Rhytmiq: a FIG-compliant API for managing rhythmic gymnastics meets — districts, clubs,
-coaches, gymnasts, groups, meets, meet entries, and routines. FastAPI + Pydantic v2 +
-SQLAlchemy 2.0, SQLite for local dev/tests. All code lives under `backend/`.
+coaches, gymnasts, groups, meets, meet entries, routines, and routine profiles. FastAPI +
+Pydantic v2 + SQLAlchemy 2.0, SQLite for local dev/tests. All code lives under `backend/`.
 
 ## Commands
 
@@ -73,7 +73,14 @@ Every resource router follows: `POST /`, `GET /`, `GET /{id}`, `PATCH /{id}`, `D
 - `MeetEntry` requires exactly one of `gymnast_id`/`group_id` — enforced both by a Pydantic
   `model_validator` on `MeetEntryCreate` and by a DB `CheckConstraint`. FK fields on
   `MeetEntry` are not updatable after creation (delete + recreate instead).
-- Deletion semantics vary by relationship: `Meet`/`Gymnast` deletes cascade to
-  `MeetEntry`/`Routine`; `Club`/`Group`/`District` deletes are rejected (409) via `RESTRICT`
-  FKs when dependents exist.
-- `Group` and `Routine` currently have models/schemas but no router yet.
+- `RoutineProfile` follows the same exactly-one-of-`gymnast_id`/`group_id` pattern as
+  `MeetEntry` (model_validator + CheckConstraint), scoped further by a `UniqueConstraint` on
+  (owner, apparatus, level). Only `music_url`/`choreography_notes` are updatable after
+  creation. `Routine.music_url` resolves it live (by gymnast/group + apparatus + level, no
+  meet linkage) — deliberately not snapshotted per meet.
+- Deletion semantics vary by relationship: `Gymnast` deletes cascade to `MeetEntry`/`Routine`;
+  `Meet` deletes also cascade, but are rejected (409) while `in_progress` or `completed` —
+  a completed meet is the historical record of who competed, so it can't be silently wiped.
+  `Club`/`Group`/`District` deletes are rejected (409) via `RESTRICT` FKs when dependents exist.
+- Every resource listed above (`District` through `RoutineProfile`) now has a full
+  model/schema/router. `Group` and `Routine` were the last two to get routers.

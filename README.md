@@ -1,7 +1,7 @@
 # Rhytmiq
 
 A FIG-compliant API for managing rhythmic gymnastics meets — districts, clubs, coaches,
-gymnasts, groups, meets, meet entries, and routines.
+gymnasts, groups, meets, meet entries, routines, and routine profiles.
 
 ## Tech stack
 
@@ -72,10 +72,11 @@ backend/
 | `Club` | Belongs to a district; owns coaches, gymnasts, and groups. |
 | `Coach` | Belongs to a club. |
 | `Gymnast` | Optionally belongs to a club and a group (independent gymnasts allowed). If both are provided, the group must belong to the club. |
-| `Group` | A named group of gymnasts within a club (e.g. by age/level). Full CRUD schema/router exists. |
+| `Group` | A named group of gymnasts within a club (e.g. by age/level). |
 | `Meet` | Optionally tied to a district (national/open meets have `district_id = null`). |
 | `MeetEntry` | A gymnast's or group's entry into a meet — exactly one of `gymnast_id`/`group_id` is set. |
-| `Routine` | One row per apparatus per meet entry. Model/schema only — no router yet. |
+| `Routine` | One row per apparatus per meet entry. |
+| `RoutineProfile` | A gymnast's or group's music/choreography for an apparatus at a level — exactly one of `gymnast_id`/`group_id` is set, unique per (owner, apparatus, level). Resolved live by `Routine.music_url`, not snapshotted per meet. |
 
 ## API
 
@@ -89,9 +90,12 @@ Every resource router follows the same REST shape: `POST /`, `GET /`, `GET /{id}
 | Coaches | `/coaches` | |
 | Gymnasts | `/gymnasts` | Filter list by `?club_id=` |
 | Groups | `/groups` | Filter list by `?club_id=`; create requires a valid `club_id` |
-| Meets | `/meets` | Filter list by `?district_id=`, `?status=`. Status transitions are forward-only, enforced server-side. |
+| Meets | `/meets` | Filter list by `?district_id=`, `?status=`. Status transitions are forward-only, enforced server-side. Deleting an `in_progress` or `completed` meet is rejected (`409`). |
 | Meet entries | `/meet-entries` | Filter list by `?meet_id=`, `?gymnast_id=`, `?group_id=`. Exactly one of `gymnast_id`/`group_id` required on create; not updatable after creation. |
+| Routines | `/routines` | Filter list by `?entry_id=`. One row per apparatus per entry; `entry_id`/`apparatus` not updatable after creation. |
+| Routine profiles | `/routine-profiles` | Filter list by `?gymnast_id=`, `?group_id=`, `?apparatus=`, `?level=`. Exactly one of `gymnast_id`/`group_id` required on create; only `music_url`/`choreography_notes` are updatable after creation. |
 
-Deleting a `Meet` or `Gymnast` cascades to their `MeetEntry`/`Routine` rows. Deleting a
+Deleting a `Meet` or `Gymnast` cascades to their `MeetEntry`/`Routine` rows (unless the meet is
+`in_progress` or `completed`, in which case delete is rejected outright). Deleting a
 `Club`/`Group`/`District` that still has dependents (gymnasts, coaches, groups, clubs)
 is rejected (`409`) via `RESTRICT` foreign keys.
