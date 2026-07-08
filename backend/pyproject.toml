@@ -34,3 +34,6 @@ known-first-party = ["app"]
 [tool.ruff.format]
 quote-style = "double"
 skip-magic-trailing-comma = false
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
