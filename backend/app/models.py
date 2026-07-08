@@ -1,6 +1,6 @@
 from datetime import date as date_type
 from enum import StrEnum
-from typing import Optional
+from decimal import Decimal
 
 from sqlalchemy import (
     Boolean,
@@ -11,6 +11,7 @@ from sqlalchemy import (
     Integer,
     String,
     UniqueConstraint,
+    Numeric
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, object_session, relationship
 
@@ -57,8 +58,53 @@ class Level(StrEnum):
     junior = "junior"
     senior = "senior"
 
+class Panel(StrEnum):
+    difficulty = "difficulty"
+    execution = "execution"
+    artistry = "artistry"
+
 
 # Models
+class Judge(Base):
+    __tablename__ = "judges"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    first_name: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    last_name: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    country_code: Mapped[str | None] = mapped_column(String(3), index=True, nullable=True)
+    brevet: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    judge_scores: Mapped[list["JudgeScore"]] = relationship(
+        "JudgeScore", back_populates="judge", passive_deletes=True
+    )
+
+    __table_args__ = (
+        UniqueConstraint("first_name", "last_name", "country_code", name="uq_judge_identity"),
+    )
+
+
+class JudgeScore(Base):
+    __tablename__ = "judge_scores"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    routine_id: Mapped[int] = mapped_column(Integer, ForeignKey("routines.id", ondelete="CASCADE"), nullable=False) 
+    judge_id: Mapped[int] = mapped_column(Integer, ForeignKey("judges.id", ondelete="RESTRICT"), nullable=False)
+    panel: Mapped[Panel] = mapped_column(Enum(Panel), nullable=False)
+    value: Mapped[Decimal] = mapped_column(Numeric(6, 2), nullable=False)
+
+    routine: Mapped["Routine"] = relationship("Routine", back_populates="judge_scores")
+    judge: Mapped["Judge"] = relationship("Judge", back_populates="judge_scores")
+
+    __table_args__ = (
+        UniqueConstraint("routine_id", "judge_id", "panel", name="uq_judge_score_routine_judge_panel"),
+        CheckConstraint("value >= 0", name="ck_judge_score_value_non_negative"),
+        CheckConstraint("value % 0.05 = 0", name="ck_judge_score_value_increments"),
+        CheckConstraint(
+            "panel = 'difficulty' OR value <= 10",
+            name="ck_judge_score_panel_value_cap",
+        ),
+    )
+
 class Meet(Base):
     __tablename__ = "meets"
 
@@ -74,7 +120,7 @@ class Meet(Base):
         Enum(MeetStatus), default=MeetStatus.draft, nullable=False
     )
 
-    district: Mapped[Optional["District"]] = relationship("District", back_populates="meets")
+    district: Mapped["District | None"] = relationship("District", back_populates="meets")
 
     entries: Mapped[list["MeetEntry"]] = relationship(
         "MeetEntry", back_populates="meet", cascade="all, delete-orphan"
@@ -167,7 +213,7 @@ class Gymnast(Base):
     date_of_birth: Mapped[date_type | None] = mapped_column(Date)
     country_code: Mapped[str | None] = mapped_column(String(3), index=True)
 
-    club: Mapped[Optional["Club"]] = relationship("Club", back_populates="gymnasts")
+    club: Mapped["Club | None"] = relationship("Club", back_populates="gymnasts")
     entries: Mapped[list["MeetEntry"]] = relationship(
         "MeetEntry", back_populates="gymnast", cascade="all, delete-orphan"
     )
@@ -269,8 +315,14 @@ class Routine(Base):
     entry_id: Mapped[int] = mapped_column(Integer, ForeignKey("meet_entries.id"), nullable=False)
     apparatus: Mapped[Apparatus] = mapped_column(Enum(Apparatus), nullable=False)
     order_of_performance: Mapped[int] = mapped_column(Integer, nullable=True)
+    penalty: Mapped[Decimal] = mapped_column(
+        Numeric(6, 2), default=0, server_default="0", nullable=False
+    )
 
     entry: Mapped["MeetEntry"] = relationship("MeetEntry", back_populates="routines")
+    judge_scores: Mapped[list["JudgeScore"]] = relationship(
+        "JudgeScore", back_populates="routine", cascade="all, delete-orphan"
+    )
 
     @property
     def gymnast(self) -> Gymnast | None:
@@ -293,4 +345,8 @@ class Routine(Base):
         ).first()
         return routine_profile.music_url if routine_profile else None
 
-    __table_args__ = (UniqueConstraint("entry_id", "apparatus", name="uq_entry_apparatus"),)
+    __table_args__ = (
+        UniqueConstraint("entry_id", "apparatus", name="uq_entry_apparatus"),
+        CheckConstraint("penalty >= 0", name="ck_routine_penalty_non_negative"),
+        CheckConstraint("penalty % 0.05 = 0", name="ck_routine_penalty_increments"),
+    )
