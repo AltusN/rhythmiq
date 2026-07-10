@@ -18,6 +18,7 @@ from app.models import (
     District,
     Group,
     Gymnast,
+    Judge,
     Level,
     Meet,
     MeetEntry,
@@ -227,3 +228,21 @@ def make_routine(
     db_session.add(routine)
     db_session.flush()  # Get routine.id populated
     return routine
+
+
+def make_judge(
+    db_session,
+    first_name="Annette",
+    last_name="Nel",
+    country_code=None,
+    brevet=None,
+) -> Judge:
+    judge = Judge(
+        first_name=first_name,
+        last_name=last_name,
+        country_code=country_code,
+        brevet=brevet,
+    )
+    db_session.add(judge)
+    db_session.flush()  # Get judge.id populated
+    return judge
