@@ -19,10 +19,12 @@ from app.models import (
     Group,
     Gymnast,
     Judge,
+    JudgeScore,
     Level,
     Meet,
     MeetEntry,
     MeetStatus,
+    Panel,
     Routine,
     RoutineProfile,
 )
@@ -246,3 +248,30 @@ def make_judge(
     db_session.add(judge)
     db_session.flush()  # Get judge.id populated
     return judge
+
+
+def make_judge_score(
+    db_session,
+    routine=None,
+    judge=None,
+    value=9.5,
+    panel=Panel.execution,
+) -> JudgeScore:
+    if routine is None:
+        district = make_district(db_session)
+        club = make_club(db_session, district=district)
+        gymnast = make_gymnast(db_session, club=club)
+        meet = make_meet(db_session, district=district)
+        meet_entry = make_meet_entry(db_session, meet=meet, gymnast=gymnast)
+        routine = make_routine(db_session, meet_entry=meet_entry)
+    if judge is None:
+        judge = make_judge(db_session)
+    judge_score = JudgeScore(
+        routine_id=routine.id,
+        judge_id=judge.id,
+        value=value,
+        panel=panel,
+    )
+    db_session.add(judge_score)
+    db_session.flush()  # Get judge_score.id populated
+    return judge_score
