@@ -11,7 +11,8 @@ Design notes:
 - Uniqueness: two separate UniqueConstraints on the model
   (meet_id+gymnast_id, meet_id+group_id), so IntegrityError → 409 covers
   "this gymnast/group already has an entry at this meet."
-- GET filters: ?meet_id=, ?gymnast_id=, ?group_id= all make sense.
+- GET filters: ?meet_id=, ?gymnast_id=, ?group_id=, ?level=, ?age_group= are all
+  optional, and can be combined. If none are provided, returns all meet entries.
 - PATCH: no FK fields are updatable at all (locked in), so it's the
   simplest PATCH we've written — no FK pre-checks needed, just
   exclude_unset + IntegrityError → 409.
@@ -67,6 +68,8 @@ def list_meet_entries(
     meet_id: Annotated[int | None, Query(description="Filter by meet_id")] = None,
     gymnast_id: Annotated[int | None, Query(description="Filter by gymnast_id")] = None,
     group_id: Annotated[int | None, Query(description="Filter by group_id")] = None,
+    level: Annotated[str | None, Query(description="Filter by level")] = None,
+    age_group: Annotated[str | None, Query(description="Filter by age_group")] = None,
 ) -> list[MeetEntry]:
     query = db.query(MeetEntry)
     if meet_id is not None:
@@ -75,7 +78,10 @@ def list_meet_entries(
         query = query.filter(MeetEntry.gymnast_id == gymnast_id)
     if group_id is not None:
         query = query.filter(MeetEntry.group_id == group_id)
-
+    if level is not None:
+        query = query.filter(MeetEntry.level == level)
+    if age_group is not None:
+        query = query.filter(MeetEntry.age_group == age_group)
     return query.all()
 
 @router.get("/{entry_id}", response_model=MeetEntryRead)
