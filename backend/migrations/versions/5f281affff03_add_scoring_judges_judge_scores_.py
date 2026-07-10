@@ -40,13 +40,18 @@ def upgrade() -> None:
         sa.Column("routine_id", sa.Integer(), nullable=False),
         sa.Column("judge_id", sa.Integer(), nullable=False),
         sa.Column(
-            "panel", sa.Enum("difficulty", "execution", "artistry", name="panel"), nullable=False
+            "panel",
+            sa.Enum(
+                "difficulty_body", "difficulty_apparatus", "execution", "artistry", name="panel"
+            ),
+            nullable=False,
         ),
         sa.Column("value", sa.Numeric(precision=6, scale=2), nullable=False),
         sa.CheckConstraint("value >= 0", name="ck_judge_score_value_non_negative"),
         sa.CheckConstraint("value % 0.05 = 0", name="ck_judge_score_value_increments"),
         sa.CheckConstraint(
-            "panel = 'difficulty' OR value <= 10", name="ck_judge_score_panel_value_cap"
+            "panel IN ('difficulty_body', 'difficulty_apparatus') OR value <= 10",
+            name="ck_judge_score_panel_value_cap",
         ),
         sa.ForeignKeyConstraint(["judge_id"], ["judges.id"], ondelete="RESTRICT"),
         sa.ForeignKeyConstraint(["routine_id"], ["routines.id"], ondelete="CASCADE"),
@@ -58,14 +63,10 @@ def upgrade() -> None:
     op.create_index(op.f("ix_judge_scores_id"), "judge_scores", ["id"], unique=False)
     op.add_column(
         "routines",
-        sa.Column(
-            "penalty", sa.Numeric(precision=6, scale=2), server_default="0", nullable=False
-        ),
+        sa.Column("penalty", sa.Numeric(precision=6, scale=2), server_default="0", nullable=False),
     )
     op.create_check_constraint("ck_routine_penalty_non_negative", "routines", "penalty >= 0")
-    op.create_check_constraint(
-        "ck_routine_penalty_increments", "routines", "penalty % 0.05 = 0"
-    )
+    op.create_check_constraint("ck_routine_penalty_increments", "routines", "penalty % 0.05 = 0")
 
 
 def downgrade() -> None:

@@ -1,6 +1,6 @@
 from datetime import date as date_type
-from enum import StrEnum
 from decimal import Decimal
+from enum import StrEnum
 
 from sqlalchemy import (
     Boolean,
@@ -9,9 +9,9 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Integer,
+    Numeric,
     String,
     UniqueConstraint,
-    Numeric
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, object_session, relationship
 
@@ -58,8 +58,13 @@ class Level(StrEnum):
     junior = "junior"
     senior = "senior"
 
+
 class Panel(StrEnum):
-    difficulty = "difficulty"
+    # Difficulty is split into two independently-judged subgroups per FIG's Code of
+    # Points (DB: Difficulty of Body, DA: Difficulty of Apparatus) -- their scores are
+    # summed, not averaged together, and neither is capped at 10 like artistry/execution.
+    difficulty_body = "difficulty_body"
+    difficulty_apparatus = "difficulty_apparatus"
     execution = "execution"
     artistry = "artistry"
 
@@ -87,8 +92,12 @@ class JudgeScore(Base):
     __tablename__ = "judge_scores"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    routine_id: Mapped[int] = mapped_column(Integer, ForeignKey("routines.id", ondelete="CASCADE"), nullable=False) 
-    judge_id: Mapped[int] = mapped_column(Integer, ForeignKey("judges.id", ondelete="RESTRICT"), nullable=False)
+    routine_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("routines.id", ondelete="CASCADE"), nullable=False
+    )
+    judge_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("judges.id", ondelete="RESTRICT"), nullable=False
+    )
     panel: Mapped[Panel] = mapped_column(Enum(Panel), nullable=False)
     value: Mapped[Decimal] = mapped_column(Numeric(6, 2), nullable=False)
 
@@ -96,14 +105,17 @@ class JudgeScore(Base):
     judge: Mapped["Judge"] = relationship("Judge", back_populates="judge_scores")
 
     __table_args__ = (
-        UniqueConstraint("routine_id", "judge_id", "panel", name="uq_judge_score_routine_judge_panel"),
+        UniqueConstraint(
+            "routine_id", "judge_id", "panel", name="uq_judge_score_routine_judge_panel"
+        ),
         CheckConstraint("value >= 0", name="ck_judge_score_value_non_negative"),
         CheckConstraint("value % 0.05 = 0", name="ck_judge_score_value_increments"),
         CheckConstraint(
-            "panel = 'difficulty' OR value <= 10",
+            "panel IN ('difficulty_body', 'difficulty_apparatus') OR value <= 10",
             name="ck_judge_score_panel_value_cap",
         ),
     )
+
 
 class Meet(Base):
     __tablename__ = "meets"
@@ -225,37 +237,51 @@ class Gymnast(Base):
         UniqueConstraint("first_name", "last_name", "date_of_birth", name="uq_gymnast_identity"),
     )
 
+
 class RoutineProfile(Base):
     """
     Represents a predefined routine profile for a specific gymnast or group.
     The music and choreography details can be stored here for reference during competitions."""
+
     __tablename__ = "routine_profiles"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    gymnast_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("gymnasts.id", ondelete="CASCADE"), nullable=True)
-    group_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("groups.id", ondelete="CASCADE"), nullable=True)
+    gymnast_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("gymnasts.id", ondelete="CASCADE"), nullable=True
+    )
+    group_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("groups.id", ondelete="CASCADE"), nullable=True
+    )
     apparatus: Mapped[Apparatus] = mapped_column(Enum(Apparatus), nullable=False)
     level: Mapped[Level] = mapped_column(Enum(Level), nullable=False)
     music_url: Mapped[str | None] = mapped_column(String, nullable=True)
     choreography_notes: Mapped[str | None] = mapped_column(String, nullable=True)
 
     __table_args__ = (
-        UniqueConstraint("gymnast_id", "apparatus", "level", name="uq_routine_profile_gymnast_apparatus_level"),
-        UniqueConstraint("group_id", "apparatus", "level", name="uq_routine_profile_group_apparatus_level"),
+        UniqueConstraint(
+            "gymnast_id", "apparatus", "level", name="uq_routine_profile_gymnast_apparatus_level"
+        ),
+        UniqueConstraint(
+            "group_id", "apparatus", "level", name="uq_routine_profile_group_apparatus_level"
+        ),
         CheckConstraint(
             "(gymnast_id IS NOT NULL AND group_id IS NULL) OR (group_id IS NOT NULL AND gymnast_id IS NULL)",
-            name="ck_routine_profile_gymnast_or_group_not_null"
-        )
+            name="ck_routine_profile_gymnast_or_group_not_null",
+        ),
     )
+
 
 class Group(Base):
     """
     Represents a group of gymnasts within a meet, typically based on age group and level.
     """
+
     __tablename__ = "groups"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    club_id: Mapped[int] = mapped_column(Integer, ForeignKey("clubs.id", ondelete="RESTRICT"), nullable=False)
+    club_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("clubs.id", ondelete="RESTRICT"), nullable=False
+    )
     name: Mapped[str] = mapped_column(String, index=True, nullable=False)
 
     club: Mapped["Club"] = relationship("Club", back_populates="groups")
@@ -264,9 +290,7 @@ class Group(Base):
         "Gymnast", back_populates="group", passive_deletes="all"
     )
 
-    __table_args__ = (
-        UniqueConstraint("club_id", "name", name="uq_group_name"),
-    )
+    __table_args__ = (UniqueConstraint("club_id", "name", name="uq_group_name"),)
 
 
 class MeetEntry(Base):
@@ -280,7 +304,9 @@ class MeetEntry(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     meet_id: Mapped[int] = mapped_column(Integer, ForeignKey("meets.id"), nullable=False)
-    gymnast_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("gymnasts.id"), nullable=True)
+    gymnast_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("gymnasts.id"), nullable=True
+    )
     group_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("groups.id"), nullable=True)
     bib_number: Mapped[str] = mapped_column(String, nullable=False)
     entry_fee_paid: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -299,8 +325,9 @@ class MeetEntry(Base):
         UniqueConstraint("meet_id", "group_id", name="uq_meet_entry_group"),
         CheckConstraint(
             "(gymnast_id IS NOT NULL AND group_id IS NULL) OR (group_id IS NOT NULL AND gymnast_id IS NULL)",
-            name="ck_meet_entry_gymnast_or_group_not_null")
-        )
+            name="ck_meet_entry_gymnast_or_group_not_null",
+        ),
+    )
 
 
 class Routine(Base):
@@ -336,12 +363,16 @@ class Routine(Base):
         session = object_session(self)
         if session is None or self.entry is None:
             return None
-        routine_profile = session.query(RoutineProfile).filter_by(
-            gymnast_id=self.gymnast.id if self.gymnast else None,
-            group_id=self.group.id if self.group else None,
-            apparatus=self.apparatus,
-            level=self.entry.level if self.entry else None
-        ).first()
+        routine_profile = (
+            session.query(RoutineProfile)
+            .filter_by(
+                gymnast_id=self.gymnast.id if self.gymnast else None,
+                group_id=self.group.id if self.group else None,
+                apparatus=self.apparatus,
+                level=self.entry.level if self.entry else None,
+            )
+            .first()
+        )
         return routine_profile.music_url if routine_profile else None
 
     __table_args__ = (

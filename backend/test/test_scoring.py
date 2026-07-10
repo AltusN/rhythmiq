@@ -92,7 +92,8 @@ def test_compute_routine_score_rounds_to_two_decimal_places():
 def test_compute_routine_score_composes_full_panel_and_penalty():
     routine = _routine(
         [
-            _mark(Panel.difficulty, "5.30"),
+            _mark(Panel.difficulty_body, "3.30"),
+            _mark(Panel.difficulty_apparatus, "2.00"),
             _mark(Panel.artistry, "9.5"),
             _mark(Panel.artistry, "9.0"),
             _mark(Panel.artistry, "9.25"),
@@ -107,8 +108,55 @@ def test_compute_routine_score_composes_full_panel_and_penalty():
     result = compute_routine_score(routine)
 
     assert isinstance(result, RoutineScoreResult)
-    assert result.d_score == Decimal("5.30")
+    assert result.d_score == Decimal("5.30")  # difficulty_body (3.30) + difficulty_apparatus (2.00)
     assert result.a_score == Decimal("9.25")
     assert result.e_score == Decimal("8.65")  # trimmed mean of [8.5,8.6,8.7,9.9] -> [8.6,8.7]
     assert result.penalty == Decimal("0.30")
     assert result.total == Decimal("22.90")
+
+
+def test_compute_routine_score_d_score_sums_body_and_apparatus_subgroups():
+    # Per FIG's Code of Points, D is the SUM of two independently-judged subgroups,
+    # not a single trimmed mean over a pooled set of "difficulty" marks. Using >=4
+    # marks in each subgroup (so trimmed_mean actually trims) with values that would
+    # produce a very different (wrong) result if the two subgroups were pooled together
+    # instead of reduced separately and summed.
+    routine = _routine(
+        [
+            _mark(Panel.difficulty_body, "5.00"),
+            _mark(Panel.difficulty_body, "5.20"),
+            _mark(Panel.difficulty_body, "5.10"),
+            _mark(Panel.difficulty_body, "9.90"),
+            _mark(Panel.difficulty_apparatus, "3.00"),
+            _mark(Panel.difficulty_apparatus, "3.30"),
+            _mark(Panel.difficulty_apparatus, "3.10"),
+            _mark(Panel.difficulty_apparatus, "0.00"),
+        ]
+    )
+
+    result = compute_routine_score(routine)
+
+    # difficulty_body: sorted [5.00,5.10,5.20,9.90] -> trim -> [5.10,5.20] -> mean 5.15
+    # difficulty_apparatus: sorted [0.00,3.00,3.10,3.30] -> trim -> [3.00,3.10] -> mean 3.05
+    assert result.d_score == Decimal("8.20")
+
+
+def test_compute_routine_score_d_score_uses_only_one_subgroup_when_other_is_empty():
+    routine = _routine([_mark(Panel.difficulty_body, "6.40")])
+
+    result = compute_routine_score(routine)
+
+    assert result.d_score == Decimal("6.40")
+
+
+def test_compute_routine_score_d_score_is_not_capped_at_10():
+    routine = _routine(
+        [
+            _mark(Panel.difficulty_body, "9.80"),
+            _mark(Panel.difficulty_apparatus, "8.40"),
+        ]
+    )
+
+    result = compute_routine_score(routine)
+
+    assert result.d_score == Decimal("18.20")

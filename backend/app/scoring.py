@@ -49,6 +49,11 @@ def compute_routine_score(routine) -> RoutineScoreResult:
     Returns:
         RoutineScoreResult: the per-panel scores, penalty, and total, each rounded to
         2 decimal places to match the Numeric(6, 2) DB columns.
+
+    Note: per FIG's Code of Points, D is the *sum* of two independently-judged
+    subgroups (difficulty_body + difficulty_apparatus), not a trimmed mean of a single
+    pool like artistry/execution -- each subgroup is reduced with the same trimmed_mean
+    as A/E, then the two results are added together.
     """
     by_panel: dict[Panel, list[Decimal]] = {panel: [] for panel in Panel}
     for judge_score in routine.judge_scores:
@@ -57,7 +62,9 @@ def compute_routine_score(routine) -> RoutineScoreResult:
     def rounded(values: list[Decimal]) -> Decimal:
         return trimmed_mean(values).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
-    d_score = rounded(by_panel[Panel.difficulty])
+    db_score = rounded(by_panel[Panel.difficulty_body])
+    da_score = rounded(by_panel[Panel.difficulty_apparatus])
+    d_score = db_score + da_score
     a_score = rounded(by_panel[Panel.artistry])
     e_score = rounded(by_panel[Panel.execution])
     penalty = routine.penalty
