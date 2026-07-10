@@ -18,8 +18,7 @@ test:
 	cd backend && .venv/bin/pytest
 
 reset:
-	docker compose down
-	sudo rm -rf db_data
+	docker compose down -v
 	$(MAKE) dev
 
 seed:
