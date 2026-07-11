@@ -7,6 +7,7 @@ from app.routers.district import router as district_router
 from app.routers.group import router as group_router
 from app.routers.gymnast import router as gymnast_router
 from app.routers.judge import router as judge_router
+from app.routers.judge_score import router as judge_score_router
 from app.routers.meet import router as meet_router
 from app.routers.meet_entry import router as meet_entry_router
 from app.routers.routine import router as routine_router
@@ -29,6 +30,7 @@ app.include_router(group_router)
 app.include_router(routine_router)
 app.include_router(routine_profile_router)
 app.include_router(judge_router)
+app.include_router(judge_score_router)
 
 
 @app.get("/", tags=["/health"])
