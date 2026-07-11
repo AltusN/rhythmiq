@@ -6,12 +6,26 @@ Key differences from other routers:
   the real app.
 - apparatus + entry_id is unique (one row per apparatus per entry).
 - Routines can be filtered by entry_id when listing.
-- PATCH only ever touches order_of_performance — entry_id/apparatus are
-  locked in at creation.
+- PATCH only ever touches order_of_performance and penalty — entry_id/
+  apparatus are locked in at creation.
+- GET /{id}/score computes the routine's D/A/E/total live from its
+  judge_scores via compute_routine_score (app/scoring.py) — the heavy
+  scoring logic itself is unit-tested in test_scoring.py, so these tests
+  only need to prove the endpoint wires that logic up correctly (404s,
+  no-marks-yet, and one realistic multi-panel case).
 """
 
-from app.models import Apparatus
-from test.conftest import make_gymnast, make_meet, make_meet_entry, make_routine
+from decimal import Decimal
+
+from app.models import Apparatus, Panel
+from test.conftest import (
+    make_gymnast,
+    make_judge,
+    make_judge_score,
+    make_meet,
+    make_meet_entry,
+    make_routine,
+)
 
 
 def _entry(db_session):
@@ -46,6 +60,40 @@ def test_create_routine_without_order_of_performance(client, db_session):
 
     assert response.status_code == 201
     assert response.json()["order_of_performance"] is None
+
+
+def test_create_routine_default_penalty_is_zero(client, db_session):
+    entry = _entry(db_session)
+    db_session.commit()
+
+    response = client.post("/routines", json={"entry_id": entry.id, "apparatus": "ball"})
+
+    assert response.status_code == 201
+    assert Decimal(response.json()["penalty"]) == Decimal("0")
+
+
+def test_create_routine_with_explicit_penalty(client, db_session):
+    entry = _entry(db_session)
+    db_session.commit()
+
+    response = client.post(
+        "/routines",
+        json={"entry_id": entry.id, "apparatus": "ball", "penalty": "0.30"},
+    )
+
+    assert response.status_code == 201
+    assert Decimal(response.json()["penalty"]) == Decimal("0.30")
+
+
+def test_create_routine_negative_penalty_rejected(client, db_session):
+    entry = _entry(db_session)
+    db_session.commit()
+
+    response = client.post(
+        "/routines",
+        json={"entry_id": entry.id, "apparatus": "ball", "penalty": "-0.10"},
+    )
+    assert response.status_code == 422
 
 
 def test_create_routine_entry_not_found(client, db_session):
@@ -119,6 +167,59 @@ def test_get_routine_not_found(client):
     assert response.status_code == 404
 
 
+##-- GET /routines/{id}/score --##
+def test_get_routine_score_not_found(client):
+    response = client.get("/routines/9999/score")
+    assert response.status_code == 404
+
+
+def test_get_routine_score_no_marks_yet(client, db_session):
+    entry = _entry(db_session)
+    routine = make_routine(db_session, entry, apparatus=Apparatus.hoop)
+    db_session.commit()
+
+    response = client.get(f"/routines/{routine.id}/score")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["routine_id"] == routine.id
+    assert Decimal(body["d_score"]) == Decimal("0.00")
+    assert Decimal(body["a_score"]) == Decimal("0.00")
+    assert Decimal(body["e_score"]) == Decimal("0.00")
+    assert Decimal(body["penalty"]) == Decimal("0.00")
+    assert Decimal(body["total"]) == Decimal("0.00")
+
+
+def test_get_routine_score_composes_marks_and_penalty(client, db_session):
+    entry = _entry(db_session)
+    routine = make_routine(db_session, entry, apparatus=Apparatus.hoop)
+    routine.penalty = Decimal("0.30")
+    db_session.flush()
+    db_session.commit()
+
+    judge = make_judge(db_session)
+    make_judge_score(
+        db_session, routine=routine, judge=judge, panel=Panel.difficulty_body, value="3.30"
+    )
+    make_judge_score(
+        db_session, routine=routine, judge=judge, panel=Panel.difficulty_apparatus, value="2.00"
+    )
+    make_judge_score(db_session, routine=routine, judge=judge, panel=Panel.artistry, value="9.00")
+    make_judge_score(db_session, routine=routine, judge=judge, panel=Panel.execution, value="8.50")
+    db_session.commit()
+
+    response = client.get(f"/routines/{routine.id}/score")
+
+    assert response.status_code == 200
+    body = response.json()
+    # d_score = difficulty_body (3.30) + difficulty_apparatus (2.00)
+    assert Decimal(body["d_score"]) == Decimal("5.30")
+    assert Decimal(body["a_score"]) == Decimal("9.00")
+    assert Decimal(body["e_score"]) == Decimal("8.50")
+    assert Decimal(body["penalty"]) == Decimal("0.30")
+    assert Decimal(body["total"]) == Decimal("22.50")
+
+
 ##-- PATCH /routines/{id} --##
 def test_update_routine_order_of_performance(client, db_session):
     entry = _entry(db_session)
@@ -134,6 +235,26 @@ def test_update_routine_order_of_performance(client, db_session):
 def test_update_routine_not_found(client):
     response = client.patch("/routines/9999", json={"order_of_performance": 1})
     assert response.status_code == 404
+
+
+def test_update_routine_penalty(client, db_session):
+    entry = _entry(db_session)
+    routine = make_routine(db_session, entry, apparatus=Apparatus.rope)
+    db_session.commit()
+
+    response = client.patch(f"/routines/{routine.id}", json={"penalty": "0.50"})
+
+    assert response.status_code == 200
+    assert Decimal(response.json()["penalty"]) == Decimal("0.50")
+
+
+def test_update_routine_penalty_negative_rejected(client, db_session):
+    entry = _entry(db_session)
+    routine = make_routine(db_session, entry, apparatus=Apparatus.rope)
+    db_session.commit()
+
+    response = client.patch(f"/routines/{routine.id}", json={"penalty": "-0.10"})
+    assert response.status_code == 422
 
 
 def test_update_routine_body_is_empty(client, db_session):
