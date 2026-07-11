@@ -218,10 +218,16 @@ def make_routine_profile(
 
 def make_routine(
     db_session,
-    meet_entry,
+    meet_entry=None,
     apparatus=Apparatus.freehand,
     order_of_performance=1,
 ) -> Routine:
+    if meet_entry is None:
+        district = make_district(db_session)
+        club = make_club(db_session, district=district)
+        gymnast = make_gymnast(db_session, club=club)
+        meet = make_meet(db_session, district=district)
+        meet_entry = make_meet_entry(db_session, meet=meet, gymnast=gymnast)
     routine = Routine(
         entry_id=meet_entry.id,
         apparatus=apparatus,
@@ -258,12 +264,7 @@ def make_judge_score(
     panel=Panel.execution,
 ) -> JudgeScore:
     if routine is None:
-        district = make_district(db_session)
-        club = make_club(db_session, district=district)
-        gymnast = make_gymnast(db_session, club=club)
-        meet = make_meet(db_session, district=district)
-        meet_entry = make_meet_entry(db_session, meet=meet, gymnast=gymnast)
-        routine = make_routine(db_session, meet_entry=meet_entry)
+        routine = make_routine(db_session)
     if judge is None:
         judge = make_judge(db_session)
     judge_score = JudgeScore(
