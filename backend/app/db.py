@@ -1,6 +1,6 @@
+import os
 from collections.abc import Generator
 from contextlib import asynccontextmanager
-import os
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
@@ -16,6 +16,7 @@ if POSTGRESQL_DATABASE_URL is None:
 engine = create_engine(POSTGRESQL_DATABASE_URL)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
 
 # Fastapi dependency
 def get_db() -> Generator[Session, None, None]:
