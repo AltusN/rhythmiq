@@ -1,3 +1,7 @@
+"""
+Pydantic validation tests for the MeetCreate/MeetUpdate/MeetRead schemas, including
+the start_date <= end_date model_validator (only fires when both dates are present).
+"""
 
 from app.models import MeetStatus
 from app.schemas.meet import MeetCreate, MeetRead, MeetUpdate

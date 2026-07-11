@@ -1,3 +1,15 @@
+"""
+Tests for the Routine model, including:
+- Creation with required fields; order_of_performance is optional
+- All Apparatus enum values are valid
+- uq_entry_apparatus: one row per apparatus per entry, but the same apparatus is fine
+  across different entries, and multiple apparatuses are fine per entry
+- entry/gymnast/group relationships and properties
+- Cascade delete from MeetEntry
+- music_url resolves live from the matching RoutineProfile (by gymnast/group +
+  apparatus + level), and is None when no matching profile exists
+"""
+
 import pytest
 from sqlalchemy.exc import IntegrityError
 

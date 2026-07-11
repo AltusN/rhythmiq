@@ -1,3 +1,5 @@
+"""Pydantic validation tests for the CoachCreate/CoachUpdate/CoachRead schemas."""
+
 import pytest
 from pydantic import ValidationError
 

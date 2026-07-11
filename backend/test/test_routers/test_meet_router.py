@@ -1,3 +1,15 @@
+"""
+Test suite for the meet router.
+- district_id is optional (national meets have none), pre-checked for existence when
+  present.
+- Date validation: start_date <= end_date on create; on PATCH, the model_validator only
+  fires when both dates are sent together, otherwise the router validates the incoming
+  date against the stored counterpart.
+- status transitions are forward-only (draft -> scheduled -> in_progress -> completed),
+  any status can go to cancelled, and sending the current status is a no-op.
+- DELETE is rejected (409) while status is in_progress or completed.
+"""
+
 from datetime import date
 
 import pytest

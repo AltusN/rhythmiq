@@ -1,3 +1,5 @@
+"""Pydantic validation tests for the GroupCreate/GroupUpdate/GroupRead schemas."""
+
 import pytest
 from pydantic import ValidationError
 

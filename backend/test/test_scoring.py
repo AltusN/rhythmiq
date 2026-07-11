@@ -1,3 +1,13 @@
+"""
+Unit tests for app/scoring.py, using plain SimpleNamespace stand-ins for Routine/
+JudgeScore rather than the DB, since the scoring math has no DB dependency.
+- trimmed_mean: plain average below TRIM_THRESHOLD, trims high/low at or above it.
+- compute_routine_score: D score is difficulty_body + difficulty_apparatus summed
+  (not pooled and averaged like A/E), missing panels score 0, results are rounded to
+  2 decimal places, penalty subtracts from the total, and D is not capped at 10 unlike
+  A/E.
+"""
+
 from decimal import Decimal
 from types import SimpleNamespace
 

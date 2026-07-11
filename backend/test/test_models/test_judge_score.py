@@ -1,3 +1,14 @@
+"""
+Tests for the JudgeScore model, including:
+- Creation with required fields, rejection when required fields are missing
+- ck_judge_score_value_non_negative and ck_judge_score_value_increments (0.05 steps)
+- ck_judge_score_panel_value_cap: artistry/execution capped at 10, difficulty_body/
+  difficulty_apparatus are not
+- uq_judge_score_routine_judge_panel: same routine+judge+panel rejected, same
+  routine+judge with a different panel allowed
+- Routine delete cascades to JudgeScore; Judge delete is RESTRICTed while scores exist
+"""
+
 import pytest
 from sqlalchemy.exc import IntegrityError
 

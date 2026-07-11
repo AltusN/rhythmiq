@@ -1,3 +1,8 @@
+"""
+Pydantic validation tests for the MeetEntryCreate/MeetEntryUpdate/MeetEntryRead
+schemas, including the model_validator requiring exactly one of gymnast_id/group_id.
+"""
+
 import pytest
 from pydantic import ValidationError
 

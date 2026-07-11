@@ -1,3 +1,5 @@
+"""Pydantic validation tests for the GymnastCreate/GymnastUpdate/GymnastRead schemas."""
+
 from datetime import date
 
 import pytest

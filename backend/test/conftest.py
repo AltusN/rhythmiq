@@ -1,3 +1,12 @@
+"""
+Top-level pytest fixtures and factory helpers shared by test_models/ and test_schemas/.
+
+- `db_session`: a raw SQLAlchemy session bound to a connection/transaction that gets
+  rolled back at teardown, so each test starts from a clean, empty database.
+- `make_*`: one factory per model, building a valid row (and its required parents, if
+  omitted) with sensible defaults so tests only have to specify what they care about.
+"""
+
 import os
 from datetime import date
 from itertools import count

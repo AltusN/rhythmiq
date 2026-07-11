@@ -1,3 +1,12 @@
+"""
+Tests for the MeetEntry model, including:
+- Creation with required fields, and its meet/gymnast relationships
+- bib_number required, level required
+- entry_fee defaults to False and can be set to True
+- Unique constraint on (meet, gymnast) -- same gymnast can enter different meets, and
+  different gymnasts can enter the same meet
+"""
+
 import pytest
 from sqlalchemy.exc import IntegrityError
 

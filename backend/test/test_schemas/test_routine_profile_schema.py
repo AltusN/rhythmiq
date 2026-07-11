@@ -1,3 +1,9 @@
+"""
+Pydantic validation tests for the RoutineProfileCreate/RoutineProfileUpdate/
+RoutineProfileRead schemas, including the model_validator requiring exactly one of
+gymnast_id/group_id (same pattern as MeetEntry).
+"""
+
 import pytest
 from pydantic import ValidationError
 

@@ -1,3 +1,5 @@
+"""Pydantic validation tests for the ClubCreate/ClubUpdate/ClubRead schemas."""
+
 import pytest
 from pydantic import ValidationError
 

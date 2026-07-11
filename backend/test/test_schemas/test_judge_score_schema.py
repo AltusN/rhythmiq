@@ -1,3 +1,9 @@
+"""
+Pydantic validation tests for the JudgeScoreCreate/JudgeScoreUpdate/JudgeScoreRead
+schemas, including the Create-only model_validator that caps artistry/execution at
+10.0 (difficulty_body/difficulty_apparatus are uncapped).
+"""
+
 from decimal import Decimal
 
 import pytest

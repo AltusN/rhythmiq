@@ -1,3 +1,5 @@
+"""Pydantic validation tests for the JudgeCreate/JudgeUpdate/JudgeRead schemas."""
+
 import pytest
 from pydantic import ValidationError
 

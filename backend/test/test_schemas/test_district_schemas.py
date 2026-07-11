@@ -1,3 +1,5 @@
+"""Pydantic validation tests for the DistrictCreate/DistrictUpdate/DistrictRead schemas."""
+
 import pytest
 from pydantic import ValidationError
 

@@ -1,9 +1,3 @@
-import pytest
-from sqlalchemy.exc import IntegrityError
-
-from app.models import Club, District
-from test.conftest import make_club, make_district
-
 """
 Tests for the District model, including:
 - Creation of districts with valid data
@@ -13,6 +7,12 @@ Tests for the District model, including:
 - Restriction on deletion of districts with associated clubs
 - Creation of clubs with valid data and association to districts
 """
+
+import pytest
+from sqlalchemy.exc import IntegrityError
+
+from app.models import Club, District
+from test.conftest import make_club, make_district
 
 
 def test_district_create_with_valid_data(db_session):

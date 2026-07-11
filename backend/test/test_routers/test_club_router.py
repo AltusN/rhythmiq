@@ -1,3 +1,11 @@
+"""
+Test suite for the club router.
+- A club belongs to a district (district_id), pre-checked for existence on create.
+- name/abbreviation are unique per district, but the same values are allowed across
+  different districts.
+- DELETE is rejected (409) while the club still has gymnasts or coaches (RESTRICT FKs).
+"""
+
 import pytest
 
 from app.models import Club

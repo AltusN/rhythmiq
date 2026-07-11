@@ -1,3 +1,10 @@
+"""
+Pydantic validation tests for the RoutineCreate/RoutineUpdate/RoutineRead schemas,
+plus RoutineScoreRead (the GET /routines/{id}/score response wrapper). penalty
+defaults to 0 on Create (not None -- see app/schemas/routine.py) since the router
+builds the model via model_dump() without exclude_unset.
+"""
+
 from decimal import Decimal
 
 import pytest
