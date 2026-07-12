@@ -1,0 +1,57 @@
+from decimal import Decimal
+
+from pydantic import BaseModel, Field
+
+from app.models import AgeGroup, Apparatus, Level
+
+
+class ApparatusStandingRow(BaseModel):
+    rank: int = Field(..., description="Competition rank within this apparatus category.")
+    entry_id: int = Field(..., description="The meet entry this routine belongs to.")
+    routine_id: int = Field(..., description="The routine this row represents.")
+    competitor_name: str = Field(..., description="Gymnast full name, or group name.")
+    bib_number: str = Field(..., description="Bib number of the competing entry.")
+    level: Level
+    age_group: AgeGroup
+    apparatus: Apparatus
+    d_score: Decimal
+    a_score: Decimal
+    e_score: Decimal
+    penalty: Decimal
+    total: Decimal
+
+
+class ApparatusStandingsRead(BaseModel):
+    """Live-computed per-apparatus ranking for one meet/level/age_group/apparatus slice."""
+
+    meet_id: int
+    provisional: bool = Field(..., description="True unless the meet's status is 'completed'.")
+    apparatus: Apparatus
+    level: Level | None = Field(None, description="Level filter applied, if any.")
+    age_group: AgeGroup | None = Field(None, description="Age group filter applied, if any.")
+    rankings: list[ApparatusStandingRow]
+
+
+class AllAroundStandingRow(BaseModel):
+    rank: int = Field(..., description="Competition rank within this all-around category.")
+    entry_id: int = Field(..., description="The meet entry this row represents.")
+    competitor_name: str = Field(..., description="Gymnast full name, or group name.")
+    bib_number: str = Field(..., description="Bib number of the competing entry.")
+    level: Level
+    age_group: AgeGroup
+    total: Decimal = Field(..., description="Sum of this entry's routine totals.")
+    e_total: Decimal = Field(..., description="Sum of this entry's routine Execution scores.")
+    routines_counted: int = Field(
+        ...,
+        description="Number of routines summed -- less than the full apparatus count means a partial (in-progress or incomplete) all-around.",
+    )
+
+
+class AllAroundStandingsRead(BaseModel):
+    """Live-computed all-around ranking for one meet/level/age_group slice."""
+
+    meet_id: int
+    provisional: bool = Field(..., description="True unless the meet's status is 'completed'.")
+    level: Level | None = Field(None, description="Level filter applied, if any.")
+    age_group: AgeGroup | None = Field(None, description="Age group filter applied, if any.")
+    rankings: list[AllAroundStandingRow]

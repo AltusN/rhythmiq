@@ -15,9 +15,13 @@ import pytest
 
 from app.models import Level, Panel
 from app.scoring import (
+    AllAroundStanding,
+    ApparatusStanding,
     RoutineScoreResult,
     compute_routine_score,
     is_panel_valid_for_level,
+    rank_all_around,
+    rank_apparatus,
     trimmed_mean,
 )
 
@@ -189,3 +193,146 @@ def test_is_panel_valid_for_level_e_only_levels(level, panel):
 @pytest.mark.parametrize("panel", list(Panel))
 def test_is_panel_valid_for_level_non_gated_levels(level, panel):
     assert is_panel_valid_for_level(level, panel) is True
+
+
+def _entry(routines):
+    return SimpleNamespace(routines=routines)
+
+
+def test_rank_apparatus_orders_by_total_descending():
+    low = _routine([_mark(Panel.execution, "6.00")])
+    mid = _routine([_mark(Panel.execution, "8.00")])
+    high = _routine([_mark(Panel.execution, "9.50")])
+
+    standings = rank_apparatus([low, high, mid])
+
+    assert [s.rank for s in standings] == [1, 2, 3]
+    assert [s.routine for s in standings] == [high, mid, low]
+    assert all(isinstance(s, ApparatusStanding) for s in standings)
+
+
+def test_rank_apparatus_execution_tiebreak_on_equal_totals():
+    # Equal totals (20.00) but different Execution -- higher Execution ranks first.
+    lower_execution = _routine(
+        [
+            _mark(Panel.difficulty_body, "10.00"),
+            _mark(Panel.artistry, "5.00"),
+            _mark(Panel.execution, "5.00"),
+        ]
+    )
+    higher_execution = _routine(
+        [
+            _mark(Panel.difficulty_body, "8.00"),
+            _mark(Panel.artistry, "5.00"),
+            _mark(Panel.execution, "7.00"),
+        ]
+    )
+
+    standings = rank_apparatus([lower_execution, higher_execution])
+
+    assert [s.routine for s in standings] == [higher_execution, lower_execution]
+    assert [s.rank for s in standings] == [1, 2]
+
+
+def test_rank_apparatus_shares_rank_on_full_tie():
+    tied_a = _routine([_mark(Panel.execution, "9.00")])
+    tied_b = _routine([_mark(Panel.execution, "9.00")])
+    lowest = _routine([_mark(Panel.execution, "7.00")])
+
+    standings = rank_apparatus([tied_a, tied_b, lowest])
+
+    ranks_by_routine = {id(s.routine): s.rank for s in standings}
+    assert ranks_by_routine[id(tied_a)] == 1
+    assert ranks_by_routine[id(tied_b)] == 1
+    assert ranks_by_routine[id(lowest)] == 3  # rank 2 is skipped
+
+
+def test_rank_apparatus_empty_input_returns_empty_list():
+    assert rank_apparatus([]) == []
+
+
+def test_rank_all_around_sums_totals_across_routines_and_ranks():
+    entry_a = _entry([_routine([_mark(Panel.execution, "9.00")])])
+    entry_b = _entry(
+        [
+            _routine([_mark(Panel.execution, "9.00")]),
+            _routine([_mark(Panel.execution, "8.00")]),
+        ]
+    )
+
+    standings = rank_all_around([entry_a, entry_b])
+
+    assert all(isinstance(s, AllAroundStanding) for s in standings)
+    by_entry = {id(s.entry): s for s in standings}
+    assert by_entry[id(entry_b)].total == Decimal("17.00")
+    assert by_entry[id(entry_a)].total == Decimal("9.00")
+    assert by_entry[id(entry_b)].rank == 1
+    assert by_entry[id(entry_a)].rank == 2
+
+
+def test_rank_all_around_routines_counted_reflects_partial_sets():
+    complete = _entry(
+        [
+            _routine([_mark(Panel.execution, "9.00")]),
+            _routine([_mark(Panel.execution, "9.00")]),
+        ]
+    )
+    partial = _entry([_routine([_mark(Panel.execution, "9.50")])])
+
+    standings = rank_all_around([complete, partial])
+
+    by_entry = {id(s.entry): s for s in standings}
+    assert by_entry[id(complete)].routines_counted == 2
+    assert by_entry[id(partial)].routines_counted == 1
+    # A partial set is ranked on its own (smaller) total, not dropped.
+    assert by_entry[id(partial)].total == Decimal("9.50")
+    assert by_entry[id(complete)].total == Decimal("18.00")
+    assert by_entry[id(complete)].rank == 1
+    assert by_entry[id(partial)].rank == 2
+
+
+def test_rank_all_around_execution_tiebreak_on_equal_totals():
+    lower_execution = _entry(
+        [
+            _routine(
+                [
+                    _mark(Panel.difficulty_body, "10.00"),
+                    _mark(Panel.artistry, "5.00"),
+                    _mark(Panel.execution, "5.00"),
+                ]
+            )
+        ]
+    )
+    higher_execution = _entry(
+        [
+            _routine(
+                [
+                    _mark(Panel.difficulty_body, "8.00"),
+                    _mark(Panel.artistry, "5.00"),
+                    _mark(Panel.execution, "7.00"),
+                ]
+            )
+        ]
+    )
+
+    standings = rank_all_around([lower_execution, higher_execution])
+
+    assert [s.entry for s in standings] == [higher_execution, lower_execution]
+    assert [s.rank for s in standings] == [1, 2]
+
+
+def test_rank_all_around_shares_rank_on_full_tie():
+    tied_a = _entry([_routine([_mark(Panel.execution, "9.00")])])
+    tied_b = _entry([_routine([_mark(Panel.execution, "9.00")])])
+    lowest = _entry([_routine([_mark(Panel.execution, "7.00")])])
+
+    standings = rank_all_around([tied_a, tied_b, lowest])
+
+    ranks_by_entry = {id(s.entry): s.rank for s in standings}
+    assert ranks_by_entry[id(tied_a)] == 1
+    assert ranks_by_entry[id(tied_b)] == 1
+    assert ranks_by_entry[id(lowest)] == 3  # rank 2 is skipped
+
+
+def test_rank_all_around_empty_input_returns_empty_list():
+    assert rank_all_around([]) == []

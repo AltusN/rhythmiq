@@ -113,3 +113,14 @@ Every resource router follows: `POST /`, `GET /`, `GET /{id}`, `PATCH /{id}`, `D
 - Every resource listed above (`District` through `PenaltyRecord`) now has a full
   model/schema/router. `Judge`, `JudgeScore`, and `PenaltyRecord` were the last three to
   get routers.
+- **Results/reporting** (`routers/results.py`, read-only, no model of its own):
+  `GET /meets/{id}/standings?apparatus=...` ranks routines within one (level, age_group,
+  apparatus) slice; `GET /meets/{id}/all-around?...` sums each entry's routine totals
+  across apparatus within one (level, age_group) slice and ranks those sums. Both are
+  computed live via `rank_apparatus`/`rank_all_around` (`app/scoring.py`) — never
+  snapshotted, same philosophy as `Routine.music_url`. Ties break by highest total
+  Execution (FIG Technical Regulations), then share a rank (competition ranking:
+  1,2,2,4). `provisional` is `true` unless `meet.status == completed`. All-around sums
+  are not required to be complete — a competitor missing an apparatus is still ranked on
+  their partial total, with `routines_counted` surfacing that it's partial. Deferred:
+  district/club team scores, CSV export, and any snapshotted official-results record.
