@@ -35,6 +35,6 @@ app.include_router(judge_score_router)
 app.include_router(penalty_record_router)
 
 
-@app.get("/", tags=["/health"])
+@app.get("/", tags=["Health"])
 def root():
     return {"status": "ok", "service": "Rhytmiq API"}

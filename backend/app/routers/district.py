@@ -17,7 +17,7 @@ from app.db import get_db
 from app.models import District
 from app.schemas.district import DistrictCreate, DistrictRead, DistrictUpdate
 
-router = APIRouter(prefix="/districts", tags=["districts"])
+router = APIRouter(prefix="/districts", tags=["Districts"])
 
 @router.post("/", response_model=DistrictRead, status_code=201)
 def create_district(payload: DistrictCreate, db: Annotated[Session, Depends(get_db)]):

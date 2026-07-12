@@ -8,7 +8,7 @@ from app.db import get_db
 from app.models import Judge
 from app.schemas.judge import JudgeCreate, JudgeRead, JudgeUpdate
 
-router = APIRouter(prefix="/judges", tags=["judges"])
+router = APIRouter(prefix="/judges", tags=["Judges"])
 
 
 @router.post("/", response_model=JudgeRead, status_code=status.HTTP_201_CREATED)

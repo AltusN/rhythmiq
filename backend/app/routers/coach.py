@@ -15,7 +15,7 @@ from app.db import get_db
 from app.models import Club, Coach
 from app.schemas.coach import CoachCreate, CoachRead, CoachUpdate
 
-router = APIRouter(prefix="/coaches", tags=["coaches"])
+router = APIRouter(prefix="/coaches", tags=["Coaches"])
 
 @router.post("/", response_model=CoachRead, status_code=201)
 def create_coach(payload: CoachCreate, db: Annotated[Session, Depends(get_db)]):

@@ -34,7 +34,7 @@ from app.schemas.routine_profile import (
     RoutineProfileUpdate,
 )
 
-router = APIRouter(prefix="/routine-profiles", tags=["routine-profiles"])
+router = APIRouter(prefix="/routine-profiles", tags=["Routine Profiles"])
 
 
 ##-- Post --##

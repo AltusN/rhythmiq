@@ -38,7 +38,7 @@ from app.models import MeetEntry, Routine
 from app.schemas.routine import RoutineCreate, RoutineRead, RoutineScoreRead, RoutineUpdate
 from app.scoring import compute_routine_score
 
-router = APIRouter(prefix="/routines", tags=["routines"])
+router = APIRouter(prefix="/routines", tags=["Routines"])
 
 
 ##-- Post --##

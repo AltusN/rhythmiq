@@ -17,7 +17,7 @@ from app.db import get_db
 from app.models import Club, Group
 from app.schemas.group import GroupCreate, GroupRead, GroupUpdate
 
-router = APIRouter(prefix="/groups", tags=["groups"])
+router = APIRouter(prefix="/groups", tags=["Groups"])
 
 ##-- Post a new group
 @router.post("/", response_model=GroupRead, status_code=status.HTTP_201_CREATED)

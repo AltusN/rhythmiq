@@ -19,7 +19,7 @@ from app.db import get_db
 from app.models import Club, Group, Gymnast
 from app.schemas.gymnast import GymnastCreate, GymnastRead, GymnastUpdate
 
-router = APIRouter(prefix="/gymnasts", tags=["gymnasts"])
+router = APIRouter(prefix="/gymnasts", tags=["Gymnasts"])
 
 @router.post("/", response_model=GymnastRead, status_code=status.HTTP_201_CREATED)
 def create_gymnast(payload: GymnastCreate, db: Annotated[Session, Depends(get_db)]):

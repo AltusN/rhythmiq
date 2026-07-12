@@ -30,7 +30,7 @@ from app.db import get_db
 from app.models import Group, Gymnast, Meet, MeetEntry
 from app.schemas.meet_entry import MeetEntryCreate, MeetEntryRead, MeetEntryUpdate
 
-router = APIRouter(prefix="/meet-entries", tags=["meet-entries"])
+router = APIRouter(prefix="/meet-entries", tags=["Meet Entries"])
 
 ##-- Post --##
 @router.post("/", response_model=MeetEntryRead, status_code=status.HTTP_201_CREATED)

@@ -30,7 +30,7 @@ from app.db import get_db
 from app.models import District, Meet, MeetStatus
 from app.schemas.meet import MeetCreate, MeetRead, MeetUpdate
 
-router = APIRouter(prefix="/meets", tags=["meets"])
+router = APIRouter(prefix="/meets", tags=["Meets"])
 
 # Transition map for MeetStatus
 ALLOWED_STATUS_TRANSITIONS: dict[MeetStatus, set[MeetStatus]] = {

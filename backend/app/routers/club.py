@@ -20,7 +20,7 @@ from app.db import get_db
 from app.models import Club, District
 from app.schemas.club import ClubCreate, ClubRead, ClubUpdate
 
-router = APIRouter(prefix="/clubs", tags=["clubs"])
+router = APIRouter(prefix="/clubs", tags=["Clubs"])
 
 
 def fetch_club_or_404(db: Session, club_id: int) -> Club:
