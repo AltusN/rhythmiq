@@ -69,6 +69,17 @@ class Panel(StrEnum):
     artistry = "artistry"
 
 
+class PenaltyJudgeRole(StrEnum):
+    # Per FIG's Code of Points section 14, penalties are assessed by one of three
+    # judge roles, not the D/A/E scoring panel. The specific ~19 penalty categories
+    # (e.g. "boundary touch", "unauthorized apparatus retrieval") are deliberately not
+    # modeled as a second enum -- they're free text on PenaltyRecord.description, since
+    # that list can change between Code of Points editions while these three roles won't.
+    time_judge = "time_judge"
+    line_judge = "line_judge"
+    responsible_judge = "responsible_judge"
+
+
 # Models
 class Judge(Base):
     __tablename__ = "judges"
@@ -81,6 +92,9 @@ class Judge(Base):
 
     judge_scores: Mapped[list["JudgeScore"]] = relationship(
         "JudgeScore", back_populates="judge", passive_deletes=True
+    )
+    penalty_records: Mapped[list["PenaltyRecord"]] = relationship(
+        "PenaltyRecord", back_populates="judge", passive_deletes=True
     )
 
     __table_args__ = (
@@ -114,6 +128,43 @@ class JudgeScore(Base):
             "panel IN ('difficulty_body', 'difficulty_apparatus') OR value <= 10",
             name="ck_judge_score_panel_value_cap",
         ),
+    )
+
+
+class PenaltyRecord(Base):
+    """
+    One itemized penalty deduction against a routine, per FIG's Code of Points section
+    14. Unlike JudgeScore, deliberately has no UniqueConstraint -- the same judge_role
+    can legitimately recur multiple times on one routine (e.g. two separate boundary
+    touches by the Line judge).
+
+    Routine.penalty is kept in sync with the sum of a routine's PenaltyRecords by
+    app/routers/penalty_record.py's _resync_routine_penalty helper -- see that router's
+    docstring for the guard that prevents the two from drifting apart.
+    """
+
+    __tablename__ = "penalty_records"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    routine_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("routines.id", ondelete="CASCADE"), nullable=False
+    )
+    judge_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("judges.id", ondelete="RESTRICT"), nullable=False
+    )
+    judge_role: Mapped[PenaltyJudgeRole] = mapped_column(Enum(PenaltyJudgeRole), nullable=False)
+    description: Mapped[str] = mapped_column(String, nullable=False)
+    amount: Mapped[Decimal] = mapped_column(Numeric(6, 2), nullable=False)
+
+    routine: Mapped["Routine"] = relationship("Routine", back_populates="penalty_records")
+    judge: Mapped["Judge"] = relationship("Judge", back_populates="penalty_records")
+
+    __table_args__ = (
+        # Stricter than JudgeScore.value's >= 0 -- an itemized penalty line shouldn't
+        # ever be a zero-value entry, which also makes a separate non-negative
+        # constraint redundant.
+        CheckConstraint("amount > 0", name="ck_penalty_record_amount_positive"),
+        CheckConstraint("amount % 0.05 = 0", name="ck_penalty_record_amount_increments"),
     )
 
 
@@ -348,6 +399,9 @@ class Routine(Base):
     entry: Mapped["MeetEntry"] = relationship("MeetEntry", back_populates="routines")
     judge_scores: Mapped[list["JudgeScore"]] = relationship(
         "JudgeScore", back_populates="routine", cascade="all, delete-orphan"
+    )
+    penalty_records: Mapped[list["PenaltyRecord"]] = relationship(
+        "PenaltyRecord", back_populates="routine", cascade="all, delete-orphan"
     )
 
     @property
