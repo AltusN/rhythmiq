@@ -37,7 +37,7 @@ def create_judge_score(payload: JudgeScoreCreate, db: Annotated[Session, Depends
         )
     if not is_panel_valid_for_level(routine.entry.level, payload.panel):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=(
                 f"Routine {payload.routine_id} is level {routine.entry.level.value}, "
                 f"which is scored on execution only -- {payload.panel.value} is not valid."

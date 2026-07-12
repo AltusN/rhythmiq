@@ -66,7 +66,7 @@ def _validate_partial_dates(
 
     if effective_end < effective_start:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="end_date cannot be before start_date.",
         )
 
