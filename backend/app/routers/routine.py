@@ -12,7 +12,11 @@ Design notes:
 - GET filters: ?entry_id= lets you list all routines for one entry.
 - PATCH: entry_id/apparatus are not updatable (locked in at creation, per
   RoutineUpdate) — only order_of_performance and penalty change, so no FK
-  pre-check needed.
+  pre-check needed. Direct penalty edits are rejected (409) once the
+  routine has any PenaltyRecords (app/routers/penalty_record.py) — once
+  itemization has started for a routine, penalty must only change via
+  itemized records, so the aggregate can't be hand-edited out of sync with
+  their sum.
 - DELETE: nothing references Routine as a parent, so no IntegrityError can
   occur — no try/except needed, matching meet_entry.py's delete.
 - GET /{routine_id}/score computes the routine's D/A/E/total live via
@@ -117,7 +121,17 @@ def update_routine(
             status_code=status.HTTP_404_NOT_FOUND, detail=f"Routine with id {routine_id} not found"
         )
 
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    updates = payload.model_dump(exclude_unset=True)
+    if "penalty" in updates and routine.penalty_records:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"Routine {routine_id} has itemized penalty records -- edit those "
+                "instead of setting penalty directly."
+            ),
+        )
+
+    for field, value in updates.items():
         setattr(routine, field, value)
 
     try:

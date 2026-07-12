@@ -10,6 +10,7 @@ from app.routers.judge import router as judge_router
 from app.routers.judge_score import router as judge_score_router
 from app.routers.meet import router as meet_router
 from app.routers.meet_entry import router as meet_entry_router
+from app.routers.penalty_record import router as penalty_record_router
 from app.routers.routine import router as routine_router
 from app.routers.routine_profile import router as routine_profile_router
 
@@ -31,6 +32,7 @@ app.include_router(routine_router)
 app.include_router(routine_profile_router)
 app.include_router(judge_router)
 app.include_router(judge_score_router)
+app.include_router(penalty_record_router)
 
 
 @app.get("/", tags=["/health"])
