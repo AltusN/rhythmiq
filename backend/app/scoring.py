@@ -101,3 +101,84 @@ def compute_routine_score(routine) -> RoutineScoreResult:
         penalty=penalty,
         total=total,
     )
+
+
+@dataclass(frozen=True)
+class ApparatusStanding:
+    rank: int
+    routine: object
+    score: RoutineScoreResult
+
+
+@dataclass(frozen=True)
+class AllAroundStanding:
+    rank: int
+    entry: object
+    total: Decimal
+    e_total: Decimal
+    routines_counted: int
+
+
+def _assign_ranks(rows: list, key_fn) -> list[int]:
+    """
+    Competition ranking (1,2,2,4): `rows` must already be sorted best-first. Rows with an
+    equal `key_fn` value share a rank; the next distinct value's rank skips ahead to its
+    1-based position in `rows`, rather than incrementing by 1.
+
+    Returns a list of ranks, one per row in `rows`, in the same order.
+    """
+    ranks: list[int] = []
+    for i, row in enumerate(rows):
+        if i > 0 and key_fn(row) == key_fn(rows[i - 1]):
+            ranks.append(ranks[-1])
+        else:
+            ranks.append(i + 1)
+    return ranks
+
+
+def rank_apparatus(routines) -> list[ApparatusStanding]:
+    """
+    Rank routines within a single apparatus category (caller filters to one
+    (meet, level, age_group, apparatus) slice first).
+
+    Per FIG Technical Regulations, ties are broken by total score first, then by highest
+    total Execution; a routine still tied on both shares its rank with the next
+    (competition ranking, see _assign_ranks).
+    """
+    scored = [(routine, compute_routine_score(routine)) for routine in routines]
+    scored.sort(key=lambda pair: (pair[1].total, pair[1].e_score), reverse=True)
+
+    ranks = _assign_ranks(scored, key_fn=lambda pair: (pair[1].total, pair[1].e_score))
+    return [
+        ApparatusStanding(rank=rank, routine=routine, score=score)
+        for rank, (routine, score) in zip(ranks, scored, strict=True)
+    ]
+
+
+def rank_all_around(entries) -> list[AllAroundStanding]:
+    """
+    Rank meet entries by the sum of their routines' totals (the all-around), within a
+    single (meet, level, age_group) slice (caller filters first).
+
+    A competitor with an incomplete apparatus set (e.g. injured mid-meet) is still ranked
+    on their partial sum, not excluded -- `routines_counted` lets the caller surface that
+    the total is partial, matching how compute_routine_score returns 0 for missing panels
+    rather than erroring. Same tie-break as rank_apparatus: total, then summed Execution,
+    then shared rank.
+    """
+    summed = []
+    for entry in entries:
+        results = [compute_routine_score(routine) for routine in entry.routines]
+        total = sum((result.total for result in results), Decimal("0"))
+        e_total = sum((result.e_score for result in results), Decimal("0"))
+        summed.append((entry, total, e_total, len(results)))
+
+    summed.sort(key=lambda row: (row[1], row[2]), reverse=True)
+
+    ranks = _assign_ranks(summed, key_fn=lambda row: (row[1], row[2]))
+    return [
+        AllAroundStanding(
+            rank=rank, entry=entry, total=total, e_total=e_total, routines_counted=count
+        )
+        for rank, (entry, total, e_total, count) in zip(ranks, summed, strict=True)
+    ]
