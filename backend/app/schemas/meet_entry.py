@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models import AgeGroup, Level
 
@@ -15,6 +15,13 @@ class MeetEntryCreate(BaseModel):
     bib_number: str = Field(..., description="The bib number of the gymnast")
     entry_fee_paid: bool = Field(False, description="Whether the entry fee has been paid")
 
+    @field_validator("bib_number", mode="before")
+    @classmethod
+    def strip_whitespace(cls, value: str) -> str:
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
     @model_validator(mode="after")
     def validate_gymnast_or_group(self) -> "MeetEntryCreate":
         if (self.gymnast_id is None) == (self.group_id is None):
@@ -30,6 +37,13 @@ class MeetEntryUpdate(BaseModel):
     age_group: AgeGroup | None = Field(None, description="The age group of the gymnast")
     bib_number: str | None = Field(None, description="The bib number of the gymnast")
     entry_fee_paid: bool | None = Field(None, description="Whether the entry fee has been paid")
+
+    @field_validator("bib_number", mode="before")
+    @classmethod
+    def strip_whitespace(cls, value: str | None) -> str | None:
+        if isinstance(value, str):
+            return value.strip()
+        return value
 
 
 class MeetEntryRead(BaseModel):

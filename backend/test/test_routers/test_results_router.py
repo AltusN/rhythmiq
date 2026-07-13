@@ -111,6 +111,7 @@ def test_get_standings_level_and_age_group_filter(client, db_session):
         gymnast=gymnast_in,
         level=Level.level_5,
         age_group=AgeGroup.under_12,
+        bib_number="101",
     )
     entry_out = make_meet_entry(
         db_session,
@@ -118,6 +119,7 @@ def test_get_standings_level_and_age_group_filter(client, db_session):
         gymnast=gymnast_out,
         level=Level.level_7,
         age_group=AgeGroup.under_14,
+        bib_number="102",
     )
     routine_in = make_routine(db_session, entry_in, apparatus=Apparatus.hoop)
     make_routine(db_session, entry_out, apparatus=Apparatus.hoop)
@@ -189,9 +191,9 @@ def test_get_standings_medal_tiers_from_configured_cutoffs(client, db_session):
     gymnast_also_gold = make_gymnast(db_session, first_name="Second", last_name="Scorer")
     gymnast_bronze = make_gymnast(db_session, first_name="Low", last_name="Scorer")
 
-    entry_gold = make_meet_entry(db_session, meet, gymnast=gymnast_gold)
-    entry_also_gold = make_meet_entry(db_session, meet, gymnast=gymnast_also_gold)
-    entry_bronze = make_meet_entry(db_session, meet, gymnast=gymnast_bronze)
+    entry_gold = make_meet_entry(db_session, meet, gymnast=gymnast_gold, bib_number="101")
+    entry_also_gold = make_meet_entry(db_session, meet, gymnast=gymnast_also_gold, bib_number="102")
+    entry_bronze = make_meet_entry(db_session, meet, gymnast=gymnast_bronze, bib_number="103")
 
     routine_gold = make_routine(db_session, entry_gold, apparatus=Apparatus.ball)
     routine_also_gold = make_routine(db_session, entry_also_gold, apparatus=Apparatus.ball)
@@ -234,6 +236,7 @@ def test_get_all_around_sums_across_apparatus_and_ranks(client, db_session):
         gymnast=gymnast_complete,
         level=Level.level_5,
         age_group=AgeGroup.under_12,
+        bib_number="101",
     )
     entry_partial = make_meet_entry(
         db_session,
@@ -241,6 +244,7 @@ def test_get_all_around_sums_across_apparatus_and_ranks(client, db_session):
         gymnast=gymnast_partial,
         level=Level.level_5,
         age_group=AgeGroup.under_12,
+        bib_number="102",
     )
 
     ball_complete = make_routine(db_session, entry_complete, apparatus=Apparatus.ball)
@@ -283,8 +287,8 @@ def test_get_all_around_execution_tiebreak_on_equal_totals(client, db_session):
     gymnast_lower_e = make_gymnast(db_session, first_name="Lower", last_name="Execution")
     gymnast_higher_e = make_gymnast(db_session, first_name="Higher", last_name="Execution")
 
-    entry_lower_e = make_meet_entry(db_session, meet, gymnast=gymnast_lower_e)
-    entry_higher_e = make_meet_entry(db_session, meet, gymnast=gymnast_higher_e)
+    entry_lower_e = make_meet_entry(db_session, meet, gymnast=gymnast_lower_e, bib_number="101")
+    entry_higher_e = make_meet_entry(db_session, meet, gymnast=gymnast_higher_e, bib_number="102")
 
     routine_lower_e = make_routine(db_session, entry_lower_e, apparatus=Apparatus.ball)
     routine_higher_e = make_routine(db_session, entry_higher_e, apparatus=Apparatus.ball)
@@ -359,8 +363,8 @@ def test_get_all_around_medal_tiers_from_configured_cutoffs(client, db_session):
     gymnast_silver = make_gymnast(db_session, first_name="Mid", last_name="Scorer")
     gymnast_bronze = make_gymnast(db_session, first_name="Low", last_name="Scorer")
 
-    entry_silver = make_meet_entry(db_session, meet, gymnast=gymnast_silver)
-    entry_bronze = make_meet_entry(db_session, meet, gymnast=gymnast_bronze)
+    entry_silver = make_meet_entry(db_session, meet, gymnast=gymnast_silver, bib_number="101")
+    entry_bronze = make_meet_entry(db_session, meet, gymnast=gymnast_bronze, bib_number="102")
 
     ball_silver = make_routine(db_session, entry_silver, apparatus=Apparatus.ball)
     hoop_silver = make_routine(db_session, entry_silver, apparatus=Apparatus.hoop)

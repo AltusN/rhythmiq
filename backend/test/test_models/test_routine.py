@@ -100,8 +100,8 @@ def test_same_apparatus_different_entries(db_session):
     meet = make_meet(db_session)
     gymnast1 = make_gymnast(db_session, first_name="Alice", last_name="Smith")
     gymnast2 = make_gymnast(db_session, first_name="Bob", last_name="Johnson")
-    entry1 = make_meet_entry(db_session, meet, gymnast1)
-    entry2 = make_meet_entry(db_session, meet, gymnast2)
+    entry1 = make_meet_entry(db_session, meet, gymnast1, bib_number="A123")
+    entry2 = make_meet_entry(db_session, meet, gymnast2, bib_number="A124")
 
     make_routine(db_session, entry1, apparatus=Apparatus.hoop)
     make_routine(db_session, entry2, apparatus=Apparatus.hoop)

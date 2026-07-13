@@ -396,6 +396,7 @@ class MeetEntry(Base):
     __table_args__ = (
         UniqueConstraint("meet_id", "gymnast_id", name="uq_meet_entry_gymnast"),
         UniqueConstraint("meet_id", "group_id", name="uq_meet_entry_group"),
+        UniqueConstraint("meet_id", "bib_number", name="uq_meet_entry_bib_number"),
         CheckConstraint(
             "(gymnast_id IS NOT NULL AND group_id IS NULL) OR (group_id IS NOT NULL AND gymnast_id IS NULL)",
             name="ck_meet_entry_gymnast_or_group_not_null",

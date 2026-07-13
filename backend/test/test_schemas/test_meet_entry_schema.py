@@ -80,6 +80,18 @@ class TestMeetEntryCreate:
 
         assert entry.bib_number == "00123"
 
+    def test_meet_entry_create_bib_number_strips_whitespace(self):
+        data = {
+            "meet_id": 1,
+            "gymnast_id": 1,
+            "level": Level.junior,
+            "age_group": AgeGroup.under_8,
+            "bib_number": "  123  ",
+        }
+        entry = MeetEntryCreate(**data)
+
+        assert entry.bib_number == "123"
+
     def test_meet_entry_meet_id_required(self):
         data = {
             "gymnast_id": 1,
@@ -254,6 +266,11 @@ class TestMeetEntryUpdate:
         assert entry_update.age_group is None
         assert entry_update.bib_number == "789"
         assert entry_update.entry_fee_paid is None
+
+    def test_meet_entry_update_bib_number_strips_whitespace(self):
+        entry_update = MeetEntryUpdate.model_validate({"bib_number": "  789  "})
+
+        assert entry_update.bib_number == "789"
 
 
 class TestMeetEntryRead:
