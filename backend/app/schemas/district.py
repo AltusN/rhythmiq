@@ -12,6 +12,13 @@ class DistrictCreate(BaseModel):
             return v.strip()
         return v
 
+    @field_validator("abbreviation", mode="before")
+    @classmethod
+    def to_uppercase(cls, v: str) -> str:
+        if isinstance(v, str):
+            return v.upper()
+        return v
+
 
 class DistrictUpdate(BaseModel):
     name: str | None = Field(None, min_length=2, max_length=100)
@@ -22,6 +29,13 @@ class DistrictUpdate(BaseModel):
     def strip_whitespace(cls, v: str | None) -> str | None:
         if isinstance(v, str) and v is not None:
             return v.strip()
+        return v
+
+    @field_validator("abbreviation", mode="before")
+    @classmethod
+    def to_uppercase(cls, v: str | None) -> str | None:
+        if isinstance(v, str) and v is not None:
+            return v.upper()
         return v
 
 

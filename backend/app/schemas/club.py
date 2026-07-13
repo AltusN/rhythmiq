@@ -20,6 +20,13 @@ class ClubCreate(BaseModel):
             raise ValueError("district_id must be a positive integer")
         return v
 
+    @field_validator("abbreviation", mode="before")
+    @classmethod
+    def to_uppercase(cls, v: str) -> str:
+        if isinstance(v, str):
+            return v.upper()
+        return v
+
 
 class ClubUpdate(BaseModel):
     # district_id intentionally excluded: moving a club between districts
@@ -33,6 +40,13 @@ class ClubUpdate(BaseModel):
     def strip_whitespace(cls, v: str | None) -> str | None:
         if isinstance(v, str) and v is not None:
             return v.strip()
+        return v
+
+    @field_validator("abbreviation", mode="before")
+    @classmethod
+    def to_uppercase(cls, v: str | None) -> str | None:
+        if isinstance(v, str) and v is not None:
+            return v.upper()
         return v
 
 
