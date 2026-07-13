@@ -32,7 +32,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, selectinload
 
 from app.db import get_db
-from app.models import Apparatus, Meet, MeetEntry, MeetStatus, Routine
+from app.models import AgeGroup, Apparatus, Level, Meet, MeetEntry, MeetStatus, Routine
 from app.schemas.results import (
     AllAroundStandingRow,
     AllAroundStandingsRead,
@@ -47,7 +47,9 @@ router = APIRouter(prefix="/meets", tags=["Results"])
 def _competitor_name(entry: MeetEntry) -> str:
     if entry.gymnast_id is not None:
         return f"{entry.gymnast.first_name} {entry.gymnast.last_name}"
-    return entry.group.name
+    group = entry.group
+    assert group is not None
+    return group.name
 
 
 @router.get("/{meet_id}/standings", response_model=ApparatusStandingsRead)
@@ -55,8 +57,8 @@ def get_apparatus_standings(
     meet_id: int,
     db: Annotated[Session, Depends(get_db)],
     apparatus: Annotated[Apparatus, Query(description="Apparatus to rank (required).")],
-    level: Annotated[str | None, Query(description="Filter by level")] = None,
-    age_group: Annotated[str | None, Query(description="Filter by age_group")] = None,
+    level: Annotated[Level | None, Query(description="Filter by level")] = None,
+    age_group: Annotated[AgeGroup | None, Query(description="Filter by age_group")] = None,
 ) -> ApparatusStandingsRead:
     meet = db.get(Meet, meet_id)
     if meet is None:
@@ -111,8 +113,8 @@ def get_apparatus_standings(
 def get_all_around_standings(
     meet_id: int,
     db: Annotated[Session, Depends(get_db)],
-    level: Annotated[str | None, Query(description="Filter by level")] = None,
-    age_group: Annotated[str | None, Query(description="Filter by age_group")] = None,
+    level: Annotated[Level | None, Query(description="Filter by level")] = None,
+    age_group: Annotated[AgeGroup | None, Query(description="Filter by age_group")] = None,
 ) -> AllAroundStandingsRead:
     meet = db.get(Meet, meet_id)
     if meet is None:

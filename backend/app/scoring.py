@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Literal
 
-from app.models import Level, Panel
+from app.models import Level, MeetEntry, Panel, Routine
 
 Medal = Literal["gold", "silver", "bronze"]
 
@@ -131,14 +131,14 @@ def medal_for_total(
 @dataclass(frozen=True)
 class ApparatusStanding:
     rank: int
-    routine: object
+    routine: Routine
     score: RoutineScoreResult
 
 
 @dataclass(frozen=True)
 class AllAroundStanding:
     rank: int
-    entry: object
+    entry: MeetEntry
     total: Decimal
     e_total: Decimal
     routines_counted: int
