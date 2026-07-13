@@ -46,7 +46,11 @@ class MeetCreate(BaseModel):
         # fully enforced here rather than deferred to the router.
         if (self.medal_gold_min is None) != (self.medal_silver_min is None):
             raise ValueError("medal_gold_min and medal_silver_min must be set together")
-        if self.medal_gold_min is not None and self.medal_gold_min <= self.medal_silver_min:
+        if (
+            self.medal_gold_min is not None
+            and self.medal_silver_min is not None
+            and self.medal_gold_min <= self.medal_silver_min
+        ):
             raise ValueError("medal_gold_min must be greater than medal_silver_min")
         return self
 

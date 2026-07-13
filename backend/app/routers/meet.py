@@ -98,7 +98,11 @@ def _validate_partial_medal_cutoffs(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="medal_gold_min and medal_silver_min must be set together.",
         )
-    if effective_gold is not None and effective_gold <= effective_silver:
+    if (
+        effective_gold is not None
+        and effective_silver is not None
+        and effective_gold <= effective_silver
+    ):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="medal_gold_min must be greater than medal_silver_min.",
