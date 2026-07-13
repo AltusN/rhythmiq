@@ -20,10 +20,27 @@ from app.scoring import (
     RoutineScoreResult,
     compute_routine_score,
     is_panel_valid_for_level,
+    medal_for_total,
     rank_all_around,
     rank_apparatus,
     trimmed_mean,
 )
+
+
+@pytest.mark.parametrize(
+    "total, gold_min, silver_min, expected",
+    [
+        (Decimal("25.00"), Decimal("24.00"), Decimal("20.00"), "gold"),
+        (Decimal("24.00"), Decimal("24.00"), Decimal("20.00"), "gold"),  # exactly at gold_min
+        (Decimal("22.00"), Decimal("24.00"), Decimal("20.00"), "silver"),
+        (Decimal("20.00"), Decimal("24.00"), Decimal("20.00"), "silver"),  # exactly at silver_min
+        (Decimal("19.99"), Decimal("24.00"), Decimal("20.00"), "bronze"),
+        (Decimal("0.00"), Decimal("24.00"), Decimal("20.00"), "bronze"),  # no floor under bronze
+        (Decimal("25.00"), None, None, None),  # meet isn't using cutoffs
+    ],
+)
+def test_medal_for_total(total, gold_min, silver_min, expected):
+    assert medal_for_total(total, gold_min, silver_min) == expected
 
 
 @pytest.mark.parametrize(

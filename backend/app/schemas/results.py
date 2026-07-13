@@ -3,6 +3,7 @@ from decimal import Decimal
 from pydantic import BaseModel, Field
 
 from app.models import AgeGroup, Apparatus, Level
+from app.scoring import Medal
 
 
 class ApparatusStandingRow(BaseModel):
@@ -19,6 +20,14 @@ class ApparatusStandingRow(BaseModel):
     e_score: Decimal
     penalty: Decimal
     total: Decimal
+    medal: Medal | None = Field(
+        None,
+        description=(
+            "Standard-based medal tier from the meet's configured cutoffs "
+            "(Meet.medal_gold_min/medal_silver_min), independent of rank. "
+            "Null if the meet isn't using cutoffs."
+        ),
+    )
 
 
 class ApparatusStandingsRead(BaseModel):
@@ -44,6 +53,14 @@ class AllAroundStandingRow(BaseModel):
     routines_counted: int = Field(
         ...,
         description="Number of routines summed -- less than the full apparatus count means a partial (in-progress or incomplete) all-around.",
+    )
+    medal: Medal | None = Field(
+        None,
+        description=(
+            "Standard-based medal tier from the meet's configured cutoffs "
+            "(Meet.medal_gold_min/medal_silver_min), independent of rank. "
+            "Null if the meet isn't using cutoffs."
+        ),
     )
 
 

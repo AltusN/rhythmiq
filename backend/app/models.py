@@ -190,6 +190,13 @@ class Meet(Base):
     status: Mapped[MeetStatus] = mapped_column(
         Enum(MeetStatus), default=MeetStatus.draft, nullable=False
     )
+    # Standard-based medal tiers (as opposed to competitive rank) for smaller meets:
+    # a routine/all-around total >= medal_gold_min is gold, >= medal_silver_min is
+    # silver, anything below that is bronze. Both null (the default) means the meet
+    # isn't using cutoffs and results.py reports rank only. Set together or not at all --
+    # see ck_meet_medal_cutoffs_valid.
+    medal_gold_min: Mapped[Decimal | None] = mapped_column(Numeric(6, 2), nullable=True)
+    medal_silver_min: Mapped[Decimal | None] = mapped_column(Numeric(6, 2), nullable=True)
 
     district: Mapped["District | None"] = relationship("District", back_populates="meets")
 
@@ -197,7 +204,14 @@ class Meet(Base):
         "MeetEntry", back_populates="meet", cascade="all, delete-orphan"
     )
 
-    __table_args__ = (CheckConstraint("end_date >= start_date", name="ck_meet_dates_valid"),)
+    __table_args__ = (
+        CheckConstraint("end_date >= start_date", name="ck_meet_dates_valid"),
+        CheckConstraint(
+            "(medal_gold_min IS NULL) = (medal_silver_min IS NULL) "
+            "AND (medal_gold_min IS NULL OR medal_gold_min > medal_silver_min)",
+            name="ck_meet_medal_cutoffs_valid",
+        ),
+    )
 
 
 class District(Base):

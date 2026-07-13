@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -12,6 +13,8 @@ class MeetCreate(BaseModel):
     start_date: date
     end_date: date
     status: MeetStatus = MeetStatus.draft
+    medal_gold_min: Decimal | None = None
+    medal_silver_min: Decimal | None = None
 
     # Thought about adding a validator for district id
     # but it's already enforced on the db with the FK
@@ -36,6 +39,17 @@ class MeetCreate(BaseModel):
                 raise ValueError("start_date must be on or before end_date")
         return self
 
+    @model_validator(mode="after")
+    def validate_medal_cutoffs(self) -> "MeetCreate":
+        # Both fields are always present on a Create payload (defaulting to None),
+        # so unlike MeetUpdate's partial-payload case, "both or neither" can be
+        # fully enforced here rather than deferred to the router.
+        if (self.medal_gold_min is None) != (self.medal_silver_min is None):
+            raise ValueError("medal_gold_min and medal_silver_min must be set together")
+        if self.medal_gold_min is not None and self.medal_gold_min <= self.medal_silver_min:
+            raise ValueError("medal_gold_min must be greater than medal_silver_min")
+        return self
+
 
 class MeetUpdate(BaseModel):
     # Include district_id in update schema to allow changing the district of a meet.
@@ -46,6 +60,8 @@ class MeetUpdate(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
     status: MeetStatus | None = None
+    medal_gold_min: Decimal | None = None
+    medal_silver_min: Decimal | None = None
 
     @field_validator("name", "location", mode="before")
     @classmethod
@@ -66,6 +82,18 @@ class MeetUpdate(BaseModel):
                 raise ValueError("start_date must be on or before end_date")
         return self
 
+    @model_validator(mode="after")
+    def validate_medal_cutoffs(self) -> "MeetUpdate":
+        # Same split as validate_dates: a partial update may send only one of the
+        # two cutoffs (to change it while leaving the other as stored), so "both or
+        # neither" can't be enforced here -- the router validates that against the
+        # stored counterpart. Only the ordering check, which needs no stored state,
+        # belongs at this layer.
+        if self.medal_gold_min is not None and self.medal_silver_min is not None:
+            if self.medal_gold_min <= self.medal_silver_min:
+                raise ValueError("medal_gold_min must be greater than medal_silver_min")
+        return self
+
 
 class MeetRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -78,3 +106,5 @@ class MeetRead(BaseModel):
     end_date: date
     # MeetStatus inherits from str, so it will be serialized as a string in the JSON response.
     status: MeetStatus
+    medal_gold_min: Decimal | None
+    medal_silver_min: Decimal | None

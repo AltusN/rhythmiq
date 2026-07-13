@@ -15,6 +15,12 @@ Design notes:
   optional `level`/`age_group` filters, applied against MeetEntry, matching meet_entry.py's
   filter style.
 - A missing meet is the only 404 case; an empty category returns 200 with `rankings: []`.
+- `medal` on each row is additive to `rank`, not a replacement: it's a standard-based
+  tier (gold/silver/bronze) from the meet's configured `medal_gold_min`/
+  `medal_silver_min` cutoffs, answering "did this total clear a threshold" rather
+  than "how did this total compare to the field". Multiple rows (or none) can share
+  a medal tier. Both cutoffs null (the default) means the meet isn't using them, so
+  every row's `medal` is null -- see `medal_for_total` in `app/scoring.py`.
 - These endpoints iterate every routine in a meet on every call (compute_routine_score reads
   routine.judge_scores), so -- unlike the single-row CRUD endpoints elsewhere in this
   codebase -- they eager-load with selectinload to avoid an N+1 over the whole meet.
@@ -33,7 +39,7 @@ from app.schemas.results import (
     ApparatusStandingRow,
     ApparatusStandingsRead,
 )
-from app.scoring import rank_all_around, rank_apparatus
+from app.scoring import medal_for_total, rank_all_around, rank_apparatus
 
 router = APIRouter(prefix="/meets", tags=["Results"])
 
@@ -92,6 +98,9 @@ def get_apparatus_standings(
                 e_score=standing.score.e_score,
                 penalty=standing.score.penalty,
                 total=standing.score.total,
+                medal=medal_for_total(
+                    standing.score.total, meet.medal_gold_min, meet.medal_silver_min
+                ),
             )
             for standing in standings
         ],
@@ -143,6 +152,7 @@ def get_all_around_standings(
                 total=standing.total,
                 e_total=standing.e_total,
                 routines_counted=standing.routines_counted,
+                medal=medal_for_total(standing.total, meet.medal_gold_min, meet.medal_silver_min),
             )
             for standing in standings
         ],

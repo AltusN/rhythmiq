@@ -93,6 +93,8 @@ def make_meet(
     start_date=date(2026, 6, 1),
     end_date=date(2026, 6, 2),
     status=MeetStatus.scheduled,
+    medal_gold_min=None,
+    medal_silver_min=None,
 ) -> Meet:
     meet = Meet(
         district_id=district.id if district else None,
@@ -101,6 +103,8 @@ def make_meet(
         start_date=start_date,
         end_date=end_date,
         status=status,
+        medal_gold_min=medal_gold_min,
+        medal_silver_min=medal_silver_min,
     )
     db_session.add(meet)
     db_session.flush()  # Get meet.id populated

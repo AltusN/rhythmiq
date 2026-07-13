@@ -1,7 +1,10 @@
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
+from typing import Literal
 
 from app.models import Level, Panel
+
+Medal = Literal["gold", "silver", "bronze"]
 
 TRIM_THRESHOLD = 4  # Minimum number of scores required to calculate trimmed mean
 
@@ -101,6 +104,28 @@ def compute_routine_score(routine) -> RoutineScoreResult:
         penalty=penalty,
         total=total,
     )
+
+
+def medal_for_total(
+    total: Decimal, gold_min: Decimal | None, silver_min: Decimal | None
+) -> Medal | None:
+    """
+    Standard-based medal tier for a single total, independent of how it ranks against
+    the rest of the field -- for smaller meets that award medals by a configured score
+    threshold rather than 1st/2nd/3rd place. `gold_min`/`silver_min` come from the
+    meet (see Meet.medal_gold_min/medal_silver_min); both null means the meet isn't
+    using cutoffs, so there's no medal to report.
+
+    Every competitor gets a tier once cutoffs are configured -- bronze has no floor,
+    it's simply "below silver_min", not a fourth non-medal bucket.
+    """
+    if gold_min is None or silver_min is None:
+        return None
+    if total >= gold_min:
+        return "gold"
+    if total >= silver_min:
+        return "silver"
+    return "bronze"
 
 
 @dataclass(frozen=True)

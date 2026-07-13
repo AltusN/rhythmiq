@@ -10,6 +10,7 @@ Covers:
 """
 
 from datetime import date
+from decimal import Decimal
 
 import pytest
 from sqlalchemy.exc import IntegrityError
@@ -164,6 +165,59 @@ def test_meet_entry_routine_relationship(db_session):
     fetched_entry = db_session.query(MeetEntry).first()
     # Routines is a list of routines associated with the entry
     assert len(fetched_entry.routines) == 2
+
+
+def test_meet_medal_cutoffs_default_to_null(db_session):
+    meet = make_meet(db_session)
+    db_session.commit()
+
+    fetched = db_session.query(Meet).filter_by(id=meet.id).first()
+    assert fetched.medal_gold_min is None
+    assert fetched.medal_silver_min is None
+
+
+def test_meet_medal_cutoffs_can_be_set_together(db_session):
+    meet = make_meet(db_session, medal_gold_min=Decimal("24.00"), medal_silver_min=Decimal("20.00"))
+    db_session.commit()
+
+    fetched = db_session.query(Meet).filter_by(id=meet.id).first()
+    assert fetched.medal_gold_min == 24
+    assert fetched.medal_silver_min == 20
+
+
+def _unsaved_meet(**medal_kwargs) -> Meet:
+    return Meet(
+        name="Cutoff Meet",
+        location="Test Location",
+        start_date=date(2026, 6, 1),
+        end_date=date(2026, 6, 2),
+        **medal_kwargs,
+    )
+
+
+def test_meet_medal_cutoffs_gold_not_greater_than_silver_raises_error(db_session):
+    # make_meet flushes internally, so it can't be used here -- the CheckConstraint
+    # fires on INSERT (not deferred to COMMIT), and needs to happen inside pytest.raises.
+    db_session.add(
+        _unsaved_meet(medal_gold_min=Decimal("20.00"), medal_silver_min=Decimal("20.00"))
+    )
+
+    with pytest.raises(IntegrityError):
+        db_session.commit()
+
+
+def test_meet_medal_cutoffs_gold_only_raises_error(db_session):
+    db_session.add(_unsaved_meet(medal_gold_min=Decimal("24.00"), medal_silver_min=None))
+
+    with pytest.raises(IntegrityError):
+        db_session.commit()
+
+
+def test_meet_medal_cutoffs_silver_only_raises_error(db_session):
+    db_session.add(_unsaved_meet(medal_gold_min=None, medal_silver_min=Decimal("20.00")))
+
+    with pytest.raises(IntegrityError):
+        db_session.commit()
 
 
 def test_deleting_district_nulls_meet_district_id(db_session):

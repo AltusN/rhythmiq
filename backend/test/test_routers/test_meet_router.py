@@ -8,9 +8,13 @@ Test suite for the meet router.
 - status transitions are forward-only (draft -> scheduled -> in_progress -> completed),
   any status can go to cancelled, and sending the current status is a no-op.
 - DELETE is rejected (409) while status is in_progress or completed.
+- medal_gold_min/medal_silver_min: both-or-neither + gold > silver, validated the
+  same way as dates -- full-payload case in the schema, partial (one field sent)
+  case in the router against the stored counterpart.
 """
 
 from datetime import date
+from decimal import Decimal
 
 import pytest
 
@@ -157,6 +161,39 @@ def test_create_meet_with_explicit_status(client, db_session):
     assert data["status"] == meet_data["status"]
 
 
+def test_create_meet_with_medal_cutoffs(client, db_session):
+    district = make_district(db_session)
+
+    meet_data = {
+        "name": "Club Invitational",
+        "start_date": date(2026, 6, 1).isoformat(),
+        "end_date": date(2026, 6, 3).isoformat(),
+        "district_id": district.id,
+        "location": "Somerset West",
+        "medal_gold_min": "24.00",
+        "medal_silver_min": "20.00",
+    }
+
+    response = client.post("/meets/", json=meet_data)
+    assert response.status_code == 201
+    data = response.json()
+    assert data["medal_gold_min"] == "24.00"
+    assert data["medal_silver_min"] == "20.00"
+
+
+def test_create_meet_medal_cutoffs_gold_only_rejected(client, db_session):
+    meet_data = {
+        "name": "Club Invitational",
+        "start_date": date(2026, 6, 1).isoformat(),
+        "end_date": date(2026, 6, 3).isoformat(),
+        "location": "Somerset West",
+        "medal_gold_min": "24.00",
+    }
+
+    response = client.post("/meets/", json=meet_data)
+    assert response.status_code == 422
+
+
 ##-- Get /meets/{meet_id} --##
 def test_get_meet_success(client, db_session):
     district = make_district(db_session)
@@ -273,6 +310,51 @@ def test_update_meet_end_date_invalid(client, db_session):
     }
 
     response = client.patch(f"/meets/{meet.id}", json=update_data)
+    assert response.status_code == 422
+
+
+def test_update_meet_medal_cutoffs_together(client, db_session):
+    district = make_district(db_session)
+    meet = make_meet(db_session, district)
+
+    update_data = {"medal_gold_min": "24.00", "medal_silver_min": "20.00"}
+
+    response = client.patch(f"/meets/{meet.id}", json=update_data)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["medal_gold_min"] == "24.00"
+    assert data["medal_silver_min"] == "20.00"
+
+
+def test_update_meet_medal_gold_only_valid_against_stored_silver(client, db_session):
+    district = make_district(db_session)
+    meet = make_meet(
+        db_session, district, medal_gold_min=Decimal("24.00"), medal_silver_min=Decimal("20.00")
+    )
+
+    # Raising just the gold cutoff, leaving the stored silver_min (20.00) in place.
+    response = client.patch(f"/meets/{meet.id}", json={"medal_gold_min": "26.00"})
+    assert response.status_code == 200
+    assert response.json()["medal_gold_min"] == "26.00"
+    assert response.json()["medal_silver_min"] == "20.00"
+
+
+def test_update_meet_medal_gold_only_invalid_against_stored_silver(client, db_session):
+    district = make_district(db_session)
+    meet = make_meet(
+        db_session, district, medal_gold_min=Decimal("24.00"), medal_silver_min=Decimal("20.00")
+    )
+
+    # New gold_min would no longer be greater than the stored silver_min.
+    response = client.patch(f"/meets/{meet.id}", json={"medal_gold_min": "18.00"})
+    assert response.status_code == 422
+
+
+def test_update_meet_medal_gold_only_rejected_when_no_cutoffs_stored(client, db_session):
+    district = make_district(db_session)
+    meet = make_meet(db_session, district)  # no cutoffs configured
+
+    response = client.patch(f"/meets/{meet.id}", json={"medal_gold_min": "24.00"})
     assert response.status_code == 422
 
 

@@ -9,7 +9,11 @@ Key points:
   resolution for both gymnast and group entries).
 - Builds one meet with several entries explicitly (rather than relying on make_routine's
   auto-built club/meet chain), so multiple entries can share one meet/level/age_group slice.
+- `medal` is additive to `rank`: it's a standard-based tier from the meet's configured
+  medal_gold_min/medal_silver_min, null on both endpoints when a meet isn't using cutoffs.
 """
+
+from decimal import Decimal
 
 from app.models import AgeGroup, Apparatus, Level, MeetStatus, Panel
 from test.conftest import (
@@ -163,6 +167,61 @@ def test_get_standings_meet_not_found(client):
     assert response.status_code == 404
 
 
+def test_get_standings_medal_null_without_configured_cutoffs(client, db_session):
+    meet = make_meet(db_session)  # medal_gold_min/medal_silver_min default to None
+    entry = make_meet_entry(db_session, meet, gymnast=make_gymnast(db_session))
+    routine = make_routine(db_session, entry, apparatus=Apparatus.ball)
+    judge = make_judge(db_session)
+    make_judge_score(db_session, routine=routine, judge=judge, panel=Panel.execution, value="9.00")
+    db_session.commit()
+
+    response = client.get(f"/meets/{meet.id}/standings", params={"apparatus": "ball"})
+
+    assert response.status_code == 200
+    assert response.json()["rankings"][0]["medal"] is None
+
+
+def test_get_standings_medal_tiers_from_configured_cutoffs(client, db_session):
+    # gold_min/silver_min apply uniformly across the meet, independent of rank --
+    # two different ranks can both land in "gold" here.
+    meet = make_meet(db_session, medal_gold_min=Decimal("8.50"), medal_silver_min=Decimal("6.00"))
+    gymnast_gold = make_gymnast(db_session, first_name="Top", last_name="Scorer")
+    gymnast_also_gold = make_gymnast(db_session, first_name="Second", last_name="Scorer")
+    gymnast_bronze = make_gymnast(db_session, first_name="Low", last_name="Scorer")
+
+    entry_gold = make_meet_entry(db_session, meet, gymnast=gymnast_gold)
+    entry_also_gold = make_meet_entry(db_session, meet, gymnast=gymnast_also_gold)
+    entry_bronze = make_meet_entry(db_session, meet, gymnast=gymnast_bronze)
+
+    routine_gold = make_routine(db_session, entry_gold, apparatus=Apparatus.ball)
+    routine_also_gold = make_routine(db_session, entry_also_gold, apparatus=Apparatus.ball)
+    routine_bronze = make_routine(db_session, entry_bronze, apparatus=Apparatus.ball)
+
+    judge = make_judge(db_session)
+    make_judge_score(
+        db_session, routine=routine_gold, judge=judge, panel=Panel.execution, value="9.50"
+    )
+    make_judge_score(
+        db_session, routine=routine_also_gold, judge=judge, panel=Panel.execution, value="9.00"
+    )
+    make_judge_score(
+        db_session, routine=routine_bronze, judge=judge, panel=Panel.execution, value="5.00"
+    )
+    db_session.commit()
+
+    response = client.get(f"/meets/{meet.id}/standings", params={"apparatus": "ball"})
+
+    assert response.status_code == 200
+    by_routine = {row["routine_id"]: row for row in response.json()["rankings"]}
+
+    assert by_routine[routine_gold.id]["rank"] == 1
+    assert by_routine[routine_gold.id]["medal"] == "gold"
+    assert by_routine[routine_also_gold.id]["rank"] == 2
+    assert by_routine[routine_also_gold.id]["medal"] == "gold"
+    assert by_routine[routine_bronze.id]["rank"] == 3
+    assert by_routine[routine_bronze.id]["medal"] == "bronze"
+
+
 ##-- GET /meets/{id}/all-around --##
 def test_get_all_around_sums_across_apparatus_and_ranks(client, db_session):
     meet = make_meet(db_session, status=MeetStatus.scheduled)
@@ -277,3 +336,52 @@ def test_get_all_around_meet_not_found(client):
     response = client.get("/meets/9999/all-around")
 
     assert response.status_code == 404
+
+
+def test_get_all_around_medal_null_without_configured_cutoffs(client, db_session):
+    meet = make_meet(db_session)
+    entry = make_meet_entry(db_session, meet, gymnast=make_gymnast(db_session))
+    routine = make_routine(db_session, entry, apparatus=Apparatus.ball)
+    judge = make_judge(db_session)
+    make_judge_score(db_session, routine=routine, judge=judge, panel=Panel.execution, value="9.00")
+    db_session.commit()
+
+    response = client.get(f"/meets/{meet.id}/all-around")
+
+    assert response.status_code == 200
+    assert response.json()["rankings"][0]["medal"] is None
+
+
+def test_get_all_around_medal_tiers_from_configured_cutoffs(client, db_session):
+    # gold_min/silver_min apply to the summed all-around total, not a single
+    # apparatus's execution mark (which is capped at 10 per ck_judge_score_panel_value_cap).
+    meet = make_meet(db_session, medal_gold_min=Decimal("16.00"), medal_silver_min=Decimal("10.00"))
+    gymnast_silver = make_gymnast(db_session, first_name="Mid", last_name="Scorer")
+    gymnast_bronze = make_gymnast(db_session, first_name="Low", last_name="Scorer")
+
+    entry_silver = make_meet_entry(db_session, meet, gymnast=gymnast_silver)
+    entry_bronze = make_meet_entry(db_session, meet, gymnast=gymnast_bronze)
+
+    ball_silver = make_routine(db_session, entry_silver, apparatus=Apparatus.ball)
+    hoop_silver = make_routine(db_session, entry_silver, apparatus=Apparatus.hoop)
+    routine_bronze = make_routine(db_session, entry_bronze, apparatus=Apparatus.ball)
+
+    judge = make_judge(db_session)
+    make_judge_score(
+        db_session, routine=ball_silver, judge=judge, panel=Panel.execution, value="8.00"
+    )
+    make_judge_score(
+        db_session, routine=hoop_silver, judge=judge, panel=Panel.execution, value="7.00"
+    )
+    make_judge_score(
+        db_session, routine=routine_bronze, judge=judge, panel=Panel.execution, value="5.00"
+    )
+    db_session.commit()
+
+    response = client.get(f"/meets/{meet.id}/all-around")
+
+    assert response.status_code == 200
+    by_entry = {row["entry_id"]: row for row in response.json()["rankings"]}
+
+    assert by_entry[entry_silver.id]["medal"] == "silver"
+    assert by_entry[entry_bronze.id]["medal"] == "bronze"

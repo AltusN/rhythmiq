@@ -12,6 +12,10 @@ Design notes:
   transitions map. Any status → cancelled is always permitted (besides in_progress).
   This will cause a conflict if attempted.
   Sending the current status is a no-op (not an error).
+- PATCH medal cutoffs: same split as dates -- the schema validates ordering when
+  both medal_gold_min/medal_silver_min are sent together, but a partial update may
+  send only one (to change it while leaving the other as stored), so the router
+  re-checks the "both or neither" + ordering invariant against the stored value.
 - DELETE: cascades to MeetEntry/Routine via ORM (no RESTRICT concern), but
   blocked (409) for in_progress or completed meets — an in_progress meet
   has live state you don't want to yank out from under it, and a completed
@@ -20,6 +24,7 @@ Design notes:
 """
 
 from datetime import date
+from decimal import Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -68,6 +73,35 @@ def _validate_partial_dates(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="end_date cannot be before start_date.",
+        )
+
+
+def _validate_partial_medal_cutoffs(
+    gold_sent: bool,
+    silver_sent: bool,
+    incoming_gold: Decimal | None,
+    incoming_silver: Decimal | None,
+    stored_gold: Decimal | None,
+    stored_silver: Decimal | None,
+) -> None:
+    """
+    Validate incoming medal cutoffs against stored values. The schema already
+    validates ordering when both are present in this payload; here we cover the
+    "only one sent" case by resolving each field to its incoming value if sent,
+    or the stored value otherwise, then re-checking both-or-neither + ordering.
+    """
+    effective_gold = incoming_gold if gold_sent else stored_gold
+    effective_silver = incoming_silver if silver_sent else stored_silver
+
+    if (effective_gold is None) != (effective_silver is None):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="medal_gold_min and medal_silver_min must be set together.",
+        )
+    if effective_gold is not None and effective_gold <= effective_silver:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="medal_gold_min must be greater than medal_silver_min.",
         )
 
 
@@ -161,6 +195,18 @@ def update_meet(meet_id: int, payload: MeetUpdate, db: Annotated[Session, Depend
     if "status" in updates:
         new_status = updates["status"]
         _validate_status_transition(current=meet.status, new=new_status)
+
+    # Medal cutoff validation: if either field is in this payload, re-check
+    # both-or-neither + ordering against whatever isn't being changed.
+    if "medal_gold_min" in updates or "medal_silver_min" in updates:
+        _validate_partial_medal_cutoffs(
+            gold_sent="medal_gold_min" in updates,
+            silver_sent="medal_silver_min" in updates,
+            incoming_gold=updates.get("medal_gold_min"),
+            incoming_silver=updates.get("medal_silver_min"),
+            stored_gold=meet.medal_gold_min,
+            stored_silver=meet.medal_silver_min,
+        )
 
     for field, value in updates.items():
         setattr(meet, field, value)
