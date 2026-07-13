@@ -25,7 +25,7 @@ class CoachUpdate(BaseModel):
     @field_validator("first_name", "last_name", mode="before")
     @classmethod
     def strip_whitespace(cls, v: str | None) -> str | None:
-        if isinstance(v, str) and v is not None:
+        if isinstance(v, str):
             return v.strip()
         return v
 
