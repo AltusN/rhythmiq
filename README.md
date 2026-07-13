@@ -1,7 +1,8 @@
 # Rhytmiq
 
 A FIG-compliant API for managing rhythmic gymnastics meets — districts, clubs, coaches,
-gymnasts, groups, meets, meet entries, routines, and routine profiles.
+gymnasts, groups, meets, meet entries, routines, routine profiles, judges, judge scores,
+and itemized penalty records.
 
 ## Tech stack
 
@@ -53,9 +54,11 @@ cd backend
 pytest
 ```
 
-Tests run against an isolated in-memory SQLite database per test (see `test/conftest.py`) —
-they don't touch the Postgres database used by `uvicorn`/`make dev`. Moving the suite onto
-Postgres is tracked as follow-up work.
+Tests run against the same dockerized Postgres, but a separate database
+(`POSTGRESQL_TEST_DATABASE_URL`) from the one used by `uvicorn`/`make dev`. Migrations are
+applied once per test session, and each test runs inside its own transaction that's rolled
+back at teardown (see `test/conftest.py`), so tests stay isolated without needing a fresh
+database per run. `make test` migrates the test database and runs pytest in one step.
 
 ## Linting
 
@@ -99,6 +102,9 @@ backend/
 | `MeetEntry` | A gymnast's or group's entry into a meet — exactly one of `gymnast_id`/`group_id` is set. |
 | `Routine` | One row per apparatus per meet entry. |
 | `RoutineProfile` | A gymnast's or group's music/choreography for an apparatus at a level — exactly one of `gymnast_id`/`group_id` is set, unique per (owner, apparatus, level). Resolved live by `Routine.music_url`, not snapshotted per meet. |
+| `Judge` | A FIG/national judge, optionally assigned a country and brevet. |
+| `JudgeScore` | One judge's mark against one routine on one panel (`difficulty_body`, `difficulty_apparatus`, `execution`, or `artistry`). Levels scored execution-only reject D/A marks. |
+| `PenaltyRecord` | One itemized penalty deduction against a routine, assessed by a `time_judge`, `line_judge`, or `responsible_judge`. Keeps `Routine.penalty` in sync as the running sum of a routine's records. |
 
 ## API
 
@@ -114,10 +120,15 @@ Every resource router follows the same REST shape: `POST /`, `GET /`, `GET /{id}
 | Groups | `/groups` | Filter list by `?club_id=`; create requires a valid `club_id` |
 | Meets | `/meets` | Filter list by `?district_id=`, `?status=`. Status transitions are forward-only, enforced server-side. Deleting an `in_progress` or `completed` meet is rejected (`409`). |
 | Meet entries | `/meet-entries` | Filter list by `?meet_id=`, `?gymnast_id=`, `?group_id=`. Exactly one of `gymnast_id`/`group_id` required on create; not updatable after creation. |
-| Routines | `/routines` | Filter list by `?entry_id=`. One row per apparatus per entry; `entry_id`/`apparatus` not updatable after creation. |
+| Routines | `/routines` | Filter list by `?entry_id=`. One row per apparatus per entry; `entry_id`/`apparatus` not updatable after creation. `GET /{id}/score` computes D/A/E/total live from that routine's judge scores and penalty. |
 | Routine profiles | `/routine-profiles` | Filter list by `?gymnast_id=`, `?group_id=`, `?apparatus=`, `?level=`. Exactly one of `gymnast_id`/`group_id` required on create; only `music_url`/`choreography_notes` are updatable after creation. |
+| Judges | `/judges` | Filter list by `?country_code=`. |
+| Judge scores | `/judge-scores` | Filter list by `?routine_id=`, `?judge_id=`, `?panel=`. One score per (routine, judge, panel); rejects D/A panels for execution-only levels. `routine_id`/`judge_id` not updatable after creation. |
+| Penalty records | `/penalty-records` | Filter list by `?routine_id=`, `?judge_id=`, `?judge_role=`. `routine_id`/`judge_id` not updatable after creation. Every write re-syncs the parent routine's `penalty` total. |
+| Results | `/meets/{id}/standings`, `/meets/{id}/all-around` | Read-only, computed live (no snapshot). `standings` ranks routines within a (level, age_group, `apparatus`) slice — `apparatus` is required. `all-around` sums each entry's routine totals across apparatus within a (level, age_group) slice. Both accept optional `?level=`/`?age_group=` filters and report `provisional: true` until the meet is `completed`. |
 
 Deleting a `Meet` or `Gymnast` cascades to their `MeetEntry`/`Routine` rows (unless the meet is
 `in_progress` or `completed`, in which case delete is rejected outright). Deleting a
 `Club`/`Group`/`District` that still has dependents (gymnasts, coaches, groups, clubs)
-is rejected (`409`) via `RESTRICT` foreign keys.
+is rejected (`409`) via `RESTRICT` foreign keys. Deleting a `Judge` is rejected (`409`) if
+they're referenced by any `JudgeScore`/`PenaltyRecord`.
