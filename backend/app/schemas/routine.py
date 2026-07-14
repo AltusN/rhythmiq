@@ -1,3 +1,14 @@
+"""
+Pydantic schemas for /routines: RoutineCreate/RoutineUpdate/RoutineRead, plus
+RoutineScoreRead for the read-only GET /routines/{id}/score endpoint.
+
+entry_id/apparatus are excluded from RoutineUpdate -- they're this routine's
+identity (its UniqueConstraint), so reassigning either means delete + recreate.
+RoutineScoreRead is a separate response shape from RoutineRead because computing
+it (compute_routine_score, app/scoring.py) is live and not free -- it's opt-in
+via its own endpoint rather than embedded in every plain GET/list.
+"""
+
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field

@@ -1,3 +1,13 @@
+"""
+Pydantic schemas for /judge-scores: JudgeScoreCreate/JudgeScoreUpdate/JudgeScoreRead.
+
+JudgeScoreCreate enforces the artistry/execution <= 10 cap (CAPPED_PANELS) that's
+mirrored in the DB by ck_judge_score_panel_value_cap. The level-dependent panel
+gate (e.g. no difficulty panels below level_8) can't be checked here -- it needs a
+routine -> entry -> level join this schema has no access to -- so that lives in
+app/routers/judge_score.py instead.
+"""
+
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator

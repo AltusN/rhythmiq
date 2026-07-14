@@ -1,3 +1,10 @@
+"""
+Pydantic schemas for /groups: GroupCreate/GroupUpdate/GroupRead.
+
+club_id is fixed at creation -- excluded from GroupUpdate, same reasoning as
+CoachUpdate/ClubUpdate excluding their parent FK.
+"""
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 

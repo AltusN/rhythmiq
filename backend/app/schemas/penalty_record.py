@@ -1,3 +1,13 @@
+"""
+Pydantic schemas for /penalty-records: PenaltyRecordCreate/PenaltyRecordUpdate/
+PenaltyRecordRead.
+
+routine_id/judge_id are excluded from PenaltyRecordUpdate -- they're this record's
+identity (delete + recreate instead). judge_role stays updatable, unlike
+JudgeScore.panel, since PenaltyRecord has no uniqueness constraint tying judge_role
+to (routine_id, judge_id) -- it's a plain descriptive field here, not identity.
+"""
+
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field

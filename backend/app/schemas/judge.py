@@ -1,3 +1,10 @@
+"""
+Pydantic schemas for /judges: JudgeCreate/JudgeUpdate/JudgeRead.
+
+country_code is normalized to uppercase and validated as 3-letter alpha
+(ISO 3166-1 alpha-3) on both Create and Update.
+"""
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 

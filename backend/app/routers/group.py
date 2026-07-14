@@ -7,6 +7,7 @@ Group Router - CRUD operations for Groups.
 -  PATCH /groups/{id}: Update a group by ID. Returns 200 with the updated group data, or 404 if not found, or 409 if the new name conflicts with an existing group.
 -  DELETE /groups/{id}: Delete a group by ID. Returns 204 on success, or 404 if not found.
 """
+
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -18,6 +19,7 @@ from app.models import Club, Group
 from app.schemas.group import GroupCreate, GroupRead, GroupUpdate
 
 router = APIRouter(prefix="/groups", tags=["Groups"])
+
 
 ##-- Post a new group
 @router.post("/", response_model=GroupRead, status_code=status.HTTP_201_CREATED)
@@ -40,6 +42,7 @@ def create_group(group: GroupCreate, db: Annotated[Session, Depends(get_db)]):
         ) from e
     return new_group
 
+
 ##-- Get all groups with a filter by optional club_id query parameter
 @router.get("/", response_model=list[GroupRead])
 def list_groups(
@@ -52,6 +55,7 @@ def list_groups(
         groups = db.query(Group).all()
     return groups
 
+
 ##-- Get a group by ID
 @router.get("/{group_id}", response_model=GroupRead)
 def get_group(group_id: int, db: Annotated[Session, Depends(get_db)]):
@@ -59,6 +63,7 @@ def get_group(group_id: int, db: Annotated[Session, Depends(get_db)]):
     if not group:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found.")
     return group
+
 
 @router.patch("/{group_id}", response_model=GroupRead)
 def update_group(group_id: int, group_update: GroupUpdate, db: Annotated[Session, Depends(get_db)]):
@@ -79,6 +84,7 @@ def update_group(group_id: int, group_update: GroupUpdate, db: Annotated[Session
         ) from e
 
     return group
+
 
 ##-- delete a group by ID
 @router.delete("/{group_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -1,3 +1,17 @@
+"""
+Judge router — CRUD for /judges.
+
+Design notes:
+- No FK fields to pre-check on create -- a Judge is a root resource, not scoped to
+  another one (unlike Coach/Gymnast which belong to a Club).
+- Identity is (first_name, last_name, country_code), matching
+  uq_judge_identity -- IntegrityError -> 409 covers re-registering the same judge.
+- GET list: optional ?country_code= filter.
+- DELETE: RESTRICT FKs from JudgeScore and PenaltyRecord mean the DB raises
+  IntegrityError if the judge has scored or penalized anything. Catch that and
+  return 409 rather than silently orphaning those records.
+"""
+
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status

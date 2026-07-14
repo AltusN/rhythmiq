@@ -1,3 +1,9 @@
+"""
+All SQLAlchemy ORM models and enums for the API, in one file (per project convention --
+see CLAUDE.md). `target_metadata` for Alembic autogeneration is sourced from `Base`
+here, so migrations stay in sync with whatever's defined in this module.
+"""
+
 from datetime import date as date_type
 from decimal import Decimal
 from enum import StrEnum
@@ -90,6 +96,12 @@ class PenaltyJudgeRole(StrEnum):
 
 # Models
 class Judge(Base):
+    """
+    An individual accredited to score routines and/or assess penalties. Identity is
+    scoped by (first_name, last_name, country_code) since FIG judges are drawn from a
+    national pool -- brevet is their FIG certification level.
+    """
+
     __tablename__ = "judges"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -111,6 +123,14 @@ class Judge(Base):
 
 
 class JudgeScore(Base):
+    """
+    One judge's score on one panel (difficulty_body/difficulty_apparatus/execution/
+    artistry, see Panel) for one routine. A routine can have at most one score per
+    (judge, panel) pair -- see uq_judge_score_routine_judge_panel -- but multiple
+    judges commonly score the same panel, and their values are averaged/summed
+    according to FIG rules elsewhere (app/scoring.py), not on this row.
+    """
+
     __tablename__ = "judge_scores"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -177,6 +197,15 @@ class PenaltyRecord(Base):
 
 
 class Meet(Base):
+    """
+    A competition event, optionally hosted by a District, that MeetEntry rows are
+    registered against. status moves forward-only (draft -> scheduled -> in_progress
+    -> completed, any of which may instead go to cancelled) per
+    ALLOWED_STATUS_TRANSITIONS in routers/meet.py; once completed, the meet and its
+    entries/routines/scores become the frozen historical record and can no longer be
+    deleted or edited.
+    """
+
     __tablename__ = "meets"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -215,6 +244,11 @@ class Meet(Base):
 
 
 class District(Base):
+    """
+    A geographic/administrative region that Clubs and Meets can be scoped to. Deletion
+    is blocked (409, via RESTRICT FKs) while it still has clubs or meets attached.
+    """
+
     __tablename__ = "districts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -236,6 +270,13 @@ class District(Base):
 
 
 class Club(Base):
+    """
+    A gymnastics club belonging to one District, with its own Gymnasts, Coaches, and
+    Groups. name/abbreviation are unique per district rather than globally, so two
+    districts may each have e.g. a club abbreviated "STAR". Deletion is blocked (409)
+    while it still has gymnasts, coaches, or groups attached.
+    """
+
     __tablename__ = "clubs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -265,6 +306,11 @@ class Club(Base):
 
 
 class Coach(Base):
+    """
+    A coach employed by one Club. is_head_coach distinguishes the club's head coach
+    from assistants; identity (first_name, last_name) is unique per club.
+    """
+
     __tablename__ = "coaches"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -283,6 +329,14 @@ class Coach(Base):
 
 
 class Gymnast(Base):
+    """
+    An individual competitor. club_id and group_id are both optional and independent
+    of each other -- a gymnast can belong to a club without being in a group (e.g. an
+    individual-only competitor), and unaffiliated gymnasts (club_id NULL) are
+    supported entirely. Identity is (first_name, last_name, date_of_birth) rather than
+    an external ID, since FIG doesn't mandate one.
+    """
+
     __tablename__ = "gymnasts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)

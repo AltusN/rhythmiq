@@ -1,3 +1,11 @@
+"""
+Database engine/session setup and the FastAPI lifespan hook.
+
+Schema creation is deliberately not done here -- `alembic upgrade head` is the only
+way to build or update the schema (see migrations/env.py, which sources both
+`sqlalchemy.url` and `target_metadata` from this module and app.models.Base).
+"""
+
 import os
 from collections.abc import Generator
 from contextlib import asynccontextmanager

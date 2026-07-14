@@ -1,3 +1,10 @@
+"""
+Pydantic schemas for /coaches: CoachCreate/CoachUpdate/CoachRead.
+
+club_id is fixed at creation -- excluded from CoachUpdate, since reassigning a coach
+to a different club is a separate domain operation, not a plain field edit.
+"""
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 

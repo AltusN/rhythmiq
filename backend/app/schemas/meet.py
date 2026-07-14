@@ -1,3 +1,15 @@
+"""
+Pydantic schemas for /meets: MeetCreate/MeetUpdate/MeetRead.
+
+Both MeetCreate and MeetUpdate validate start_date <= end_date and the
+medal_gold_min/medal_silver_min "both or neither, gold > silver" invariant --
+but MeetUpdate can only enforce these when both fields of a pair arrive in the
+same partial payload. When only one is sent, the schema can't see the other's
+stored value, so the router (_validate_partial_dates /
+_validate_partial_medal_cutoffs in app/routers/meet.py) re-checks the incoming
+value against what's already in the DB.
+"""
+
 from datetime import date
 from decimal import Decimal
 

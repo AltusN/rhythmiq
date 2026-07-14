@@ -1,3 +1,13 @@
+"""
+Pydantic schemas for /meet-entries: MeetEntryCreate/MeetEntryUpdate/MeetEntryRead.
+
+MeetEntryCreate enforces exactly one of gymnast_id/group_id via
+validate_gymnast_or_group, mirroring the model's
+ck_meet_entry_gymnast_or_group_not_null CheckConstraint. meet_id/gymnast_id/
+group_id are all excluded from MeetEntryUpdate -- reassigning any of them is a
+delete-and-recreate, not an editable field.
+"""
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models import AgeGroup, Level

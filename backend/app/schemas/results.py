@@ -1,3 +1,9 @@
+"""
+Response schemas for GET /meets/{id}/standings and /meets/{id}/all-around
+(app/routers/results.py). Read-only -- there's no Create/Update here since these
+are computed views, not a stored resource.
+"""
+
 from decimal import Decimal
 
 from pydantic import BaseModel, Field

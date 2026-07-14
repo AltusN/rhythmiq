@@ -9,6 +9,7 @@ Design notes:
   before applying. Setting club_id=None makes the gymnast independent.
 - DELETE: cascades to MeetEntry/Routine via the ORM. No RESTRICT concern.
 """
+
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -20,6 +21,7 @@ from app.models import Club, Group, Gymnast
 from app.schemas.gymnast import GymnastCreate, GymnastRead, GymnastUpdate
 
 router = APIRouter(prefix="/gymnasts", tags=["Gymnasts"])
+
 
 @router.post("/", response_model=GymnastRead, status_code=status.HTTP_201_CREATED)
 def create_gymnast(payload: GymnastCreate, db: Annotated[Session, Depends(get_db)]):
@@ -35,7 +37,10 @@ def create_gymnast(payload: GymnastCreate, db: Annotated[Session, Depends(get_db
     if payload.club_id is not None:
         club = db.get(Club, payload.club_id)
         if club is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Club with id {payload.club_id} not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Club with id {payload.club_id} not found",
+            )
         if group is not None and group.club_id != payload.club_id:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -52,9 +57,10 @@ def create_gymnast(payload: GymnastCreate, db: Annotated[Session, Depends(get_db
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Gymnast with name '{payload.first_name} {payload.last_name}' already exists"
+            detail=f"Gymnast with name '{payload.first_name} {payload.last_name}' already exists",
         ) from None
     return gymnast
+
 
 @router.get("/", response_model=list[GymnastRead])
 def list_gymnasts(
@@ -67,18 +73,26 @@ def list_gymnasts(
         gymnasts = db.query(Gymnast).all()
     return gymnasts
 
+
 @router.get("/{gymnast_id}", response_model=GymnastRead)
 def get_gymnast(gymnast_id: int, db: Annotated[Session, Depends(get_db)]):
     gymnast = db.get(Gymnast, gymnast_id)
     if gymnast is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Gymnast with id {gymnast_id} not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Gymnast with id {gymnast_id} not found"
+        )
     return gymnast
 
+
 @router.patch("/{gymnast_id}", response_model=GymnastRead)
-def update_gymnast(gymnast_id: int, payload: GymnastUpdate, db: Annotated[Session, Depends(get_db)]):
+def update_gymnast(
+    gymnast_id: int, payload: GymnastUpdate, db: Annotated[Session, Depends(get_db)]
+):
     gymnast = db.get(Gymnast, gymnast_id)
     if gymnast is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Gymnast with id {gymnast_id} not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Gymnast with id {gymnast_id} not found"
+        )
 
     update_data = payload.model_dump(exclude_unset=True)
 
@@ -117,15 +131,18 @@ def update_gymnast(gymnast_id: int, payload: GymnastUpdate, db: Annotated[Sessio
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Gymnast with name '{payload.first_name} {payload.last_name}' already exists"
+            detail=f"Gymnast with name '{payload.first_name} {payload.last_name}' already exists",
         ) from None
     return gymnast
 
+
 @router.delete("/{gymnast_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_gymnast(gymnast_id: int, db: Annotated[Session,  Depends(get_db)]):
+def delete_gymnast(gymnast_id: int, db: Annotated[Session, Depends(get_db)]):
     gymnast = db.get(Gymnast, gymnast_id)
     if gymnast is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Gymnast with id {gymnast_id} not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Gymnast with id {gymnast_id} not found"
+        )
 
     db.delete(gymnast)
     try:
@@ -134,6 +151,5 @@ def delete_gymnast(gymnast_id: int, db: Annotated[Session,  Depends(get_db)]):
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Cannot delete gymnast with id {gymnast_id} due to existing references"
+            detail=f"Cannot delete gymnast with id {gymnast_id} due to existing references",
         ) from None
-

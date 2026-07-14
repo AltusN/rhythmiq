@@ -1,3 +1,10 @@
+"""
+Pydantic schemas for /districts: DistrictCreate/DistrictUpdate/DistrictRead.
+
+abbreviation is normalized to uppercase on both Create and Update, matching Club's
+convention.
+"""
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 

@@ -1,16 +1,34 @@
+"""
+Pydantic schemas for /routine-profiles: RoutineProfileCreate/RoutineProfileUpdate/
+RoutineProfileRead.
+
+RoutineProfileCreate enforces exactly one of gymnast_id/group_id via
+validate_gymnast_or_group, mirroring MeetEntryCreate and the model's two
+CheckConstraint-backed UniqueConstraints. gymnast_id/group_id/apparatus/level are
+all excluded from RoutineProfileUpdate -- together they're this profile's identity,
+so reassigning any of them is delete + recreate, matching MeetEntry/Routine.
+"""
+
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.models import Apparatus, Level
 
 
 class RoutineProfileCreate(BaseModel):
-
-    gymnast_id: int | None = Field(None, description="ID of the gymnast associated with the routine profile")
-    group_id: int | None = Field(None, description="ID of the group associated with the routine profile")
+    gymnast_id: int | None = Field(
+        None, description="ID of the gymnast associated with the routine profile"
+    )
+    group_id: int | None = Field(
+        None, description="ID of the group associated with the routine profile"
+    )
     apparatus: Apparatus = Field(..., description="Apparatus used in the routine profile")
     level: Level = Field(..., description="Level of the routine profile")
-    music_url: str | None = Field(None, description="URL to the music associated with the routine profile")
-    choreography_notes: str | None = Field(None, description="Notes about the choreography of the routine profile", max_length=500)
+    music_url: str | None = Field(
+        None, description="URL to the music associated with the routine profile"
+    )
+    choreography_notes: str | None = Field(
+        None, description="Notes about the choreography of the routine profile", max_length=500
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -25,12 +43,17 @@ class RoutineProfileCreate(BaseModel):
 
         return values
 
+
 class RoutineProfileUpdate(BaseModel):
     # gymnast_id/group_id/apparatus/level are not updatable here — together they form the
     # model's UniqueConstraints, so reassigning them is a domain operation (delete + recreate),
     # matching the pattern used by MeetEntryUpdate/RoutineUpdate.
-    music_url: str | None = Field(None, description="URL to the music associated with the routine profile")
-    choreography_notes: str | None = Field(None, description="Notes about the choreography of the routine profile", max_length=500)
+    music_url: str | None = Field(
+        None, description="URL to the music associated with the routine profile"
+    )
+    choreography_notes: str | None = Field(
+        None, description="Notes about the choreography of the routine profile", max_length=500
+    )
 
 
 class RoutineProfileRead(BaseModel):

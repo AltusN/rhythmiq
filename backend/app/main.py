@@ -1,3 +1,8 @@
+"""
+FastAPI app entrypoint -- registers one router per resource (see app/routers/) and
+exposes the health check root endpoint. No business logic lives here.
+"""
+
 from fastapi import FastAPI
 
 from app.db import lifespan

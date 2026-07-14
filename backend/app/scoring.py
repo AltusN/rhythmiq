@@ -1,3 +1,11 @@
+"""
+FIG Code of Points scoring math: turning raw JudgeScore marks into a routine's D/A/E
+panel scores and total, and ranking routines/entries from those totals. Used by
+app/routers/results.py (live, never snapshotted -- see that router's module
+docstring) and by app/models.py's Routine.penalty machinery indirectly via the
+routers that call into here.
+"""
+
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Literal

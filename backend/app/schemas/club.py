@@ -1,3 +1,11 @@
+"""
+Pydantic schemas for /clubs: ClubCreate/ClubUpdate/ClubRead.
+
+abbreviation is normalized to uppercase on both Create and Update. district_id is
+fixed at creation -- deliberately excluded from ClubUpdate, since moving a club
+between districts is a domain operation that deserves its own endpoint.
+"""
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 

@@ -1,3 +1,12 @@
+"""
+Pydantic schemas for /gymnasts: GymnastCreate/GymnastUpdate/GymnastRead.
+
+Unlike Coach/Group, club_id (and group_id) IS updatable here -- a gymnast can
+legitimately change clubs or become independent (club_id=None) after creation, so
+both fields stay editable on GymnastUpdate rather than being locked in like the
+resources scoped underneath a club.
+"""
+
 from datetime import date
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -30,6 +39,7 @@ class GymnastCreate(BaseModel):
                 raise ValueError("country_code must be a 3-letter ISO 3166-1 alpha-3 country code")
         return v
 
+
 class GymnastUpdate(BaseModel):
     # Gymnast can be independent of a club, so club_id is optional
     club_id: int | None = Field(None, ge=1)
@@ -56,6 +66,7 @@ class GymnastUpdate(BaseModel):
             if len(v) != 3 or not v.isalpha():
                 raise ValueError("country_code must be a 3-letter ISO 3166-1 alpha-3 country code")
         return v
+
 
 class GymnastRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)

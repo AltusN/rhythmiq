@@ -32,21 +32,31 @@ from app.schemas.meet_entry import MeetEntryCreate, MeetEntryRead, MeetEntryUpda
 
 router = APIRouter(prefix="/meet-entries", tags=["Meet Entries"])
 
+
 ##-- Post --##
 @router.post("/", response_model=MeetEntryRead, status_code=status.HTTP_201_CREATED)
 def create_meet_entry(payload: MeetEntryCreate, db: Annotated[Session, Depends(get_db)]):
     meet = db.get(Meet, payload.meet_id)
     if meet is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Meet with id {payload.meet_id} not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Meet with id {payload.meet_id} not found",
+        )
 
     if payload.gymnast_id is not None:
         gymnast = db.get(Gymnast, payload.gymnast_id)
         if gymnast is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Gymnast with id {payload.gymnast_id} not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Gymnast with id {payload.gymnast_id} not found",
+            )
     else:
         group = db.get(Group, payload.group_id)
         if group is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Group with id {payload.group_id} not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Group with id {payload.group_id} not found",
+            )
 
     entry = MeetEntry(**payload.model_dump())
     db.add(entry)
@@ -57,9 +67,13 @@ def create_meet_entry(payload: MeetEntryCreate, db: Annotated[Session, Depends(g
         db.refresh(entry)
     except IntegrityError as e:
         db.rollback()
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Integrity error while creating meet entry.") from e
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Integrity error while creating meet entry.",
+        ) from e
 
     return entry
+
 
 ##-- Get --##
 @router.get("/", response_model=list[MeetEntryRead])
@@ -84,6 +98,7 @@ def list_meet_entries(
         query = query.filter(MeetEntry.age_group == age_group)
     return query.all()
 
+
 @router.get("/{entry_id}", response_model=MeetEntryRead)
 def get_meet_entry(entry_id: int, db: Annotated[Session, Depends(get_db)]) -> MeetEntry:
     entry = db.get(MeetEntry, entry_id)
@@ -91,12 +106,17 @@ def get_meet_entry(entry_id: int, db: Annotated[Session, Depends(get_db)]) -> Me
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meet entry not found")
     return entry
 
+
 ##-- Patch --##
 @router.patch("/{entry_id}", response_model=MeetEntryRead)
-def update_meet_entry(entry_id: int, payload: MeetEntryUpdate, db: Annotated[Session, Depends(get_db)]) -> MeetEntry:
+def update_meet_entry(
+    entry_id: int, payload: MeetEntryUpdate, db: Annotated[Session, Depends(get_db)]
+) -> MeetEntry:
     entry = db.get(MeetEntry, entry_id)
     if not entry:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Meet entry {entry_id} not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Meet entry {entry_id} not found"
+        )
 
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(entry, field, value)
@@ -107,9 +127,13 @@ def update_meet_entry(entry_id: int, payload: MeetEntryUpdate, db: Annotated[Ses
         db.refresh(entry)
     except IntegrityError as e:
         db.rollback()
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Integrity error while updating meet entry.") from e
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Integrity error while updating meet entry.",
+        ) from e
 
     return entry
+
 
 ##-- Delete --##
 @router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
