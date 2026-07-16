@@ -1,0 +1,17 @@
+import type { components } from "./schema";
+
+export type MeetRead = components["schemas"]["MeetRead"];
+export type MeetEntryRead = components["schemas"]["MeetEntryRead"];
+export type GymnastRead = components["schemas"]["GymnastRead"];
+export type GroupRead = components["schemas"]["GroupRead"];
+export type JudgeRead = components["schemas"]["JudgeRead"];
+export type JudgeScoreRead = components["schemas"]["JudgeScoreRead"];
+export type RoutineRead = components["schemas"]["RoutineRead"];
+export type PenaltyRecordRead = components["schemas"]["PenaltyRecordRead"];
+export type ApparatusStandingsRead = components["schemas"]["ApparatusStandingsRead"];
+export type AllAroundStandingsRead = components["schemas"]["AllAroundStandingsRead"];
+export type Panel = components["schemas"]["Panel"];
+export type MeetStatus = components["schemas"]["MeetStatus"];
+export type Apparatus = components["schemas"]["Apparatus"];
+export type Level = components["schemas"]["Level"];
+export type AgeGroup = components["schemas"]["AgeGroup"];

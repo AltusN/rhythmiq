@@ -1,6 +1,6 @@
 include .env
 
-.PHONY: dev migration test reset seed
+.PHONY: dev migration test reset seed types
 
 dev:
 	docker compose up -d
@@ -23,3 +23,7 @@ reset:
 
 seed:
 	cd backend && .venv/bin/python -m scripts.seed_demo_data
+
+types:
+	cd backend && .venv/bin/python -m scripts.export_openapi ../frontend/openapi.json
+	cd frontend && npm run generate

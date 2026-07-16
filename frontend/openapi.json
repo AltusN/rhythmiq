@@ -1,0 +1,5201 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Rhytmiq API",
+    "description": "FIG-compliant API for managing rhythmic gymnastics meets",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/clubs/": {
+      "post": {
+        "tags": [
+          "Clubs"
+        ],
+        "summary": "Create Club",
+        "description": "Check that district exists before attempting an insert\nThis will allow a meaningful error message (404) rather\nthan a generic 500 from the DB if the district_id is invalid.",
+        "operationId": "create_club_clubs__post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClubCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClubRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Clubs"
+        ],
+        "summary": "List Clubs",
+        "description": "List all clubs, optionally filtered by district_id",
+        "operationId": "list_clubs_clubs__get",
+        "parameters": [
+          {
+            "name": "district_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional district_id to filter clubs by district",
+              "title": "District Id"
+            },
+            "description": "Optional district_id to filter clubs by district"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClubRead"
+                  },
+                  "title": "Response List Clubs Clubs  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clubs/{club_id}": {
+      "get": {
+        "tags": [
+          "Clubs"
+        ],
+        "summary": "Get Club",
+        "description": "Get a club by ID.",
+        "operationId": "get_club_clubs__club_id__get",
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Club Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClubRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Clubs"
+        ],
+        "summary": "Update Club",
+        "description": "Update a club by ID",
+        "operationId": "update_club_clubs__club_id__patch",
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Club Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClubUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClubRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Clubs"
+        ],
+        "summary": "Delete Club",
+        "description": "Delete a club by ID. If the club has gymnasts or coaches, the DB will raise an IntegrityError.",
+        "operationId": "delete_club_clubs__club_id__delete",
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Club Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/districts/": {
+      "get": {
+        "tags": [
+          "Districts"
+        ],
+        "summary": "List Districts",
+        "operationId": "list_districts_districts__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DistrictRead"
+                  },
+                  "type": "array",
+                  "title": "Response List Districts Districts  Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Districts"
+        ],
+        "summary": "Create District",
+        "operationId": "create_district_districts__post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DistrictCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DistrictRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/districts/{district_id}": {
+      "get": {
+        "tags": [
+          "Districts"
+        ],
+        "summary": "Get District",
+        "operationId": "get_district_districts__district_id__get",
+        "parameters": [
+          {
+            "name": "district_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "District Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DistrictRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Districts"
+        ],
+        "summary": "Update District",
+        "operationId": "update_district_districts__district_id__patch",
+        "parameters": [
+          {
+            "name": "district_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "District Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DistrictUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DistrictRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Districts"
+        ],
+        "summary": "Delete District",
+        "operationId": "delete_district_districts__district_id__delete",
+        "parameters": [
+          {
+            "name": "district_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "District Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/coaches/": {
+      "post": {
+        "tags": [
+          "Coaches"
+        ],
+        "summary": "Create Coach",
+        "description": "Check that club exists before attempting an insert\nThis will allow a meaningful error message (404) rather\nthan a generic 500 from the DB if the club_id is invalid.",
+        "operationId": "create_coach_coaches__post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoachCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoachRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Coaches"
+        ],
+        "summary": "List Coaches",
+        "description": "List all coaches, optionally filtered by club_id",
+        "operationId": "list_coaches_coaches__get",
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional club_id to filter coaches by club",
+              "title": "Club Id"
+            },
+            "description": "Optional club_id to filter coaches by club"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CoachRead"
+                  },
+                  "title": "Response List Coaches Coaches  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/coaches/{coach_id}": {
+      "get": {
+        "tags": [
+          "Coaches"
+        ],
+        "summary": "Get Coach",
+        "operationId": "get_coach_coaches__coach_id__get",
+        "parameters": [
+          {
+            "name": "coach_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Coach Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoachRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Coaches"
+        ],
+        "summary": "Update Coach",
+        "operationId": "update_coach_coaches__coach_id__patch",
+        "parameters": [
+          {
+            "name": "coach_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Coach Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoachUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoachRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Coaches"
+        ],
+        "summary": "Delete Coach",
+        "operationId": "delete_coach_coaches__coach_id__delete",
+        "parameters": [
+          {
+            "name": "coach_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Coach Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gymnasts/": {
+      "post": {
+        "tags": [
+          "Gymnasts"
+        ],
+        "summary": "Create Gymnast",
+        "operationId": "create_gymnast_gymnasts__post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GymnastCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymnastRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Gymnasts"
+        ],
+        "summary": "List Gymnasts",
+        "operationId": "list_gymnasts_gymnasts__get",
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by club ID",
+              "title": "Club Id"
+            },
+            "description": "Filter by club ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GymnastRead"
+                  },
+                  "title": "Response List Gymnasts Gymnasts  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gymnasts/{gymnast_id}": {
+      "get": {
+        "tags": [
+          "Gymnasts"
+        ],
+        "summary": "Get Gymnast",
+        "operationId": "get_gymnast_gymnasts__gymnast_id__get",
+        "parameters": [
+          {
+            "name": "gymnast_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Gymnast Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymnastRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Gymnasts"
+        ],
+        "summary": "Update Gymnast",
+        "operationId": "update_gymnast_gymnasts__gymnast_id__patch",
+        "parameters": [
+          {
+            "name": "gymnast_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Gymnast Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GymnastUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GymnastRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Gymnasts"
+        ],
+        "summary": "Delete Gymnast",
+        "operationId": "delete_gymnast_gymnasts__gymnast_id__delete",
+        "parameters": [
+          {
+            "name": "gymnast_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Gymnast Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/meets/": {
+      "post": {
+        "tags": [
+          "Meets"
+        ],
+        "summary": "Create Meet",
+        "operationId": "create_meet_meets__post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeetCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Meets"
+        ],
+        "summary": "List Meets",
+        "operationId": "list_meets_meets__get",
+        "parameters": [
+          {
+            "name": "district_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by district_id",
+              "title": "District Id"
+            },
+            "description": "Filter by district_id"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/MeetStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by status",
+              "title": "Status"
+            },
+            "description": "Filter by status"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MeetRead"
+                  },
+                  "title": "Response List Meets Meets  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/meets/{meet_id}": {
+      "get": {
+        "tags": [
+          "Meets"
+        ],
+        "summary": "Get Meet",
+        "operationId": "get_meet_meets__meet_id__get",
+        "parameters": [
+          {
+            "name": "meet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Meet Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Meets"
+        ],
+        "summary": "Update Meet",
+        "operationId": "update_meet_meets__meet_id__patch",
+        "parameters": [
+          {
+            "name": "meet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Meet Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeetUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Meets"
+        ],
+        "summary": "Delete Meet",
+        "operationId": "delete_meet_meets__meet_id__delete",
+        "parameters": [
+          {
+            "name": "meet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Meet Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/meet-entries/": {
+      "post": {
+        "tags": [
+          "Meet Entries"
+        ],
+        "summary": "Create Meet Entry",
+        "operationId": "create_meet_entry_meet_entries__post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeetEntryCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetEntryRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Meet Entries"
+        ],
+        "summary": "List Meet Entries",
+        "operationId": "list_meet_entries_meet_entries__get",
+        "parameters": [
+          {
+            "name": "meet_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by meet_id",
+              "title": "Meet Id"
+            },
+            "description": "Filter by meet_id"
+          },
+          {
+            "name": "gymnast_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by gymnast_id",
+              "title": "Gymnast Id"
+            },
+            "description": "Filter by gymnast_id"
+          },
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by group_id",
+              "title": "Group Id"
+            },
+            "description": "Filter by group_id"
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by level",
+              "title": "Level"
+            },
+            "description": "Filter by level"
+          },
+          {
+            "name": "age_group",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by age_group",
+              "title": "Age Group"
+            },
+            "description": "Filter by age_group"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MeetEntryRead"
+                  },
+                  "title": "Response List Meet Entries Meet Entries  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/meet-entries/{entry_id}": {
+      "get": {
+        "tags": [
+          "Meet Entries"
+        ],
+        "summary": "Get Meet Entry",
+        "operationId": "get_meet_entry_meet_entries__entry_id__get",
+        "parameters": [
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Entry Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetEntryRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Meet Entries"
+        ],
+        "summary": "Update Meet Entry",
+        "operationId": "update_meet_entry_meet_entries__entry_id__patch",
+        "parameters": [
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Entry Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeetEntryUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetEntryRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Meet Entries"
+        ],
+        "summary": "Delete Meet Entry",
+        "operationId": "delete_meet_entry_meet_entries__entry_id__delete",
+        "parameters": [
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Entry Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/groups/": {
+      "post": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Create Group",
+        "operationId": "create_group_groups__post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "List Groups",
+        "operationId": "list_groups_groups__get",
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by club ID",
+              "title": "Club Id"
+            },
+            "description": "Filter by club ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GroupRead"
+                  },
+                  "title": "Response List Groups Groups  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/groups/{group_id}": {
+      "get": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Get Group",
+        "operationId": "get_group_groups__group_id__get",
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Group Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Update Group",
+        "operationId": "update_group_groups__group_id__patch",
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Group Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Delete Group",
+        "operationId": "delete_group_groups__group_id__delete",
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Group Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/routines/": {
+      "post": {
+        "tags": [
+          "Routines"
+        ],
+        "summary": "Create Routine",
+        "operationId": "create_routine_routines__post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoutineCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Routines"
+        ],
+        "summary": "List Routines",
+        "operationId": "list_routines_routines__get",
+        "parameters": [
+          {
+            "name": "entry_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by entry_id",
+              "title": "Entry Id"
+            },
+            "description": "Filter by entry_id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoutineRead"
+                  },
+                  "title": "Response List Routines Routines  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/routines/{routine_id}": {
+      "get": {
+        "tags": [
+          "Routines"
+        ],
+        "summary": "Get Routine",
+        "operationId": "get_routine_routines__routine_id__get",
+        "parameters": [
+          {
+            "name": "routine_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Routine Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Routines"
+        ],
+        "summary": "Update Routine",
+        "operationId": "update_routine_routines__routine_id__patch",
+        "parameters": [
+          {
+            "name": "routine_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Routine Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoutineUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Routines"
+        ],
+        "summary": "Delete Routine",
+        "operationId": "delete_routine_routines__routine_id__delete",
+        "parameters": [
+          {
+            "name": "routine_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Routine Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/routines/{routine_id}/score": {
+      "get": {
+        "tags": [
+          "Routines"
+        ],
+        "summary": "Get Routine Score",
+        "operationId": "get_routine_score_routines__routine_id__score_get",
+        "parameters": [
+          {
+            "name": "routine_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Routine Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineScoreRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/routine-profiles/": {
+      "post": {
+        "tags": [
+          "Routine Profiles"
+        ],
+        "summary": "Create Routine Profile",
+        "operationId": "create_routine_profile_routine_profiles__post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoutineProfileCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineProfileRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Routine Profiles"
+        ],
+        "summary": "List Routine Profiles",
+        "operationId": "list_routine_profiles_routine_profiles__get",
+        "parameters": [
+          {
+            "name": "gymnast_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by gymnast_id",
+              "title": "Gymnast Id"
+            },
+            "description": "Filter by gymnast_id"
+          },
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by group_id",
+              "title": "Group Id"
+            },
+            "description": "Filter by group_id"
+          },
+          {
+            "name": "apparatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Apparatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by apparatus",
+              "title": "Apparatus"
+            },
+            "description": "Filter by apparatus"
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Level"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by level",
+              "title": "Level"
+            },
+            "description": "Filter by level"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoutineProfileRead"
+                  },
+                  "title": "Response List Routine Profiles Routine Profiles  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/routine-profiles/{profile_id}": {
+      "get": {
+        "tags": [
+          "Routine Profiles"
+        ],
+        "summary": "Get Routine Profile",
+        "operationId": "get_routine_profile_routine_profiles__profile_id__get",
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineProfileRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Routine Profiles"
+        ],
+        "summary": "Update Routine Profile",
+        "operationId": "update_routine_profile_routine_profiles__profile_id__patch",
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoutineProfileUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineProfileRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Routine Profiles"
+        ],
+        "summary": "Delete Routine Profile",
+        "operationId": "delete_routine_profile_routine_profiles__profile_id__delete",
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/judges/": {
+      "post": {
+        "tags": [
+          "Judges"
+        ],
+        "summary": "Create Judge",
+        "operationId": "create_judge_judges__post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JudgeCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JudgeRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Judges"
+        ],
+        "summary": "List Judges",
+        "description": "List all judges, optionally filtered by country_code",
+        "operationId": "list_judges_judges__get",
+        "parameters": [
+          {
+            "name": "country_code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional country_code to filter judges by country",
+              "title": "Country Code"
+            },
+            "description": "Optional country_code to filter judges by country"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JudgeRead"
+                  },
+                  "title": "Response List Judges Judges  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/judges/{judge_id}": {
+      "get": {
+        "tags": [
+          "Judges"
+        ],
+        "summary": "Get Judge",
+        "operationId": "get_judge_judges__judge_id__get",
+        "parameters": [
+          {
+            "name": "judge_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Judge Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JudgeRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Judges"
+        ],
+        "summary": "Update Judge",
+        "operationId": "update_judge_judges__judge_id__patch",
+        "parameters": [
+          {
+            "name": "judge_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Judge Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JudgeUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JudgeRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Judges"
+        ],
+        "summary": "Delete Judge",
+        "operationId": "delete_judge_judges__judge_id__delete",
+        "parameters": [
+          {
+            "name": "judge_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Judge Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/judge-scores/": {
+      "post": {
+        "tags": [
+          "Judge Scores"
+        ],
+        "summary": "Create Judge Score",
+        "description": "Create a new judge score.\n\nDesign notes:\n- Levels 1-7 are Execution-only (see app.scoring.E_ONLY_LEVELS) -- a difficulty_body/\n  difficulty_apparatus/artistry mark against a routine at one of those levels is\n  rejected with a 422, since the payload is invalid for that routine's level, not\n  merely in conflict with existing data.\n- Known limitation: this level/panel gate only runs at this HTTP API boundary, since\n  it needs a cross-table join (routine -> entry -> level) that a Postgres CHECK\n  constraint can't express. Direct ORM writes (test factories, future seed/admin\n  scripts) bypass it entirely, unlike ck_judge_score_panel_value_cap which is a real\n  DB constraint enforced everywhere.",
+        "operationId": "create_judge_score_judge_scores__post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JudgeScoreCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JudgeScoreRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Judge Scores"
+        ],
+        "summary": "List Judge Scores",
+        "operationId": "list_judge_scores_judge_scores__get",
+        "parameters": [
+          {
+            "name": "routine_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by routine ID",
+              "title": "Routine Id"
+            },
+            "description": "Filter by routine ID"
+          },
+          {
+            "name": "judge_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by judge ID",
+              "title": "Judge Id"
+            },
+            "description": "Filter by judge ID"
+          },
+          {
+            "name": "panel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Panel"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by panel",
+              "title": "Panel"
+            },
+            "description": "Filter by panel"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JudgeScoreRead"
+                  },
+                  "title": "Response List Judge Scores Judge Scores  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/judge-scores/{judge_score_id}": {
+      "get": {
+        "tags": [
+          "Judge Scores"
+        ],
+        "summary": "Get Judge Score",
+        "operationId": "get_judge_score_judge_scores__judge_score_id__get",
+        "parameters": [
+          {
+            "name": "judge_score_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Judge Score Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JudgeScoreRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Judge Scores"
+        ],
+        "summary": "Update Judge Score",
+        "operationId": "update_judge_score_judge_scores__judge_score_id__patch",
+        "parameters": [
+          {
+            "name": "judge_score_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Judge Score Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JudgeScoreUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JudgeScoreRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Judge Scores"
+        ],
+        "summary": "Delete Judge Score",
+        "operationId": "delete_judge_score_judge_scores__judge_score_id__delete",
+        "parameters": [
+          {
+            "name": "judge_score_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Judge Score Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/penalty-records/": {
+      "post": {
+        "tags": [
+          "Penalty Records"
+        ],
+        "summary": "Create Penalty Record",
+        "description": "Create a new penalty record.",
+        "operationId": "create_penalty_record_penalty_records__post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PenaltyRecordCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PenaltyRecordRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Penalty Records"
+        ],
+        "summary": "List Penalty Records",
+        "operationId": "list_penalty_records_penalty_records__get",
+        "parameters": [
+          {
+            "name": "routine_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by routine ID",
+              "title": "Routine Id"
+            },
+            "description": "Filter by routine ID"
+          },
+          {
+            "name": "judge_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by judge ID",
+              "title": "Judge Id"
+            },
+            "description": "Filter by judge ID"
+          },
+          {
+            "name": "judge_role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/PenaltyJudgeRole"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by judge role",
+              "title": "Judge Role"
+            },
+            "description": "Filter by judge role"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PenaltyRecordRead"
+                  },
+                  "title": "Response List Penalty Records Penalty Records  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/penalty-records/{penalty_record_id}": {
+      "get": {
+        "tags": [
+          "Penalty Records"
+        ],
+        "summary": "Get Penalty Record",
+        "operationId": "get_penalty_record_penalty_records__penalty_record_id__get",
+        "parameters": [
+          {
+            "name": "penalty_record_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Penalty Record Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PenaltyRecordRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Penalty Records"
+        ],
+        "summary": "Update Penalty Record",
+        "operationId": "update_penalty_record_penalty_records__penalty_record_id__patch",
+        "parameters": [
+          {
+            "name": "penalty_record_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Penalty Record Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PenaltyRecordUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PenaltyRecordRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Penalty Records"
+        ],
+        "summary": "Delete Penalty Record",
+        "operationId": "delete_penalty_record_penalty_records__penalty_record_id__delete",
+        "parameters": [
+          {
+            "name": "penalty_record_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Penalty Record Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/meets/{meet_id}/standings": {
+      "get": {
+        "tags": [
+          "Results"
+        ],
+        "summary": "Get Apparatus Standings",
+        "operationId": "get_apparatus_standings_meets__meet_id__standings_get",
+        "parameters": [
+          {
+            "name": "meet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Meet Id"
+            }
+          },
+          {
+            "name": "apparatus",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Apparatus",
+              "description": "Apparatus to rank (required)."
+            },
+            "description": "Apparatus to rank (required)."
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Level"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by level",
+              "title": "Level"
+            },
+            "description": "Filter by level"
+          },
+          {
+            "name": "age_group",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AgeGroup"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by age_group",
+              "title": "Age Group"
+            },
+            "description": "Filter by age_group"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApparatusStandingsRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/meets/{meet_id}/all-around": {
+      "get": {
+        "tags": [
+          "Results"
+        ],
+        "summary": "Get All Around Standings",
+        "operationId": "get_all_around_standings_meets__meet_id__all_around_get",
+        "parameters": [
+          {
+            "name": "meet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Meet Id"
+            }
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Level"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by level",
+              "title": "Level"
+            },
+            "description": "Filter by level"
+          },
+          {
+            "name": "age_group",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AgeGroup"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by age_group",
+              "title": "Age Group"
+            },
+            "description": "Filter by age_group"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AllAroundStandingsRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Root",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AgeGroup": {
+        "type": "string",
+        "enum": [
+          "u8",
+          "u10",
+          "u12",
+          "u14",
+          "o14"
+        ],
+        "title": "AgeGroup"
+      },
+      "AllAroundStandingRow": {
+        "properties": {
+          "rank": {
+            "type": "integer",
+            "title": "Rank",
+            "description": "Competition rank within this all-around category."
+          },
+          "entry_id": {
+            "type": "integer",
+            "title": "Entry Id",
+            "description": "The meet entry this row represents."
+          },
+          "competitor_name": {
+            "type": "string",
+            "title": "Competitor Name",
+            "description": "Gymnast full name, or group name."
+          },
+          "bib_number": {
+            "type": "string",
+            "title": "Bib Number",
+            "description": "Bib number of the competing entry."
+          },
+          "level": {
+            "$ref": "#/components/schemas/Level"
+          },
+          "age_group": {
+            "$ref": "#/components/schemas/AgeGroup"
+          },
+          "total": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total",
+            "description": "Sum of this entry's routine totals."
+          },
+          "e_total": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "E Total",
+            "description": "Sum of this entry's routine Execution scores."
+          },
+          "routines_counted": {
+            "type": "integer",
+            "title": "Routines Counted",
+            "description": "Number of routines summed -- less than the full apparatus count means a partial (in-progress or incomplete) all-around."
+          },
+          "medal": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "gold",
+                  "silver",
+                  "bronze"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Medal",
+            "description": "Standard-based medal tier from the meet's configured cutoffs (Meet.medal_gold_min/medal_silver_min), independent of rank. Null if the meet isn't using cutoffs."
+          }
+        },
+        "type": "object",
+        "required": [
+          "rank",
+          "entry_id",
+          "competitor_name",
+          "bib_number",
+          "level",
+          "age_group",
+          "total",
+          "e_total",
+          "routines_counted"
+        ],
+        "title": "AllAroundStandingRow"
+      },
+      "AllAroundStandingsRead": {
+        "properties": {
+          "meet_id": {
+            "type": "integer",
+            "title": "Meet Id"
+          },
+          "provisional": {
+            "type": "boolean",
+            "title": "Provisional",
+            "description": "True unless the meet's status is 'completed'."
+          },
+          "level": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Level"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Level filter applied, if any."
+          },
+          "age_group": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgeGroup"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Age group filter applied, if any."
+          },
+          "rankings": {
+            "items": {
+              "$ref": "#/components/schemas/AllAroundStandingRow"
+            },
+            "type": "array",
+            "title": "Rankings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "meet_id",
+          "provisional",
+          "rankings"
+        ],
+        "title": "AllAroundStandingsRead",
+        "description": "Live-computed all-around ranking for one meet/level/age_group slice."
+      },
+      "Apparatus": {
+        "type": "string",
+        "enum": [
+          "rope",
+          "hoop",
+          "ball",
+          "clubs",
+          "ribbon",
+          "freehand"
+        ],
+        "title": "Apparatus"
+      },
+      "ApparatusStandingRow": {
+        "properties": {
+          "rank": {
+            "type": "integer",
+            "title": "Rank",
+            "description": "Competition rank within this apparatus category."
+          },
+          "entry_id": {
+            "type": "integer",
+            "title": "Entry Id",
+            "description": "The meet entry this routine belongs to."
+          },
+          "routine_id": {
+            "type": "integer",
+            "title": "Routine Id",
+            "description": "The routine this row represents."
+          },
+          "competitor_name": {
+            "type": "string",
+            "title": "Competitor Name",
+            "description": "Gymnast full name, or group name."
+          },
+          "bib_number": {
+            "type": "string",
+            "title": "Bib Number",
+            "description": "Bib number of the competing entry."
+          },
+          "level": {
+            "$ref": "#/components/schemas/Level"
+          },
+          "age_group": {
+            "$ref": "#/components/schemas/AgeGroup"
+          },
+          "apparatus": {
+            "$ref": "#/components/schemas/Apparatus"
+          },
+          "d_score": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "D Score"
+          },
+          "a_score": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "A Score"
+          },
+          "e_score": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "E Score"
+          },
+          "penalty": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Penalty"
+          },
+          "total": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total"
+          },
+          "medal": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "gold",
+                  "silver",
+                  "bronze"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Medal",
+            "description": "Standard-based medal tier from the meet's configured cutoffs (Meet.medal_gold_min/medal_silver_min), independent of rank. Null if the meet isn't using cutoffs."
+          }
+        },
+        "type": "object",
+        "required": [
+          "rank",
+          "entry_id",
+          "routine_id",
+          "competitor_name",
+          "bib_number",
+          "level",
+          "age_group",
+          "apparatus",
+          "d_score",
+          "a_score",
+          "e_score",
+          "penalty",
+          "total"
+        ],
+        "title": "ApparatusStandingRow"
+      },
+      "ApparatusStandingsRead": {
+        "properties": {
+          "meet_id": {
+            "type": "integer",
+            "title": "Meet Id"
+          },
+          "provisional": {
+            "type": "boolean",
+            "title": "Provisional",
+            "description": "True unless the meet's status is 'completed'."
+          },
+          "apparatus": {
+            "$ref": "#/components/schemas/Apparatus"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Level"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Level filter applied, if any."
+          },
+          "age_group": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgeGroup"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Age group filter applied, if any."
+          },
+          "rankings": {
+            "items": {
+              "$ref": "#/components/schemas/ApparatusStandingRow"
+            },
+            "type": "array",
+            "title": "Rankings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "meet_id",
+          "provisional",
+          "apparatus",
+          "rankings"
+        ],
+        "title": "ApparatusStandingsRead",
+        "description": "Live-computed per-apparatus ranking for one meet/level/age_group/apparatus slice."
+      },
+      "ClubCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "Name"
+          },
+          "district_id": {
+            "type": "integer",
+            "title": "District Id"
+          },
+          "abbreviation": {
+            "type": "string",
+            "maxLength": 10,
+            "minLength": 1,
+            "title": "Abbreviation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "district_id",
+          "abbreviation"
+        ],
+        "title": "ClubCreate"
+      },
+      "ClubRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "district_id": {
+            "type": "integer",
+            "title": "District Id"
+          },
+          "abbreviation": {
+            "type": "string",
+            "title": "Abbreviation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "district_id",
+          "abbreviation"
+        ],
+        "title": "ClubRead"
+      },
+      "ClubUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "abbreviation": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 10,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Abbreviation"
+          }
+        },
+        "type": "object",
+        "title": "ClubUpdate"
+      },
+      "CoachCreate": {
+        "properties": {
+          "first_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "First Name"
+          },
+          "last_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "Last Name"
+          },
+          "club_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Club Id"
+          },
+          "is_head_coach": {
+            "type": "boolean",
+            "title": "Is Head Coach",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "first_name",
+          "last_name",
+          "club_id"
+        ],
+        "title": "CoachCreate"
+      },
+      "CoachRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "first_name": {
+            "type": "string",
+            "title": "First Name"
+          },
+          "last_name": {
+            "type": "string",
+            "title": "Last Name"
+          },
+          "club_id": {
+            "type": "integer",
+            "title": "Club Id"
+          },
+          "is_head_coach": {
+            "type": "boolean",
+            "title": "Is Head Coach"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "first_name",
+          "last_name",
+          "club_id",
+          "is_head_coach"
+        ],
+        "title": "CoachRead"
+      },
+      "CoachUpdate": {
+        "properties": {
+          "first_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Name"
+          },
+          "last_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Name"
+          },
+          "is_head_coach": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Head Coach"
+          }
+        },
+        "type": "object",
+        "title": "CoachUpdate"
+      },
+      "DistrictCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "Name"
+          },
+          "abbreviation": {
+            "type": "string",
+            "maxLength": 10,
+            "minLength": 1,
+            "title": "Abbreviation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "abbreviation"
+        ],
+        "title": "DistrictCreate"
+      },
+      "DistrictRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "abbreviation": {
+            "type": "string",
+            "title": "Abbreviation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "abbreviation"
+        ],
+        "title": "DistrictRead"
+      },
+      "DistrictUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "abbreviation": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 10,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Abbreviation"
+          }
+        },
+        "type": "object",
+        "title": "DistrictUpdate"
+      },
+      "GroupCreate": {
+        "properties": {
+          "club_id": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Club Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "club_id",
+          "name"
+        ],
+        "title": "GroupCreate"
+      },
+      "GroupRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "club_id": {
+            "type": "integer",
+            "title": "Club Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "club_id",
+          "name"
+        ],
+        "title": "GroupRead"
+      },
+      "GroupUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "title": "GroupUpdate"
+      },
+      "GymnastCreate": {
+        "properties": {
+          "club_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Club Id"
+          },
+          "group_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Id"
+          },
+          "first_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "First Name"
+          },
+          "last_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "Last Name"
+          },
+          "date_of_birth": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Of Birth"
+          },
+          "country_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "title": "GymnastCreate"
+      },
+      "GymnastRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "club_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Club Id"
+          },
+          "group_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Id"
+          },
+          "first_name": {
+            "type": "string",
+            "title": "First Name"
+          },
+          "last_name": {
+            "type": "string",
+            "title": "Last Name"
+          },
+          "date_of_birth": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Of Birth"
+          },
+          "country_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "first_name",
+          "last_name"
+        ],
+        "title": "GymnastRead"
+      },
+      "GymnastUpdate": {
+        "properties": {
+          "club_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Club Id"
+          },
+          "group_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Id"
+          },
+          "first_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Name"
+          },
+          "last_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Name"
+          },
+          "date_of_birth": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Of Birth"
+          },
+          "country_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country Code"
+          }
+        },
+        "type": "object",
+        "title": "GymnastUpdate"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "JudgeCreate": {
+        "properties": {
+          "first_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "First Name",
+            "description": "The first name of the judge."
+          },
+          "last_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "Last Name",
+            "description": "The last name of the judge."
+          },
+          "country_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country Code",
+            "description": "The country code of the judge."
+          },
+          "brevet": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brevet",
+            "description": "The brevet of the judge."
+          }
+        },
+        "type": "object",
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "title": "JudgeCreate"
+      },
+      "JudgeRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "first_name": {
+            "type": "string",
+            "title": "First Name"
+          },
+          "last_name": {
+            "type": "string",
+            "title": "Last Name"
+          },
+          "country_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country Code"
+          },
+          "brevet": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brevet"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "first_name",
+          "last_name"
+        ],
+        "title": "JudgeRead"
+      },
+      "JudgeScoreCreate": {
+        "properties": {
+          "routine_id": {
+            "type": "integer",
+            "title": "Routine Id",
+            "description": "The ID of the routine being scored"
+          },
+          "judge_id": {
+            "type": "integer",
+            "title": "Judge Id",
+            "description": "The ID of the judge submitting the score"
+          },
+          "panel": {
+            "$ref": "#/components/schemas/Panel",
+            "description": "The panel of the judge submitting the score"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number",
+                "multipleOf": 0.05,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Value",
+            "description": "The score value being submitted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "routine_id",
+          "judge_id",
+          "panel",
+          "value"
+        ],
+        "title": "JudgeScoreCreate"
+      },
+      "JudgeScoreRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "routine_id": {
+            "type": "integer",
+            "title": "Routine Id"
+          },
+          "judge_id": {
+            "type": "integer",
+            "title": "Judge Id"
+          },
+          "panel": {
+            "$ref": "#/components/schemas/Panel"
+          },
+          "value": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "routine_id",
+          "judge_id",
+          "panel",
+          "value"
+        ],
+        "title": "JudgeScoreRead"
+      },
+      "JudgeScoreUpdate": {
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "number",
+                "multipleOf": 0.05,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "The score value being updated"
+          }
+        },
+        "type": "object",
+        "title": "JudgeScoreUpdate"
+      },
+      "JudgeUpdate": {
+        "properties": {
+          "first_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Name",
+            "description": "The first name of the judge."
+          },
+          "last_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Name",
+            "description": "The last name of the judge."
+          },
+          "country_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country Code",
+            "description": "The country code of the judge."
+          },
+          "brevet": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brevet",
+            "description": "The brevet of the judge."
+          }
+        },
+        "type": "object",
+        "title": "JudgeUpdate"
+      },
+      "Level": {
+        "type": "string",
+        "enum": [
+          "level_1",
+          "level_2",
+          "level_3",
+          "level_4",
+          "level_5",
+          "level_6",
+          "level_7",
+          "level_8",
+          "level_9",
+          "level_10",
+          "high_performance_1",
+          "high_performance_2",
+          "high_performance_3",
+          "high_performance_4",
+          "pre_junior",
+          "junior",
+          "senior",
+          "olympic"
+        ],
+        "title": "Level"
+      },
+      "MeetCreate": {
+        "properties": {
+          "district_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "District Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "Name"
+          },
+          "location": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "Location"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Start Date"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date",
+            "title": "End Date"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MeetStatus",
+            "default": "draft"
+          },
+          "medal_gold_min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Medal Gold Min"
+          },
+          "medal_silver_min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Medal Silver Min"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "location",
+          "start_date",
+          "end_date"
+        ],
+        "title": "MeetCreate"
+      },
+      "MeetEntryCreate": {
+        "properties": {
+          "meet_id": {
+            "type": "integer",
+            "title": "Meet Id",
+            "description": "The ID of the meet"
+          },
+          "gymnast_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gymnast Id",
+            "description": "The ID of the gymnast"
+          },
+          "group_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Id",
+            "description": "The ID of the group"
+          },
+          "level": {
+            "$ref": "#/components/schemas/Level",
+            "description": "The level of the gymnast"
+          },
+          "age_group": {
+            "$ref": "#/components/schemas/AgeGroup",
+            "description": "The age group of the gymnast"
+          },
+          "bib_number": {
+            "type": "string",
+            "title": "Bib Number",
+            "description": "The bib number of the gymnast"
+          },
+          "entry_fee_paid": {
+            "type": "boolean",
+            "title": "Entry Fee Paid",
+            "description": "Whether the entry fee has been paid",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "meet_id",
+          "level",
+          "age_group",
+          "bib_number"
+        ],
+        "title": "MeetEntryCreate"
+      },
+      "MeetEntryRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "description": "The ID of the meet entry"
+          },
+          "meet_id": {
+            "type": "integer",
+            "title": "Meet Id",
+            "description": "The ID of the meet"
+          },
+          "gymnast_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gymnast Id",
+            "description": "The ID of the gymnast"
+          },
+          "group_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Id",
+            "description": "The ID of the group"
+          },
+          "level": {
+            "$ref": "#/components/schemas/Level",
+            "description": "The level of the gymnast"
+          },
+          "age_group": {
+            "$ref": "#/components/schemas/AgeGroup",
+            "description": "The age group of the gymnast"
+          },
+          "bib_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bib Number",
+            "description": "The bib number of the gymnast"
+          },
+          "entry_fee_paid": {
+            "type": "boolean",
+            "title": "Entry Fee Paid",
+            "description": "Whether the entry fee has been paid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "meet_id",
+          "level",
+          "age_group",
+          "entry_fee_paid"
+        ],
+        "title": "MeetEntryRead"
+      },
+      "MeetEntryUpdate": {
+        "properties": {
+          "level": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Level"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The level of the gymnast"
+          },
+          "age_group": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgeGroup"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The age group of the gymnast"
+          },
+          "bib_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bib Number",
+            "description": "The bib number of the gymnast"
+          },
+          "entry_fee_paid": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Fee Paid",
+            "description": "Whether the entry fee has been paid"
+          }
+        },
+        "type": "object",
+        "title": "MeetEntryUpdate"
+      },
+      "MeetRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "district_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "District Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "location": {
+            "type": "string",
+            "title": "Location"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Start Date"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date",
+            "title": "End Date"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MeetStatus"
+          },
+          "medal_gold_min": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Medal Gold Min"
+          },
+          "medal_silver_min": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Medal Silver Min"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "district_id",
+          "name",
+          "location",
+          "start_date",
+          "end_date",
+          "status",
+          "medal_gold_min",
+          "medal_silver_min"
+        ],
+        "title": "MeetRead"
+      },
+      "MeetStatus": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "scheduled",
+          "in_progress",
+          "completed",
+          "cancelled"
+        ],
+        "title": "MeetStatus"
+      },
+      "MeetUpdate": {
+        "properties": {
+          "district_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "District Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Date"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MeetStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "medal_gold_min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Medal Gold Min"
+          },
+          "medal_silver_min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Medal Silver Min"
+          }
+        },
+        "type": "object",
+        "title": "MeetUpdate"
+      },
+      "Panel": {
+        "type": "string",
+        "enum": [
+          "difficulty_body",
+          "difficulty_apparatus",
+          "execution",
+          "artistry"
+        ],
+        "title": "Panel"
+      },
+      "PenaltyJudgeRole": {
+        "type": "string",
+        "enum": [
+          "time_judge",
+          "line_judge",
+          "responsible_judge"
+        ],
+        "title": "PenaltyJudgeRole"
+      },
+      "PenaltyRecordCreate": {
+        "properties": {
+          "routine_id": {
+            "type": "integer",
+            "title": "Routine Id",
+            "description": "The ID of the routine being penalized"
+          },
+          "judge_id": {
+            "type": "integer",
+            "title": "Judge Id",
+            "description": "The ID of the judge assessing the penalty"
+          },
+          "judge_role": {
+            "$ref": "#/components/schemas/PenaltyJudgeRole",
+            "description": "Which judge role assessed this penalty"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Description",
+            "description": "What happened (e.g. 'boundary touch')"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "multipleOf": 0.05,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Amount",
+            "description": "The penalty amount deducted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "routine_id",
+          "judge_id",
+          "judge_role",
+          "description",
+          "amount"
+        ],
+        "title": "PenaltyRecordCreate"
+      },
+      "PenaltyRecordRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "routine_id": {
+            "type": "integer",
+            "title": "Routine Id"
+          },
+          "judge_id": {
+            "type": "integer",
+            "title": "Judge Id"
+          },
+          "judge_role": {
+            "$ref": "#/components/schemas/PenaltyJudgeRole"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "amount": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "routine_id",
+          "judge_id",
+          "judge_role",
+          "description",
+          "amount"
+        ],
+        "title": "PenaltyRecordRead"
+      },
+      "PenaltyRecordUpdate": {
+        "properties": {
+          "judge_role": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PenaltyJudgeRole"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Which judge role assessed this penalty"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "What happened (e.g. 'boundary touch')"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "multipleOf": 0.05,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount",
+            "description": "The penalty amount deducted"
+          }
+        },
+        "type": "object",
+        "title": "PenaltyRecordUpdate"
+      },
+      "RoutineCreate": {
+        "properties": {
+          "entry_id": {
+            "type": "integer",
+            "title": "Entry Id",
+            "description": "The ID of the meet entry this routine belongs to."
+          },
+          "apparatus": {
+            "$ref": "#/components/schemas/Apparatus",
+            "description": "The apparatus for this routine."
+          },
+          "order_of_performance": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Of Performance",
+            "description": "The order of performance for this routine."
+          },
+          "penalty": {
+            "anyOf": [
+              {
+                "type": "number",
+                "multipleOf": 0.05,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Penalty",
+            "description": "Deduction applied to this routine's final score.",
+            "default": "0"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entry_id",
+          "apparatus"
+        ],
+        "title": "RoutineCreate"
+      },
+      "RoutineProfileCreate": {
+        "properties": {
+          "gymnast_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gymnast Id",
+            "description": "ID of the gymnast associated with the routine profile"
+          },
+          "group_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Id",
+            "description": "ID of the group associated with the routine profile"
+          },
+          "apparatus": {
+            "$ref": "#/components/schemas/Apparatus",
+            "description": "Apparatus used in the routine profile"
+          },
+          "level": {
+            "$ref": "#/components/schemas/Level",
+            "description": "Level of the routine profile"
+          },
+          "music_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Music Url",
+            "description": "URL to the music associated with the routine profile"
+          },
+          "choreography_notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Choreography Notes",
+            "description": "Notes about the choreography of the routine profile"
+          }
+        },
+        "type": "object",
+        "required": [
+          "apparatus",
+          "level"
+        ],
+        "title": "RoutineProfileCreate"
+      },
+      "RoutineProfileRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "gymnast_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gymnast Id"
+          },
+          "group_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Id"
+          },
+          "apparatus": {
+            "$ref": "#/components/schemas/Apparatus"
+          },
+          "level": {
+            "$ref": "#/components/schemas/Level"
+          },
+          "music_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Music Url"
+          },
+          "choreography_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Choreography Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "gymnast_id",
+          "group_id",
+          "apparatus",
+          "level",
+          "music_url",
+          "choreography_notes"
+        ],
+        "title": "RoutineProfileRead"
+      },
+      "RoutineProfileUpdate": {
+        "properties": {
+          "music_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Music Url",
+            "description": "URL to the music associated with the routine profile"
+          },
+          "choreography_notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Choreography Notes",
+            "description": "Notes about the choreography of the routine profile"
+          }
+        },
+        "type": "object",
+        "title": "RoutineProfileUpdate"
+      },
+      "RoutineRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "description": "The unique identifier for this routine."
+          },
+          "entry_id": {
+            "type": "integer",
+            "title": "Entry Id",
+            "description": "The ID of the meet entry this routine belongs to."
+          },
+          "apparatus": {
+            "$ref": "#/components/schemas/Apparatus",
+            "description": "The apparatus for this routine."
+          },
+          "order_of_performance": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Of Performance",
+            "description": "The order of performance for this routine."
+          },
+          "penalty": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Penalty",
+            "description": "Deduction applied to this routine's final score."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "entry_id",
+          "apparatus",
+          "penalty"
+        ],
+        "title": "RoutineRead"
+      },
+      "RoutineScoreRead": {
+        "properties": {
+          "routine_id": {
+            "type": "integer",
+            "title": "Routine Id",
+            "description": "The ID of the routine this score belongs to."
+          },
+          "d_score": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "D Score",
+            "description": "Difficulty score: difficulty_body + difficulty_apparatus subgroups summed."
+          },
+          "a_score": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "A Score",
+            "description": "Artistry score (trimmed mean of artistry marks)."
+          },
+          "e_score": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "E Score",
+            "description": "Execution score (trimmed mean of execution marks)."
+          },
+          "penalty": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Penalty",
+            "description": "Deduction applied to this routine's final score."
+          },
+          "total": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total",
+            "description": "d_score + a_score + e_score - penalty."
+          }
+        },
+        "type": "object",
+        "required": [
+          "routine_id",
+          "d_score",
+          "a_score",
+          "e_score",
+          "penalty",
+          "total"
+        ],
+        "title": "RoutineScoreRead",
+        "description": "The live-computed D/A/E/total score for a routine (see app/scoring.py)."
+      },
+      "RoutineUpdate": {
+        "properties": {
+          "order_of_performance": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Of Performance",
+            "description": "The order of performance for this routine."
+          },
+          "penalty": {
+            "anyOf": [
+              {
+                "type": "number",
+                "multipleOf": 0.05,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Penalty",
+            "description": "Deduction applied to this routine's final score."
+          }
+        },
+        "type": "object",
+        "title": "RoutineUpdate"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
