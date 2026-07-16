@@ -24,3 +24,43 @@ test("renders nothing when closed", () => {
   );
   expect(container).toBeEmptyDOMElement();
 });
+
+test("discards abandoned edits and re-seeds from value on reopen", async () => {
+  const judges = [
+    makeJudge({ id: 1, first_name: "Naledi", last_name: "Dlamini" }),
+    makeJudge({ id: 2, first_name: "Mina", last_name: "Kim" }),
+  ];
+  const { rerender } = render(
+    <PanelSetupDialog
+      open
+      value={{ D: 1 }}
+      judges={judges}
+      onSave={() => {}}
+      onClose={() => {}}
+    />,
+  );
+  await userEvent.selectOptions(screen.getByLabelText("E1"), "2");
+  expect(screen.getByLabelText("E1")).toHaveValue("2");
+
+  rerender(
+    <PanelSetupDialog
+      open={false}
+      value={{ D: 1 }}
+      judges={judges}
+      onSave={() => {}}
+      onClose={() => {}}
+    />,
+  );
+  rerender(
+    <PanelSetupDialog
+      open
+      value={{ D: 1 }}
+      judges={judges}
+      onSave={() => {}}
+      onClose={() => {}}
+    />,
+  );
+
+  expect(screen.getByLabelText("E1")).toHaveValue("");
+  expect(screen.getByLabelText("D")).toHaveValue("1");
+});

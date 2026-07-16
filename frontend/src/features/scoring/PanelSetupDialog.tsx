@@ -16,6 +16,11 @@ export function PanelSetupDialog({
   onClose: () => void;
 }) {
   const [draft, setDraft] = useState<PanelAssignment>(value);
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setDraft(value);
+  }
   if (!open) return null;
 
   const setSlot = (slot: PanelSlot, judgeId: string) => {
