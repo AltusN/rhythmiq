@@ -1,7 +1,10 @@
-import { render, screen } from "@testing-library/react";
-import App from "../src/App";
+import { screen } from "@testing-library/react";
+import { http, HttpResponse } from "msw";
+import { api, server } from "./msw/server";
+import { renderApp } from "./utils";
 
-test("renders the app name", () => {
-  render(<App />);
-  expect(screen.getByText("Rhythmiq")).toBeInTheDocument();
+test("renders the nav shell", async () => {
+  server.use(http.get(api("/meets/"), () => HttpResponse.json([])));
+  renderApp("/");
+  expect(await screen.findByText("Rhythmiq")).toBeInTheDocument();
 });

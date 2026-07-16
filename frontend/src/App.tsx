@@ -1,3 +1,13 @@
+import { Route, Routes } from "react-router-dom";
+import { Layout } from "./components/Layout";
+import { MeetListPage } from "./features/meets/MeetListPage";
+
 export default function App() {
-  return <h1 className="p-6 text-2xl font-bold">Rhythmiq</h1>;
+  return (
+    <Routes>
+      <Route element={<Layout />}>
+        <Route path="/" element={<MeetListPage />} />
+      </Route>
+    </Routes>
+  );
 }
