@@ -33,8 +33,26 @@ The API is served at `http://127.0.0.1:8000`. Interactive docs are available at
 
 The root `Makefile` wraps the common workflows: `make dev` (docker compose up + migrate),
 `make migration name="..."` (generate a migration), `make test` (migrate the test database +
-run pytest), `make seed` (populate demo data across every table), and `make reset` (wipe the
-local Postgres volume and start fresh).
+run pytest), `make seed` (populate demo data across every table), `make reset` (wipe the
+local Postgres volume and start fresh), and `make frontend` (start the Vite dev server).
+
+## Frontend
+
+`frontend/` is a React + Vite single-page app for meet-day scoring (Phase 1), talking to
+the API above through a dev-server proxy — no CORS setup needed.
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The UI is served at `http://127.0.0.1:5173` and proxies `/api/*` to the backend at
+`http://127.0.0.1:8000`, so run the backend (`uvicorn`, see above) alongside it. API types
+are generated from the backend's OpenAPI schema into `src/api/schema.d.ts`; after changing
+a backend schema or router, run `make types` from the repo root and commit the result.
+Run `npm test -- --run` for the Vitest suite and `npm run build` for a typechecked
+production build.
 
 ## Database migrations
 
