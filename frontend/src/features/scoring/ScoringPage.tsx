@@ -24,7 +24,7 @@ export function ScoringPage() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [panel, setPanel] = useState<PanelAssignment>(() => loadPanel(meet.id));
 
-  const { nameFor } = useCompetitorNames();
+  const { nameFor, error: namesError } = useCompetitorNames();
 
   const entriesQ = useQuery({
     queryKey: ["entries", meet.id, level],
@@ -167,6 +167,7 @@ export function ScoringPage() {
       />
       <div className="min-w-0 flex-1">
         {entriesQ.error && <ErrorBanner message={entriesQ.error.message} />}
+        {namesError && <ErrorBanner message={namesError.message} />}
         {selectedEntry === null && (
           <p className="text-gray-500">Pick a competitor to score.</p>
         )}

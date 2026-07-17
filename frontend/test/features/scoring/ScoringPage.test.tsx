@@ -189,6 +189,18 @@ test("completed meet renders the form read-only", async () => {
   expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 });
 
+test("a failed gymnasts query surfaces an error instead of silently numbering competitors", async () => {
+  mockBase();
+  server.use(
+    http.get(api("/gymnasts/"), () =>
+      HttpResponse.json({ detail: "gymnasts down" }, { status: 500 }),
+    ),
+  );
+  renderApp("/meets/5/scoring");
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("gymnasts down");
+});
+
 test("a failed routines query surfaces an error instead of hanging on Loading", async () => {
   mockBase();
   server.use(
