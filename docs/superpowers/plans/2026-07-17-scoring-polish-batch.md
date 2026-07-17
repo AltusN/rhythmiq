@@ -1,13 +1,15 @@
 # Scoring Polish Batch Implementation Plan
 
 > **For agentic workers:** This plan is executed **interactively, in-session** — do
-> NOT dispatch subagents. Tasks 1–4 are implemented by **Altus** (tutor mode: Claude
-> reviews, challenges, and suggests alternatives, but does not write the code). Task 5
-> is implemented by **Claude**. Steps use checkbox (`- [ ]`) syntax for tracking.
+> NOT dispatch subagents. Tasks F1–F4 and 1–4 are implemented by **Altus** (tutor
+> mode: Claude reviews, challenges, and suggests alternatives, but does not write the
+> code). Tasks F5, F6, and 5 are implemented by **Claude**. Steps use checkbox
+> (`- [ ]`) syntax for tracking.
 
-**Goal:** Five small UX fixes to the Phase 1 meet-day scoring screen — save feedback,
-keyboard focus, an age-group filter, panel display polish, and an unsaved-changes
-guard.
+**Goal:** Clear the Phase 1 scoring screen's polish debt: the six fixes deferred by
+the Phase 1 final review (Part A, Tasks F1–F6), then five UX improvements (Part B,
+Tasks 1–5) — save feedback, keyboard focus, an age-group filter, panel display
+polish, and an unsaved-changes guard.
 
 **Architecture:** All changes live in `frontend/src/features/scoring/`. No backend
 changes (`/meet-entries/` already filters by `age_group`; `Judge` already has
@@ -40,6 +42,238 @@ Vitest + Testing Library + MSW.
 - [ ] `git checkout -b feature/scoring-polish` (from repo root, on a clean `main`)
 
 ---
+
+## Part A — Deferred review fixes (from the Phase 1 final review)
+
+These land first, as `fix:` commits, so Part B's UX work builds on corrected code.
+Source: the deferred-polish list in the Phase 1 SDD ledger
+(`.superpowers/sdd/progress.md`, gitignored).
+
+### Task F1: Unparseable input — preview shows NaN (Altus)
+
+**Files:**
+- Modify: `frontend/src/features/scoring/ScoreForm.tsx`,
+  `frontend/src/lib/score-math.ts` (comment only)
+- Test: `frontend/test/features/scoring/ScoringPage.test.tsx`
+
+**Interfaces:** `parseBox` (ScoreForm.tsx:43) currently returns `Number(t)`, which
+is `NaN` for text like `"8,25"` — `computePreview` then renders `NaN` in the
+preview strip. Change `parseBox` to return `undefined` for unparseable input. Safe
+for saves too: submit is validation-gated (`validateBox` rejects non-numbers), so
+only the live preview ever sees garbage — but `undefined` at submit time would mean
+"cleared box → DELETE", which is why the validation gate matters; say so in a
+comment if you find yourself needing to explain it.
+
+- [ ] **Step 1: Write the failing tests** in `ScoringPage.test.tsx`:
+  1. Type `8,25` into E1 → the preview strip never shows `NaN`
+     (`expect(screen.queryByText(/NaN/)).toBeNull()`), and E still reads `0.00`.
+  2. Test-gap minor while here: invalid input (`8.27`) + Save → **no POST fires**
+     (register an MSW `http.post(api("/judge-scores/"), …)` spy handler and assert
+     it was never called after the validation error appears), and the error shows
+     the exact copy `Use 0.05 steps` (the existing test only matches `/0\.05/`).
+- [ ] **Step 2: Run and verify test 1 fails** (preview shows NaN today).
+- [ ] **Step 3: Implement** — `Number.isNaN` guard in `parseBox`. While in the
+  area, add the review's requested comment to `computePreview` in
+  `src/lib/score-math.ts`: the preview rounds per-panel like the server, but
+  floating-point vs `Decimal` can drift the displayed total by ±0.01 in rare
+  cases; the server's total is authoritative.
+- [ ] **Step 4: Run tests, verify PASS.**
+- [ ] **Step 5: Commit** —
+  `git commit -m "fix: treat unparseable score input as empty in preview"`
+
+### Task F2: Formatting & copy — "8.40" and bib-less deletes (Altus)
+
+**Files:**
+- Modify: `frontend/src/features/scoring/ScoreForm.tsx`,
+  `frontend/src/features/entries/EntriesPage.tsx`
+- Test: `frontend/test/features/scoring/ScoringPage.test.tsx`,
+  `frontend/test/features/entries/EntriesPage.test.tsx`
+
+**Behavior:**
+1. Loaded score defaults render two decimals: `String(toNum(existing.value))`
+   in `defaultValues` (ScoreForm.tsx:85-99) turns `"8.40"` into `"8.4"` — use
+   `.toFixed(2)` instead, for boxes and the penalty (keep penalty's
+   empty-when-zero behavior).
+2. Delete-confirm copy (EntriesPage.tsx:93) says `bib null` for entries without a
+   bib — fall back to the competitor's name (`nameFor` is already in scope there).
+
+- [ ] **Step 1: Write the failing tests**:
+  1. Mount with an existing score of `"8.40"` (see the "penalty box locks" test
+     for loading routines+scores) → `expect(screen.getByLabelText("E1")).toHaveValue("8.40")`.
+  2. Entries: entry with `bib_number: null` → confirm copy contains the name, not
+     `null`. Test-gap minor while here: mock `window.confirm` to return **false**
+     → no DELETE fires (spy handler, same pattern as F1's no-POST assertion).
+- [ ] **Step 2: Run and verify they fail.**
+- [ ] **Step 3: Implement** (both are one-liners).
+- [ ] **Step 4: Run tests, verify PASS** — run both changed test files.
+- [ ] **Step 5: Commit** —
+  `git commit -m "fix: two-decimal score defaults and bib-less delete copy"`
+
+### Task F3: useCompetitorNames swallows query errors (Altus)
+
+**Files:**
+- Modify: `frontend/src/lib/useCompetitorNames.ts`, plus its consumers
+  (`grep -rn useCompetitorNames frontend/src` — ScoringPage and EntriesPage)
+- Test: `frontend/test/features/scoring/ScoringPage.test.tsx`
+
+**Interfaces:** the hook returns `{ nameFor, gymnasts, groups, isPending }` and
+silently falls back to `Gymnast #id` labels when `/gymnasts/` or `/groups/` fail.
+Add `error: Error | null` (first of `gymnastsQ.error ?? groupsQ.error ?? null`) to
+the return; consumers render their existing `ErrorBanner` when it's set.
+
+- [ ] **Step 1: Write the failing test**: 500 on `/gymnasts/` → an alert with the
+  API detail appears on the scoring page (mirror the existing "failed routines
+  query" test), instead of the list silently showing `Gymnast #7`.
+- [ ] **Step 2: Run and verify it fails.**
+- [ ] **Step 3: Implement** — hook + both consumers.
+- [ ] **Step 4: Run tests, verify PASS.**
+- [ ] **Step 5: Commit** — `git commit -m "fix: surface competitor-name query errors"`
+
+### Task F4: Stale PanelSetupDialog error on reopen (Altus)
+
+**Files:**
+- Modify: `frontend/src/features/scoring/PanelSetupDialog.tsx`
+- Test: `frontend/test/features/scoring/PanelSetupDialog.test.tsx`,
+  `frontend/test/features/scoring/panel-storage.test.ts`
+
+**Behavior:** the reopen-reseed block (PanelSetupDialog.tsx:21-24) resets `draft`
+but not `error` — trigger the duplicate-E-judge error, close, reopen: the error is
+still there. Clear it in the same `if (open)` branch.
+
+- [ ] **Step 1: Write the failing tests**:
+  1. Dialog: cause the duplicate-E error, close, reopen → no `role="alert"`.
+  2. Test-gap minor while here (`panel-storage.test.ts`): `loadPanel` already
+     guards unparseable JSON and non-objects, but **not shape** — `"[]"` passes
+     the object check, and `'{"D":"x"}'` returns a string judge id that
+     `boxesFor` treats as an assigned judge (truthy, `!== undefined`). Tests:
+     both inputs → `{}` (or with junk entries dropped). Fix `loadPanel` to keep
+     only known `PANEL_SLOTS` keys whose values are numbers.
+- [ ] **Step 2: Run and verify the dialog test fails.**
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run tests, verify PASS.**
+- [ ] **Step 5: Commit** — `git commit -m "fix: clear stale panel dialog error on reopen"`
+
+### Task F5: Routine-create failure misattributed to the penalty box (Claude)
+
+**Files:**
+- Modify: `frontend/src/features/scoring/save-scores.ts`,
+  `frontend/src/features/scoring/ScoreForm.tsx`
+- Test: `frontend/test/features/scoring/ScoringPage.test.tsx`,
+  `frontend/test/features/scoring/save-scores.test.ts`,
+  `frontend/test/features/scoring/save-diff.test.ts`
+
+**Interfaces:**
+- Produces: `SaveScoresResult` gains `formError?: string` — set only when the lazy
+  `POST /routines/` fails (no per-box attribution makes sense: nothing was
+  saveable). `boxErrors` stays `{}` in that case. ScoreForm renders it via RHF's
+  root error. **Task 5 (Part B) must count `formError` as unclean** in its
+  `clean` check.
+
+- [ ] **Step 1: Write the failing tests**:
+
+```tsx
+// ScoringPage.test.tsx
+test("routine-create failure reports a form-level error, not a penalty error", async () => {
+  mockBase();
+  server.use(
+    http.post(api("/routines/"), () =>
+      HttpResponse.json({ detail: "meet is completed" }, { status: 409 }),
+    ),
+  );
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+  await userEvent.type(await screen.findByLabelText("E1"), "8.25");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("meet is completed");
+  // the penalty box specifically must NOT carry the error
+  expect(screen.getByLabelText("Penalty").parentElement?.textContent).not.toContain("meet is completed");
+});
+```
+
+  Plus in `save-scores.test.ts`: `saveScores` with `routineId: undefined` and a
+  failing POST resolves to `{ routineId: null, boxErrors: {}, formError: "…" }`.
+  Plus the review's stranger-scores test-gap in `save-diff.test.ts`: an
+  `existing` score whose `(judge_id, panel)` matches **no box** (a judge no longer
+  on the panel) produces **no delete op** — assert `ops.deletes` is empty when
+  `values` clears nothing.
+
+- [ ] **Step 2: Run and verify they fail** (error currently lands under Penalty).
+- [ ] **Step 3: Implement** — `save-scores.ts`:
+
+```ts
+export interface SaveScoresResult {
+  routineId: number | null;
+  boxErrors: Partial<Record<BoxKey | "penalty", string>>;
+  formError?: string; // lazy routine creation failed; nothing was written
+}
+
+// in the routineId === undefined branch:
+if (error || !data) {
+  return { routineId: null, boxErrors: {}, formError: apiDetail(error) };
+}
+```
+
+  `ScoreForm.tsx` — in `submit`, before the boxErrors loop:
+
+```tsx
+if (result.formError) {
+  setError("root.server", { type: "server", message: result.formError });
+}
+// and the advance/clean condition becomes:
+onSaved(
+  result,
+  next && !result.formError && Object.keys(result.boxErrors).length === 0,
+);
+```
+
+  Render beneath the box row:
+
+```tsx
+{formState.errors.root?.server && (
+  <p role="alert" className="mt-2 text-sm text-red-700">
+    {formState.errors.root.server.message}
+  </p>
+)}
+```
+
+- [ ] **Step 4: Run tests, verify PASS** (all three test files).
+- [ ] **Step 5: Commit** —
+  `git commit -m "fix: report routine-create failure as form-level error"`
+
+### Task F6: Silent refetch failure while the form is mounted (Claude)
+
+**Files:**
+- Modify: `frontend/src/features/scoring/ScoringPage.tsx`
+- Test: `frontend/test/features/scoring/ScoringPage.test.tsx`
+
+**Behavior:** `detailError` (ScoringPage.tsx:112) renders only in the `!showForm`
+branch. Once the keep-mounted machinery holds the form open, a failing
+routines/scores/penalty-records **refetch** (e.g. the post-save invalidation)
+reports nothing. Render the same `ErrorBanner` above the form when `detailError`
+is set while `showForm` is true — the form stays mounted (values intact), the
+banner explains why data may be stale.
+
+- [ ] **Step 1: Write the failing test**: clean save (POST handlers as in the
+  existing lazy-create test), but `http.get(api("/judge-scores/"), …)` returns 500
+  **after** the save (flip a `let failNow = false` flag in the handler; set it in
+  the POST handler). Save → banner with the detail appears AND `E1` still shows
+  its value (form did not unmount).
+- [ ] **Step 2: Run and verify it fails** (no banner today).
+- [ ] **Step 3: Implement** — inside the `showForm` branch's wrapper div, before
+  the `<h2>`:
+
+```tsx
+{detailError && <ErrorBanner message={detailError.message} />}
+```
+
+- [ ] **Step 4: Run tests, verify PASS.**
+- [ ] **Step 5: Commit** —
+  `git commit -m "fix: show detail query errors while score form is mounted"`
+
+---
+
+## Part B — UX improvements
 
 ### Task 1: Save feedback — "Saved ✓" indicator (Altus)
 
@@ -76,8 +310,9 @@ state only — no toast layer.
   `npm test -- --run test/features/scoring/ScoringPage.test.tsx`, new tests FAIL
   (indicator never found).
 - [ ] **Step 3: Implement in `ScoreForm.tsx`.** *Hints:* a `useState<boolean>`
-  (or timestamp) set in `submit` only when `Object.keys(result.boxErrors).length
-  === 0`; a `setTimeout` to clear it (clean up the timer — a `useEffect` return or
+  (or timestamp) set in `submit` only when `!result.formError &&
+  Object.keys(result.boxErrors).length === 0` (F5 added `formError` — a failed
+  routine-create is not a save); a `setTimeout` to clear it (clean up the timer — a `useEffect` return or
   ref); clear it on edit (RHF `watch` has a subscription form:
   `useEffect(() => { const sub = watch(() => …); return () => sub.unsubscribe(); }, [watch])`
   — or simpler, clear it inside the existing render-level `watch()` comparison you
@@ -289,9 +524,13 @@ useEffect(() => {
   onDirtyChange?.(isDirty);
 }, [isDirty, onDirtyChange]);
 
-// in submit, replace the boxErrors/onSaved tail with:
-const clean = Object.keys(result.boxErrors).length === 0;
+// in submit, replace the formError/boxErrors/onSaved tail (as F5 left it) with:
+const clean =
+  !result.formError && Object.keys(result.boxErrors).length === 0;
 if (clean) reset(values); // re-baseline to just-saved values, not to empty
+if (result.formError) {
+  setError("root.server", { type: "server", message: result.formError });
+}
 for (const [key, message] of Object.entries(result.boxErrors)) {
   setError(key as BoxKey | "penalty", { type: "server", message });
 }
@@ -359,7 +598,9 @@ onDirtyChange={setFormDirty}
   same pass count as `main` (no backend files changed; `git diff main --stat`
   shows only `frontend/` + docs).
 - [ ] **Step 3: Manual walkthrough** (backend + `npm run dev` running, seeded
-  data): pick a competitor → boxes focused; type a score, switch competitor →
-  prompt; save → `Saved ✓`, switch → no prompt; filter by age group; break the
-  panel (remove A) → hint appears, link opens dialog.
+  data): pick a competitor → boxes focused; type garbage (`8,25`) → preview shows
+  `0.00`, never `NaN`; loaded scores read `8.40` not `8.4`; type a score, switch
+  competitor → prompt; save → `Saved ✓`, switch → no prompt; complete the meet in
+  another tab, then save → form-level error (not under Penalty); filter by age
+  group; break the panel (remove A) → hint appears, link opens dialog.
 - [ ] **Step 4:** Use superpowers:finishing-a-development-branch to merge/PR.

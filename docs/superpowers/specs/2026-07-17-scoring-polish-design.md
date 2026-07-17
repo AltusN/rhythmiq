@@ -1,13 +1,20 @@
 # Scoring Polish Batch — Design
 
 **Date:** 2026-07-17
-**Scope:** Five small UX fixes to the Phase 1 meet-day scoring screen. Frontend only —
-no backend changes (verified: `/meet-entries/` already filters by `age_group`, and
-`Judge` already has `first_name`/`last_name`).
+**Scope:** The Phase 1 scoring screen's full polish debt, in two parts. **Part A:**
+the six fixes deferred by the Phase 1 final review — routine-create failure
+misattributed to the penalty box, NaN preview on unparseable input,
+`useCompetitorNames` swallowing query errors, stale `PanelSetupDialog` error on
+reopen, silent detail-refetch failure while the form is mounted, and
+formatting/copy ("8.40" not "8.4"; no "bib null") — plus the review's test-gap
+minors, folded into those tasks. **Part B:** five UX improvements (items 1–5
+below). Frontend only — no backend changes (verified: `/meet-entries/` already
+filters by `age_group`, and `Judge` already has `first_name`/`last_name`).
 
-**Build split:** Items 1–4 implemented by Altus with Claude reviewing (tutor mode);
-item 5 implemented by Claude because it interacts with `ScoringPage`'s keep-mounted
-form-state machinery (`readyFormKey`).
+**Build split:** Part A fixes F1–F4 and Part B items 1–4 implemented by Altus with
+Claude reviewing (tutor mode); F5 (changes the `SaveScoresResult` interface), F6,
+and item 5 (interacts with `ScoringPage`'s keep-mounted `readyFormKey` machinery)
+implemented by Claude.
 
 **Process:** one `feature/scoring-polish` branch; one commit per item
 (`feat:`/`fix:` prefix), with that item's tests in the same commit. Items are
