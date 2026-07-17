@@ -37,5 +37,8 @@ export function useCompetitorNames() {
     gymnasts,
     groups,
     isPending: gymnastsQ.isPending || groupsQ.isPending,
+    // Non-fatal for consumers: nameFor falls back to "#id" labels, but the failure
+    // must be surfaced, not swallowed.
+    error: gymnastsQ.error ?? groupsQ.error ?? null,
   };
 }

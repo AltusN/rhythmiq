@@ -22,6 +22,7 @@ export interface SaveScoresArgs {
 export interface SaveScoresResult {
   routineId: number | null;
   boxErrors: Partial<Record<BoxKey | "penalty", string>>;
+  formError?: string; // lazy routine creation failed; nothing was written
 }
 
 /**
@@ -42,7 +43,7 @@ export async function saveScores(args: SaveScoresArgs): Promise<SaveScoresResult
       body: { entry_id: args.entryId, apparatus: args.apparatus } as components["schemas"]["RoutineCreate"],
     });
     if (error || !data) {
-      return { routineId: null, boxErrors: { penalty: apiDetail(error) } };
+      return { routineId: null, boxErrors: {}, formError: apiDetail(error) };
     }
     routineId = data.id;
   }

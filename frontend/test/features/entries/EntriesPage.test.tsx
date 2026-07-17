@@ -90,6 +90,27 @@ test("deletes an entry after confirmation", async () => {
   confirmSpy.mockRestore();
 });
 
+test("delete confirm names the competitor when there is no bib, and declining aborts", async () => {
+  const entry = makeEntry({ meet_id: 5, gymnast_id: 7, group_id: null, bib_number: null });
+  mockBase({ entries: [entry] });
+  let deleted = false;
+  server.use(
+    http.delete(api("/meet-entries/:entryId"), () => {
+      deleted = true;
+      return new HttpResponse(null, { status: 204 });
+    }),
+  );
+  const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+  renderApp("/meets/5/entries");
+  await userEvent.click(await screen.findByRole("button", { name: "Delete" }));
+  expect(confirmSpy).toHaveBeenCalledOnce();
+  const message = confirmSpy.mock.calls[0][0] as string;
+  expect(message).toContain("Lindiwe Nkosi");
+  expect(message).not.toContain("null");
+  expect(deleted).toBe(false);
+  confirmSpy.mockRestore();
+});
+
 test("completed meet hides entry management", async () => {
   mockBase({
     meet: makeMeet({ id: 5, status: "completed" }),

@@ -54,5 +54,14 @@ test("scores from judges outside the panel are never touched", () => {
     { id: 99, judge_id: 42, panel: "execution", value: 6.0 },
   ];
   const ops = computeSaveOps(boxes, stranger, {});
-  expect(ops.deletes).toEqual([]);
+  expect(ops).toEqual({ creates: [], updates: [], deletes: [] });
+});
+
+test("clearing a panel box deletes only that judge's row, never a stranger's", () => {
+  const existing: ExistingScore[] = [
+    { id: 99, judge_id: 42, panel: "execution", value: 6.0 },
+    { id: 12, judge_id: 2, panel: "execution", value: 8.0 },
+  ];
+  const ops = computeSaveOps(boxes, existing, { e1: undefined });
+  expect(ops.deletes).toEqual([{ boxKey: "e1", id: 12 }]);
 });

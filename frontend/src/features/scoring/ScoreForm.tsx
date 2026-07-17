@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toNum } from "../../api/client";
 import type {
@@ -40,9 +40,14 @@ export function boxesFor(panel: PanelAssignment): BoxDef[] {
   ];
 }
 
+// Unparseable text reads as "empty" so the live preview never shows NaN. Saves can't
+// misread garbage as a cleared box (=> DELETE): submit is gated by validateBox, which
+// rejects non-numbers before values reach the save diff.
 function parseBox(s: string): number | undefined {
   const t = s.trim();
-  return t === "" ? undefined : Number(t);
+  if (t === "") return undefined;
+  const n = Number(t);
+  return Number.isNaN(n) ? undefined : n;
 }
 
 /** "" ok; else numeric, ≥0, 0.05 steps, ≤10 for E/A boxes. Returns error or null. */
@@ -66,6 +71,7 @@ export function ScoreForm({
   penaltyLocked,
   meetLocked,
   onSaved,
+  onDirtyChange,
 }: {
   entry: MeetEntryRead;
   apparatus: Apparatus;
@@ -75,6 +81,7 @@ export function ScoreForm({
   penaltyLocked: boolean;
   meetLocked: boolean;
   onSaved: (result: SaveScoresResult, next: boolean) => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const boxes = boxesFor(panel);
   const eOnly = isEOnlyLevel(entry.level);
@@ -85,22 +92,53 @@ export function ScoreForm({
   const defaultValues = useMemo<FormValues>(() => {
     const values = {
       dBody: "", dApp: "", a: "", e1: "", e2: "", e3: "", e4: "",
-      penalty: routine ? String(toNum(routine.penalty) || "") : "",
+      penalty:
+        routine && toNum(routine.penalty) !== 0
+          ? toNum(routine.penalty).toFixed(2)
+          : "",
     } as FormValues;
     for (const box of boxes) {
       if (box.judgeId === undefined) continue;
       const existing = existingScores.find(
         (s) => s.judge_id === box.judgeId && s.panel === box.panel,
       );
-      if (existing) values[box.key] = String(toNum(existing.value));
+      if (existing) values[box.key] = toNum(existing.value).toFixed(2);
     }
     return values;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const { register, handleSubmit, watch, setError, formState } =
+  const { register, handleSubmit, watch, setError, setFocus, reset, formState } =
     useForm<FormValues>({ defaultValues });
   const [saving, setSaving] = useState(false);
+
+  const { isDirty } = formState;
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  // Mount-only, like defaultValues: the component is keyed by (entry, apparatus) in
+  // ScoringPage, so every competitor/apparatus switch is a fresh mount.
+  useEffect(() => {
+    if (meetLocked) return;
+    const first = visibleBoxes.find((b) => b.judgeId !== undefined);
+    if (first) setFocus(first.key);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const [justSaved, setJustSaved] = useState(false);
+  useEffect(() => {
+    if (!justSaved) return;
+    const timer = setTimeout(() => setJustSaved(false), 2000);
+    return () => clearTimeout(timer);
+  }, [justSaved]);
+  useEffect(() => {
+    // only user edits clear the indicator ("change"); programmatic resets don't
+    const sub = watch((_, { type }) => {
+      if (type === "change") setJustSaved(false);
+    });
+    return () => sub.unsubscribe();
+  }, [watch]);
 
   const watched = watch();
   const preview = computePreview({
@@ -134,10 +172,20 @@ export function ScoreForm({
           penalty: penaltyLocked ? undefined : (parseBox(values.penalty) ?? 0),
           currentPenalty: routine ? toNum(routine.penalty) : 0,
         });
+        const clean =
+          !result.formError && Object.keys(result.boxErrors).length === 0;
+        // Re-baseline dirtiness to the just-saved values (not to empty): without
+        // this, isDirty compares against mount-time defaults forever and the
+        // discard guard would prompt even after a successful save.
+        if (clean) reset(values);
+        setJustSaved(clean);
+        if (result.formError) {
+          setError("root.server", { type: "server", message: result.formError });
+        }
         for (const [key, message] of Object.entries(result.boxErrors)) {
           setError(key as BoxKey | "penalty", { type: "server", message });
         }
-        onSaved(result, next && Object.keys(result.boxErrors).length === 0);
+        onSaved(result, next && clean);
       } finally {
         setSaving(false);
       }
@@ -188,6 +236,11 @@ export function ScoreForm({
             : undefined,
         )}
       </div>
+      {formState.errors.root?.server && (
+        <p role="alert" className="mt-2 text-sm text-red-700">
+          {formState.errors.root.server.message}
+        </p>
+      )}
       <div className="mt-4 flex gap-6 rounded border border-dashed border-gray-300 p-2 text-sm">
         {!eOnly && <span>D: <strong>{fmt(preview.d)}</strong></span>}
         {!eOnly && <span>A: <strong>{fmt(preview.a)}</strong></span>}
@@ -212,6 +265,9 @@ export function ScoreForm({
           >
             Save
           </button>
+          {justSaved && (
+            <span className="text-sm font-semibold text-green-700">Saved ✓</span>
+          )}
         </div>
       )}
     </form>

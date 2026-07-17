@@ -122,11 +122,43 @@ test("a partial failure during lazy routine creation keeps the box error and val
 
 test("invalid step shows a field error and blocks save", async () => {
   mockBase();
+  let posted = false;
+  server.use(
+    http.post(api("/routines/"), () => {
+      posted = true;
+      return HttpResponse.json(makeRoutine({ id: 77, entry_id: 21 }), { status: 201 });
+    }),
+    http.post(api("/judge-scores/"), () => {
+      posted = true;
+      return HttpResponse.json({}, { status: 201 });
+    }),
+  );
   renderApp("/meets/5/scoring");
   await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
   await userEvent.type(await screen.findByLabelText("E1"), "8.27");
   await userEvent.click(screen.getByRole("button", { name: "Save" }));
-  expect(await screen.findByText(/0\.05/)).toBeInTheDocument();
+  expect(await screen.findByText("Use 0.05 steps")).toBeInTheDocument();
+  expect(posted).toBe(false);
+});
+
+test("unparseable input never renders NaN in the preview", async () => {
+  mockBase();
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+  await userEvent.type(await screen.findByLabelText("E1"), "8,25");
+  expect(screen.queryByText(/NaN/)).toBeNull();
+});
+
+test("loaded scores and penalty render with two decimals", async () => {
+  const routine = makeRoutine({ id: 77, entry_id: 21, penalty: "0.30" });
+  mockBase({
+    routines: [routine],
+    scores: [makeScore({ routine_id: 77, judge_id: 2, panel: "execution", value: "8.40" })],
+  });
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+  expect(await screen.findByLabelText("E1")).toHaveValue("8.40");
+  expect(screen.getByLabelText("Penalty")).toHaveValue("0.30");
 });
 
 test("unassigned slots render disabled boxes", async () => {
@@ -135,6 +167,80 @@ test("unassigned slots render disabled boxes", async () => {
   await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
   expect(await screen.findByLabelText("E2")).toBeDisabled();
   expect(screen.getByLabelText("Artistry")).toBeDisabled();
+});
+
+test("the first enabled box is focused when a competitor is picked", async () => {
+  mockBase();
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+  expect(await screen.findByLabelText("D-Body")).toHaveFocus();
+});
+
+test("E-only levels focus E1 on mount", async () => {
+  const level5Entry = makeEntry({ id: 22, meet_id: 5, gymnast_id: 7, group_id: null, level: "level_5", bib_number: "13" });
+  mockBase({ entries: [level5Entry] });
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /13 ·/ }));
+  expect(await screen.findByLabelText("E1")).toHaveFocus();
+});
+
+test("a disabled first slot is skipped when focusing", async () => {
+  savePanel(5, { E1: 2 }); // no D judge: D-Body/D-App render disabled
+  mockBase();
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+  expect(await screen.findByLabelText("D-Body")).toBeDisabled();
+  expect(screen.getByLabelText("E1")).toHaveFocus();
+});
+
+test("a clean save shows the Saved ✓ indicator; the next edit clears it", async () => {
+  mockBase();
+  server.use(
+    http.post(api("/routines/"), () =>
+      HttpResponse.json(makeRoutine({ id: 77, entry_id: 21 }), { status: 201 }),
+    ),
+    http.post(api("/judge-scores/"), () => HttpResponse.json({}, { status: 201 })),
+  );
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+  await userEvent.type(await screen.findByLabelText("E1"), "8.25");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  expect(await screen.findByText("Saved ✓")).toBeInTheDocument();
+
+  await userEvent.type(screen.getByLabelText("E1"), "5");
+  expect(screen.queryByText("Saved ✓")).toBeNull();
+});
+
+test("a save that returns a box error shows no Saved ✓", async () => {
+  mockBase({ routines: [makeRoutine({ id: 77, entry_id: 21 })] });
+  server.use(
+    http.post(api("/judge-scores/"), () =>
+      HttpResponse.json({ detail: "boom" }, { status: 409 }),
+    ),
+  );
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+  await userEvent.type(await screen.findByLabelText("E1"), "8.25");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  expect(await screen.findByText("boom")).toBeInTheDocument();
+  expect(screen.queryByText("Saved ✓")).toBeNull();
+});
+
+test("the age-group filter reaches the API and clears the selection", async () => {
+  mockBase();
+  let seenAgeGroup: string | null = null;
+  server.use(
+    http.get(api("/meet-entries/"), ({ request }) => {
+      seenAgeGroup = new URL(request.url).searchParams.get("age_group");
+      return HttpResponse.json([seniorEntry]);
+    }),
+  );
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+  await screen.findByLabelText("D-Body");
+  await userEvent.selectOptions(screen.getByLabelText("Age group filter"), "o14");
+  await waitFor(() => expect(seenAgeGroup).toBe("o14"));
+  expect(await screen.findByText("Pick a competitor to score.")).toBeInTheDocument();
 });
 
 test("penalty box locks when itemized penalty records exist", async () => {
@@ -149,12 +255,137 @@ test("penalty box locks when itemized penalty records exist", async () => {
   expect(await screen.findByLabelText("Penalty")).toBeDisabled();
 });
 
+test("panel footer shows full judge names and a hint offers setup for missing required slots", async () => {
+  mockBase();
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+  await screen.findByLabelText("D-Body");
+  expect(screen.getByText(/Naledi Dlamini/)).toBeInTheDocument();
+  // default panel { D: 1, E1: 2 }: A and E2 are required but unassigned
+  const hint = screen.getByRole("button", { name: "Assign judges…" });
+  await userEvent.click(hint);
+  expect(screen.getByRole("button", { name: "Save panel" })).toBeInTheDocument();
+});
+
+test("no hint when the minimum viable panel is assigned, even with E3/E4 empty", async () => {
+  savePanel(5, { D: 1, A: 1, E1: 2, E2: 1 });
+  mockBase();
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+  await screen.findByLabelText("D-Body");
+  expect(screen.queryByRole("button", { name: "Assign judges…" })).toBeNull();
+});
+
+test("E-only levels do not warn about unassigned D/A slots", async () => {
+  savePanel(5, { E1: 2, E2: 1 });
+  const level5Entry = makeEntry({ id: 22, meet_id: 5, gymnast_id: 7, group_id: null, level: "level_5", bib_number: "13" });
+  mockBase({ entries: [level5Entry] });
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /13 ·/ }));
+  await screen.findByLabelText("E1");
+  expect(screen.queryByRole("button", { name: "Assign judges…" })).toBeNull();
+});
+
+test("switching competitors with unsaved edits prompts; declining keeps the form", async () => {
+  const second = makeEntry({ id: 22, meet_id: 5, gymnast_id: 7, group_id: null, level: "senior", bib_number: "13" });
+  mockBase({ entries: [seniorEntry, second] });
+  const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+  await userEvent.type(await screen.findByLabelText("E1"), "8.25");
+  await userEvent.click(screen.getByRole("button", { name: /13 ·/ }));
+  expect(confirmSpy).toHaveBeenCalledWith("Discard unsaved scores?");
+  expect(screen.getByLabelText("E1")).toHaveValue("8.25"); // still bib 12's form
+
+  confirmSpy.mockReturnValue(true);
+  await userEvent.click(screen.getByRole("button", { name: /13 ·/ }));
+  await waitFor(() => expect(screen.getByLabelText("E1")).toHaveValue(""));
+  confirmSpy.mockRestore();
+});
+
+test("a clean save clears dirtiness, so switching does not prompt", async () => {
+  const second = makeEntry({ id: 22, meet_id: 5, gymnast_id: 7, group_id: null, level: "senior", bib_number: "13" });
+  mockBase({ entries: [seniorEntry, second] });
+  server.use(
+    http.post(api("/routines/"), () =>
+      HttpResponse.json(makeRoutine({ id: 77, entry_id: 21 }), { status: 201 }),
+    ),
+    http.post(api("/judge-scores/"), () => HttpResponse.json({}, { status: 201 })),
+  );
+  const confirmSpy = vi.spyOn(window, "confirm");
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+  await userEvent.type(await screen.findByLabelText("E1"), "8.25");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  await screen.findByText("Saved ✓");
+  await userEvent.click(screen.getByRole("button", { name: /13 ·/ }));
+  expect(confirmSpy).not.toHaveBeenCalled();
+  confirmSpy.mockRestore();
+});
+
 test("completed meet renders the form read-only", async () => {
   mockBase({ meet: makeMeet({ id: 5, status: "completed" }) });
   renderApp("/meets/5/scoring");
   await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
   expect(await screen.findByLabelText("E1")).toBeDisabled();
   expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+});
+
+test("routine-create failure reports a form-level error, not a penalty error", async () => {
+  mockBase();
+  server.use(
+    http.post(api("/routines/"), () =>
+      HttpResponse.json({ detail: "meet is completed" }, { status: 409 }),
+    ),
+  );
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+  await userEvent.type(await screen.findByLabelText("E1"), "8.25");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("meet is completed");
+  expect(
+    screen.getByLabelText("Penalty").parentElement?.textContent,
+  ).not.toContain("meet is completed");
+});
+
+test("a failed gymnasts query surfaces an error instead of silently numbering competitors", async () => {
+  mockBase();
+  server.use(
+    http.get(api("/gymnasts/"), () =>
+      HttpResponse.json({ detail: "gymnasts down" }, { status: 500 }),
+    ),
+  );
+  renderApp("/meets/5/scoring");
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("gymnasts down");
+});
+
+test("a failing refetch after save surfaces an error while the form stays mounted", async () => {
+  mockBase();
+  let createdRoutine: ReturnType<typeof makeRoutine> | null = null;
+  server.use(
+    http.get(api("/routines/"), () =>
+      HttpResponse.json(createdRoutine ? [createdRoutine] : []),
+    ),
+    http.post(api("/routines/"), () => {
+      createdRoutine = makeRoutine({ id: 77, entry_id: 21 });
+      return HttpResponse.json(createdRoutine, { status: 201 });
+    }),
+    // scoresQ is disabled until the routine exists, so this only ever serves the
+    // post-save refetch -- which fails
+    http.get(api("/judge-scores/"), () =>
+      HttpResponse.json({ detail: "db down" }, { status: 500 }),
+    ),
+    http.post(api("/judge-scores/"), () => HttpResponse.json({}, { status: 201 })),
+  );
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+  await userEvent.type(await screen.findByLabelText("E1"), "8.25");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("db down");
+  expect(screen.getByLabelText("E1")).toHaveValue("8.25");
 });
 
 test("a failed routines query surfaces an error instead of hanging on Loading", async () => {

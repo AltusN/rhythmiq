@@ -65,6 +65,24 @@ test("discards abandoned edits and re-seeds from value on reopen", async () => {
   expect(screen.getByLabelText("D")).toHaveValue("1");
 });
 
+test("clears a stale error when the dialog reopens", async () => {
+  const judges = [
+    makeJudge({ id: 1, first_name: "Naledi", last_name: "Dlamini" }),
+    makeJudge({ id: 2, first_name: "Mina", last_name: "Kim" }),
+  ];
+  const props = { value: {}, judges, onSave: () => {}, onClose: () => {} };
+  const { rerender } = render(<PanelSetupDialog open {...props} />);
+  await userEvent.selectOptions(screen.getByLabelText("E1"), "2");
+  await userEvent.selectOptions(screen.getByLabelText("E2"), "2");
+  await userEvent.click(screen.getByRole("button", { name: "Save panel" }));
+  expect(await screen.findByRole("alert")).toBeInTheDocument();
+
+  rerender(<PanelSetupDialog open={false} {...props} />);
+  rerender(<PanelSetupDialog open {...props} />);
+
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
 test("blocks save and shows an inline error when the same judge fills two E slots", async () => {
   const judges = [
     makeJudge({ id: 1, first_name: "Naledi", last_name: "Dlamini" }),

@@ -14,7 +14,7 @@ export function EntriesPage() {
   const locked = isMeetLocked(meet.status);
   const [showForm, setShowForm] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const { nameFor, gymnasts, groups } = useCompetitorNames();
+  const { nameFor, gymnasts, groups, error: namesError } = useCompetitorNames();
 
   const { data: entries, error, isPending } = useQuery({
     queryKey: ["entries", meet.id],
@@ -67,6 +67,7 @@ export function EntriesPage() {
         />
       )}
       <ErrorBanner message={deleteError} />
+      {namesError && <ErrorBanner message={namesError.message} />}
       <table className="w-full rounded border border-gray-200 bg-white text-sm">
         <thead>
           <tr className="text-left text-xs uppercase text-gray-500">
@@ -90,7 +91,7 @@ export function EntriesPage() {
                 {!locked && (
                   <button
                     onClick={() => {
-                      if (window.confirm(`Delete entry (bib ${entry.bib_number})? Its routines and scores go with it.`)) {
+                      if (window.confirm(`Delete entry (${entry.bib_number ? `bib ${entry.bib_number}` : nameFor(entry)})? Its routines and scores go with it.`)) {
                         deleteMutation.mutate(entry.id);
                       }
                     }}

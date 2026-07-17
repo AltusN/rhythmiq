@@ -18,6 +18,8 @@ const baseProps = {
   onSearchChange: () => {},
   level: "",
   onLevelChange: () => {},
+  ageGroup: "",
+  onAgeGroupChange: () => {},
   apparatus: "hoop",
   onApparatusChange: () => {},
 };

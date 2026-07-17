@@ -20,7 +20,10 @@ export function PanelSetupDialog({
   const [error, setError] = useState<string | null>(null);
   if (open !== wasOpen) {
     setWasOpen(open);
-    if (open) setDraft(value);
+    if (open) {
+      setDraft(value);
+      setError(null);
+    }
   }
   if (!open) return null;
 

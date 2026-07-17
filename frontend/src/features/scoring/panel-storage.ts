@@ -13,7 +13,14 @@ export function loadPanel(meetId: number): PanelAssignment {
     if (!raw) return {};
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed !== "object" || parsed === null) return {};
-    return parsed as PanelAssignment;
+    // Keep only known slots with numeric judge ids: a junk value like "x" would read
+    // as an assigned judge downstream (boxesFor only checks !== undefined).
+    const panel: PanelAssignment = {};
+    for (const slot of PANEL_SLOTS) {
+      const judgeId = (parsed as Record<string, unknown>)[slot];
+      if (typeof judgeId === "number") panel[slot] = judgeId;
+    }
+    return panel;
   } catch {
     return {};
   }

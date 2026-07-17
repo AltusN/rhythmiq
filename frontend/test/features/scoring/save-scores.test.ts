@@ -44,6 +44,29 @@ test("creates the routine lazily, posts scores as Decimal strings, patches penal
   expect(patchedPenalty).toEqual({ penalty: "0.10" });
 });
 
+test("a failing routine create reports a form-level error, not a box error", async () => {
+  server.use(
+    http.post(api("/routines/"), () =>
+      HttpResponse.json({ detail: "meet is completed" }, { status: 409 }),
+    ),
+  );
+  const result = await saveScores({
+    routineId: undefined,
+    entryId: 9,
+    apparatus: "hoop",
+    boxes,
+    existing: [],
+    values: { dBody: 7.3 },
+    penalty: 0,
+    currentPenalty: 0,
+  });
+  expect(result).toEqual({
+    routineId: null,
+    boxErrors: {},
+    formError: "meet is completed",
+  });
+});
+
 test("a failing box reports its error while others succeed", async () => {
   server.use(
     http.post(api("/judge-scores/"), async ({ request }) => {
