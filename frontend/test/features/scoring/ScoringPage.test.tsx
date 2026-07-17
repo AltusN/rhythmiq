@@ -255,6 +255,37 @@ test("penalty box locks when itemized penalty records exist", async () => {
   expect(await screen.findByLabelText("Penalty")).toBeDisabled();
 });
 
+test("panel footer shows full judge names and a hint offers setup for missing required slots", async () => {
+  mockBase();
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+  await screen.findByLabelText("D-Body");
+  expect(screen.getByText(/Naledi Dlamini/)).toBeInTheDocument();
+  // default panel { D: 1, E1: 2 }: A and E2 are required but unassigned
+  const hint = screen.getByRole("button", { name: "Assign judges…" });
+  await userEvent.click(hint);
+  expect(screen.getByRole("button", { name: "Save panel" })).toBeInTheDocument();
+});
+
+test("no hint when the minimum viable panel is assigned, even with E3/E4 empty", async () => {
+  savePanel(5, { D: 1, A: 1, E1: 2, E2: 1 });
+  mockBase();
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+  await screen.findByLabelText("D-Body");
+  expect(screen.queryByRole("button", { name: "Assign judges…" })).toBeNull();
+});
+
+test("E-only levels do not warn about unassigned D/A slots", async () => {
+  savePanel(5, { E1: 2, E2: 1 });
+  const level5Entry = makeEntry({ id: 22, meet_id: 5, gymnast_id: 7, group_id: null, level: "level_5", bib_number: "13" });
+  mockBase({ entries: [level5Entry] });
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /13 ·/ }));
+  await screen.findByLabelText("E1");
+  expect(screen.queryByRole("button", { name: "Assign judges…" })).toBeNull();
+});
+
 test("completed meet renders the form read-only", async () => {
   mockBase({ meet: makeMeet({ id: 5, status: "completed" }) });
   renderApp("/meets/5/scoring");

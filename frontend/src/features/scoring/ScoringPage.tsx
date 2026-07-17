@@ -5,12 +5,26 @@ import { apiDetail, client, toNum } from "../../api/client";
 import type { Apparatus, MeetRead } from "../../api/types";
 import { ErrorBanner } from "../../components/ErrorBanner";
 import { isMeetLocked, labelize } from "../../lib/domain";
+import { isEOnlyLevel } from "../../lib/score-math";
 import { useCompetitorNames } from "../../lib/useCompetitorNames";
 import { CompetitorList } from "./CompetitorList";
 import { nextUnscored } from "./next-unscored";
-import { loadPanel, savePanel, type PanelAssignment } from "./panel-storage";
+import {
+  loadPanel,
+  savePanel,
+  type PanelAssignment,
+  type PanelSlot,
+} from "./panel-storage";
 import { PanelSetupDialog } from "./PanelSetupDialog";
 import { ScoreForm } from "./ScoreForm";
+
+/** The minimum viable panel; E3/E4 legitimately stay empty on small panels. */
+function missingRequiredSlots(panel: PanelAssignment, level: string): PanelSlot[] {
+  const required: PanelSlot[] = isEOnlyLevel(level)
+    ? ["E1", "E2"]
+    : ["D", "A", "E1", "E2"];
+  return required.filter((slot) => panel[slot] === undefined);
+}
 
 export function ScoringPage() {
   const meet = useOutletContext<MeetRead>();
@@ -110,11 +124,16 @@ export function ScoringPage() {
     },
   });
 
-  const judgeName = (id: number | undefined): string => {
-    if (id === undefined) return "unassigned";
+  const judgeName = (id: number): string => {
     const j = (judgesQ.data ?? []).find((j) => j.id === id);
-    return j ? j.last_name : `#${id}`;
+    return j ? `${j.first_name} ${j.last_name}` : `#${id}`;
   };
+  const slotLabel = (id: number | undefined) =>
+    id === undefined ? (
+      <span className="text-amber-600">unassigned</span>
+    ) : (
+      judgeName(id)
+    );
 
   const detailError = routinesQ.error ?? scoresQ.error ?? penaltyRecordsQ.error ?? null;
 
@@ -198,6 +217,19 @@ export function ScoringPage() {
                 This meet is {labelize(meet.status)} — scores are read-only.
               </p>
             )}
+            {!meetLocked &&
+              missingRequiredSlots(panel, selectedEntry.level).length > 0 && (
+                <p className="mb-3 text-sm text-amber-700">
+                  Judge slots unassigned:{" "}
+                  {missingRequiredSlots(panel, selectedEntry.level).join(", ")}.{" "}
+                  <button
+                    onClick={() => setPanelOpen(true)}
+                    className="underline"
+                  >
+                    Assign judges…
+                  </button>
+                </p>
+              )}
             <ScoreForm
               key={formKey}
               entry={selectedEntry}
@@ -210,9 +242,9 @@ export function ScoringPage() {
               onSaved={(_result, next) => afterSave(next)}
             />
             <p className="mt-5 text-xs text-gray-500">
-              Panel: D = {judgeName(panel.D)} · E1 = {judgeName(panel.E1)} · E2 ={" "}
-              {judgeName(panel.E2)} · E3 = {judgeName(panel.E3)} · E4 ={" "}
-              {judgeName(panel.E4)} · A = {judgeName(panel.A)}{" "}
+              Panel: D = {slotLabel(panel.D)} · E1 = {slotLabel(panel.E1)} · E2 ={" "}
+              {slotLabel(panel.E2)} · E3 = {slotLabel(panel.E3)} · E4 ={" "}
+              {slotLabel(panel.E4)} · A = {slotLabel(panel.A)}{" "}
               <button
                 onClick={() => setPanelOpen(true)}
                 className="text-blue-700 underline"
