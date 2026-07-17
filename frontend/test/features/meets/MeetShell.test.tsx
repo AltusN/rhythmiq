@@ -8,6 +8,25 @@ import { renderApp } from "../../utils";
 function mockMeet(meet: ReturnType<typeof makeMeet>) {
   server.use(
     http.get(api("/meets/:meetId"), () => HttpResponse.json(meet)),
+    http.get(api("/meets/:meetId/standings"), () =>
+      HttpResponse.json({
+        meet_id: meet.id,
+        provisional: true,
+        apparatus: "hoop",
+        level: null,
+        age_group: null,
+        rankings: [],
+      }),
+    ),
+    http.get(api("/meets/:meetId/all-around"), () =>
+      HttpResponse.json({
+        meet_id: meet.id,
+        provisional: true,
+        level: null,
+        age_group: null,
+        rankings: [],
+      }),
+    ),
   );
 }
 

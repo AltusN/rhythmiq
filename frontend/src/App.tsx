@@ -4,6 +4,7 @@ import { EntriesPage } from "./features/entries/EntriesPage";
 import { MeetListPage } from "./features/meets/MeetListPage";
 import { MeetShell } from "./features/meets/MeetShell";
 import { ScoringPage } from "./features/scoring/ScoringPage";
+import { StandingsPage } from "./features/standings/StandingsPage";
 
 export default function App() {
   return (
@@ -14,7 +15,7 @@ export default function App() {
           <Route index element={<Navigate to="scoring" replace />} />
           <Route path="scoring" element={<ScoringPage />} />
           <Route path="entries" element={<EntriesPage />} />
-          <Route path="standings" element={<div>Standings coming soon</div>} />
+          <Route path="standings" element={<StandingsPage />} />
         </Route>
       </Route>
     </Routes>
