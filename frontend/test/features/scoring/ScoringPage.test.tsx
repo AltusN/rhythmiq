@@ -226,6 +226,23 @@ test("a save that returns a box error shows no Saved ✓", async () => {
   expect(screen.queryByText("Saved ✓")).toBeNull();
 });
 
+test("the age-group filter reaches the API and clears the selection", async () => {
+  mockBase();
+  let seenAgeGroup: string | null = null;
+  server.use(
+    http.get(api("/meet-entries/"), ({ request }) => {
+      seenAgeGroup = new URL(request.url).searchParams.get("age_group");
+      return HttpResponse.json([seniorEntry]);
+    }),
+  );
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+  await screen.findByLabelText("D-Body");
+  await userEvent.selectOptions(screen.getByLabelText("Age group filter"), "o14");
+  await waitFor(() => expect(seenAgeGroup).toBe("o14"));
+  expect(await screen.findByText("Pick a competitor to score.")).toBeInTheDocument();
+});
+
 test("penalty box locks when itemized penalty records exist", async () => {
   const routine = makeRoutine({ id: 77, entry_id: 21, penalty: "0.30" });
   mockBase({

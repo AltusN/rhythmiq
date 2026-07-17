@@ -18,6 +18,7 @@ export function ScoringPage() {
   const meetLocked = isMeetLocked(meet.status);
 
   const [level, setLevel] = useState("");
+  const [ageGroup, setAgeGroup] = useState("");
   const [apparatus, setApparatus] = useState<Apparatus>("hoop");
   const [search, setSearch] = useState("");
   const [selectedEntryId, setSelectedEntryId] = useState<number | null>(null);
@@ -27,10 +28,16 @@ export function ScoringPage() {
   const { nameFor, error: namesError } = useCompetitorNames();
 
   const entriesQ = useQuery({
-    queryKey: ["entries", meet.id, level],
+    queryKey: ["entries", meet.id, level, ageGroup],
     queryFn: async () => {
       const { data, error } = await client.GET("/meet-entries/", {
-        params: { query: { meet_id: meet.id, level: level || undefined } },
+        params: {
+          query: {
+            meet_id: meet.id,
+            level: level || undefined,
+            age_group: ageGroup || undefined,
+          },
+        },
       });
       if (error) throw new Error(apiDetail(error));
       return data;
@@ -157,6 +164,11 @@ export function ScoringPage() {
         level={level}
         onLevelChange={(l) => {
           setLevel(l);
+          setSelectedEntryId(null);
+        }}
+        ageGroup={ageGroup}
+        onAgeGroupChange={(a) => {
+          setAgeGroup(a);
           setSelectedEntryId(null);
         }}
         apparatus={apparatus}

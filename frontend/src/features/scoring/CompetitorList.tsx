@@ -1,5 +1,5 @@
 import type { MeetEntryRead } from "../../api/types";
-import { APPARATUS, LEVELS, labelize } from "../../lib/domain";
+import { AGE_GROUPS, APPARATUS, LEVELS, labelize } from "../../lib/domain";
 
 interface CompetitorListProps {
   entries: MeetEntryRead[];
@@ -11,6 +11,8 @@ interface CompetitorListProps {
   onSearchChange: (s: string) => void;
   level: string;
   onLevelChange: (l: string) => void;
+  ageGroup: string;
+  onAgeGroupChange: (a: string) => void;
   apparatus: string;
   onApparatusChange: (a: string) => void;
 }
@@ -25,6 +27,8 @@ export function CompetitorList({
   onSearchChange,
   level,
   onLevelChange,
+  ageGroup,
+  onAgeGroupChange,
   apparatus,
   onApparatusChange,
 }: CompetitorListProps) {
@@ -57,6 +61,19 @@ export function CompetitorList({
           {LEVELS.map((l) => (
             <option key={l} value={l}>
               {labelize(l)}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="Age group filter"
+          value={ageGroup}
+          onChange={(e) => onAgeGroupChange(e.target.value)}
+          className="flex-1 rounded border border-gray-300 p-1 text-sm"
+        >
+          <option value="">All ages</option>
+          {AGE_GROUPS.map((a) => (
+            <option key={a} value={a}>
+              {a}
             </option>
           ))}
         </select>
