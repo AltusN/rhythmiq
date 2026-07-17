@@ -122,11 +122,31 @@ test("a partial failure during lazy routine creation keeps the box error and val
 
 test("invalid step shows a field error and blocks save", async () => {
   mockBase();
+  let posted = false;
+  server.use(
+    http.post(api("/routines/"), () => {
+      posted = true;
+      return HttpResponse.json(makeRoutine({ id: 77, entry_id: 21 }), { status: 201 });
+    }),
+    http.post(api("/judge-scores/"), () => {
+      posted = true;
+      return HttpResponse.json({}, { status: 201 });
+    }),
+  );
   renderApp("/meets/5/scoring");
   await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
   await userEvent.type(await screen.findByLabelText("E1"), "8.27");
   await userEvent.click(screen.getByRole("button", { name: "Save" }));
-  expect(await screen.findByText(/0\.05/)).toBeInTheDocument();
+  expect(await screen.findByText("Use 0.05 steps")).toBeInTheDocument();
+  expect(posted).toBe(false);
+});
+
+test("unparseable input never renders NaN in the preview", async () => {
+  mockBase();
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+  await userEvent.type(await screen.findByLabelText("E1"), "8,25");
+  expect(screen.queryByText(/NaN/)).toBeNull();
 });
 
 test("unassigned slots render disabled boxes", async () => {

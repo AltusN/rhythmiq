@@ -40,9 +40,14 @@ export function boxesFor(panel: PanelAssignment): BoxDef[] {
   ];
 }
 
+// Unparseable text reads as "empty" so the live preview never shows NaN. Saves can't
+// misread garbage as a cleared box (=> DELETE): submit is gated by validateBox, which
+// rejects non-numbers before values reach the save diff.
 function parseBox(s: string): number | undefined {
   const t = s.trim();
-  return t === "" ? undefined : Number(t);
+  if (t === "") return undefined;
+  const n = Number(t);
+  return Number.isNaN(n) ? undefined : n;
 }
 
 /** "" ok; else numeric, ≥0, 0.05 steps, ≤10 for E/A boxes. Returns error or null. */

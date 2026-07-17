@@ -37,7 +37,11 @@ export interface ScorePreview {
   total: number;
 }
 
-/** Client-side preview only — server standings are the source of truth. */
+/**
+ * Client-side preview only — server standings are the source of truth. The server
+ * computes with Decimal; this uses binary floats, so the displayed total can drift
+ * from the server's by ±0.01 in rare rounding cases. Never persist these numbers.
+ */
 export function computePreview(input: PreviewInput): ScorePreview {
   const d = (input.dBody ?? 0) + (input.dApp ?? 0);
   const a = input.artistry ?? 0;
