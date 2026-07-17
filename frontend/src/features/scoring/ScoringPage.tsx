@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { apiDetail, client, toNum } from "../../api/client";
 import type { Apparatus, MeetRead } from "../../api/types";
@@ -115,6 +115,22 @@ export function ScoringPage() {
     (routine === undefined ||
       (scoresQ.data !== undefined && penaltyRecordsQ.data !== undefined));
 
+  // Once the form has been shown for a given entry+apparatus, keep it mounted even if a
+  // post-save invalidation makes `routine` transition from undefined to defined (which keys
+  // scoresQ/penaltyRecordsQ onto the new routine id and makes them momentarily "loading"
+  // again). Swapping to the Loading fallback at that point would unmount ScoreForm and lose
+  // its in-progress values/errors -- the data those queries would deliver only matters for
+  // the initial mount's default values, which are already set.
+  const formKey = selectedEntry !== null ? `${selectedEntry.id}-${apparatus}` : null;
+  const [readyFormKey, setReadyFormKey] = useState<string | null>(null);
+  useEffect(() => {
+    if (formReady && formKey !== null) setReadyFormKey(formKey);
+  }, [formReady, formKey]);
+  const showForm =
+    selectedEntry !== null &&
+    formKey !== null &&
+    (formReady || readyFormKey === formKey);
+
   const afterSave = (next: boolean) => {
     queryClient.invalidateQueries({ queryKey: ["routines", selectedEntryId] });
     queryClient.invalidateQueries({ queryKey: ["judge-scores"] });
@@ -152,8 +168,8 @@ export function ScoringPage() {
         {selectedEntry === null && (
           <p className="text-gray-500">Pick a competitor to score.</p>
         )}
-        {selectedEntry !== null && !formReady && <p>Loading…</p>}
-        {selectedEntry !== null && formReady && (
+        {selectedEntry !== null && !showForm && <p>Loading…</p>}
+        {selectedEntry !== null && showForm && (
           <div>
             <h2 className="mb-3 text-lg font-semibold">
               Bib {selectedEntry.bib_number} · {nameFor(selectedEntry)} ·{" "}
@@ -165,7 +181,7 @@ export function ScoringPage() {
               </p>
             )}
             <ScoreForm
-              key={`${selectedEntry.id}-${apparatus}-${routine?.id ?? "new"}`}
+              key={formKey}
               entry={selectedEntry}
               apparatus={apparatus}
               routine={routine}

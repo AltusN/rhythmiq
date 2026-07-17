@@ -88,3 +88,25 @@ test("unchanged penalty is not PATCHed", async () => {
   expect(result.boxErrors).toEqual({});
   expect(patched).toBe(false);
 });
+
+test("undefined penalty on a routine with an existing nonzero penalty is left alone (locked case)", async () => {
+  let patched = false;
+  server.use(
+    http.patch(api("/routines/:routineId"), () => {
+      patched = true;
+      return HttpResponse.json(makeRoutine({ id: 77, penalty: "0.30" }));
+    }),
+  );
+  const result = await saveScores({
+    routineId: 77,
+    entryId: 9,
+    apparatus: "hoop",
+    boxes,
+    existing: [],
+    values: {},
+    penalty: undefined,
+    currentPenalty: 0.3,
+  });
+  expect(result.boxErrors).toEqual({});
+  expect(patched).toBe(false);
+});

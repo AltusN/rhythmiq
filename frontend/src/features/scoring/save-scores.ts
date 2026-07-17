@@ -15,7 +15,7 @@ export interface SaveScoresArgs {
   boxes: BoxDef[];
   existing: ExistingScore[];
   values: Partial<Record<BoxKey, number | undefined>>;
-  penalty: number | undefined;
+  penalty: number | undefined; // undefined = leave the routine's penalty unchanged
   currentPenalty: number;
 }
 
@@ -74,11 +74,13 @@ export async function saveScores(args: SaveScoresArgs): Promise<SaveScoresResult
     if (error) boxErrors[op.boxKey] = apiDetail(error);
   }
 
-  const newPenalty = args.penalty ?? 0;
-  if (Math.abs(newPenalty - args.currentPenalty) > 1e-9) {
+  if (
+    args.penalty !== undefined &&
+    Math.abs(args.penalty - args.currentPenalty) > 1e-9
+  ) {
     const { error } = await client.PATCH("/routines/{routine_id}", {
       params: { path: { routine_id: routineId } },
-      body: { penalty: toDec(newPenalty) },
+      body: { penalty: toDec(args.penalty) },
     });
     if (error) boxErrors.penalty = apiDetail(error);
   }

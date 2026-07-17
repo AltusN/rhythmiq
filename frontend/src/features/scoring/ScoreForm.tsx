@@ -131,7 +131,7 @@ export function ScoreForm({
           values: Object.fromEntries(
             visibleBoxes.map((b) => [b.key, parseBox(values[b.key])]),
           ),
-          penalty: penaltyLocked ? undefined : parseBox(values.penalty),
+          penalty: penaltyLocked ? undefined : (parseBox(values.penalty) ?? 0),
           currentPenalty: routine ? toNum(routine.penalty) : 0,
         });
         for (const [key, message] of Object.entries(result.boxErrors)) {

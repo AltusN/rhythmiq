@@ -92,6 +92,34 @@ test("save lazily creates the routine and posts scores", async () => {
   await waitFor(() => expect(scoresPosted).toHaveLength(2));
 });
 
+test("a partial failure during lazy routine creation keeps the box error and value after the routine refetch", async () => {
+  mockBase();
+  let createdRoutine: ReturnType<typeof makeRoutine> | null = null;
+  server.use(
+    http.get(api("/routines/"), () =>
+      HttpResponse.json(createdRoutine ? [createdRoutine] : []),
+    ),
+    http.post(api("/routines/"), async () => {
+      createdRoutine = makeRoutine({ id: 77, entry_id: 21 });
+      return HttpResponse.json(createdRoutine, { status: 201 });
+    }),
+    http.post(api("/judge-scores/"), async ({ request }) => {
+      const body = (await request.json()) as { panel: string };
+      if (body.panel === "execution") {
+        return HttpResponse.json({ detail: "boom" }, { status: 409 });
+      }
+      return HttpResponse.json({}, { status: 201 });
+    }),
+  );
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+  await userEvent.type(await screen.findByLabelText("D-Body"), "7.30");
+  await userEvent.type(screen.getByLabelText("E1"), "8.25");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  expect(await screen.findByText("boom")).toBeInTheDocument();
+  expect(screen.getByLabelText("E1")).toHaveValue("8.25");
+});
+
 test("invalid step shows a field error and blocks save", async () => {
   mockBase();
   renderApp("/meets/5/scoring");
