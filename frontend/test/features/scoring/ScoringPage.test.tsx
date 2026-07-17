@@ -156,3 +156,17 @@ test("completed meet renders the form read-only", async () => {
   expect(await screen.findByLabelText("E1")).toBeDisabled();
   expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 });
+
+test("a failed routines query surfaces an error instead of hanging on Loading", async () => {
+  mockBase();
+  server.use(
+    http.get(api("/routines/"), () =>
+      HttpResponse.json({ detail: "db down" }, { status: 500 }),
+    ),
+  );
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("db down");
+  expect(screen.queryByText("Loading…")).toBeNull();
+});

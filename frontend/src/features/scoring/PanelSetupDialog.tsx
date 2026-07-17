@@ -17,19 +17,35 @@ export function PanelSetupDialog({
 }) {
   const [draft, setDraft] = useState<PanelAssignment>(value);
   const [wasOpen, setWasOpen] = useState(open);
+  const [error, setError] = useState<string | null>(null);
   if (open !== wasOpen) {
     setWasOpen(open);
     if (open) setDraft(value);
   }
   if (!open) return null;
 
+  const E_SLOTS: PanelSlot[] = ["E1", "E2", "E3", "E4"];
+
   const setSlot = (slot: PanelSlot, judgeId: string) => {
+    setError(null);
     setDraft((d) => {
       const next = { ...d };
       if (judgeId === "") delete next[slot];
       else next[slot] = Number(judgeId);
       return next;
     });
+  };
+
+  const handleSave = () => {
+    const eJudgeIds = E_SLOTS.map((slot) => draft[slot]).filter(
+      (id): id is number => id !== undefined,
+    );
+    const hasDuplicate = new Set(eJudgeIds).size !== eJudgeIds.length;
+    if (hasDuplicate) {
+      setError("The same judge can't sit in two Execution slots.");
+      return;
+    }
+    onSave(draft);
   };
 
   return (
@@ -61,12 +77,17 @@ export function PanelSetupDialog({
             </label>
           ))}
         </div>
+        {error && (
+          <p role="alert" className="mt-2 text-xs text-red-700">
+            {error}
+          </p>
+        )}
         <div className="mt-4 flex justify-end gap-2">
           <button onClick={onClose} className="rounded border border-gray-300 px-3 py-1 text-sm">
             Cancel
           </button>
           <button
-            onClick={() => onSave(draft)}
+            onClick={handleSave}
             className="rounded bg-blue-600 px-3 py-1 text-sm font-semibold text-white"
           >
             Save panel

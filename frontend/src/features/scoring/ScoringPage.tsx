@@ -109,6 +109,8 @@ export function ScoringPage() {
     return j ? j.last_name : `#${id}`;
   };
 
+  const detailError = routinesQ.error ?? scoresQ.error ?? penaltyRecordsQ.error ?? null;
+
   const formReady =
     selectedEntry !== null &&
     routinesQ.data !== undefined &&
@@ -168,7 +170,9 @@ export function ScoringPage() {
         {selectedEntry === null && (
           <p className="text-gray-500">Pick a competitor to score.</p>
         )}
-        {selectedEntry !== null && !showForm && <p>Loading…</p>}
+        {selectedEntry !== null &&
+          !showForm &&
+          (detailError ? <ErrorBanner message={detailError.message} /> : <p>Loading…</p>)}
         {selectedEntry !== null && showForm && (
           <div>
             <h2 className="mb-3 text-lg font-semibold">
