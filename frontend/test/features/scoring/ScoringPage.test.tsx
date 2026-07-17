@@ -219,6 +219,33 @@ test("a failed gymnasts query surfaces an error instead of silently numbering co
   expect(alert).toHaveTextContent("gymnasts down");
 });
 
+test("a failing refetch after save surfaces an error while the form stays mounted", async () => {
+  mockBase();
+  let createdRoutine: ReturnType<typeof makeRoutine> | null = null;
+  server.use(
+    http.get(api("/routines/"), () =>
+      HttpResponse.json(createdRoutine ? [createdRoutine] : []),
+    ),
+    http.post(api("/routines/"), () => {
+      createdRoutine = makeRoutine({ id: 77, entry_id: 21 });
+      return HttpResponse.json(createdRoutine, { status: 201 });
+    }),
+    // scoresQ is disabled until the routine exists, so this only ever serves the
+    // post-save refetch -- which fails
+    http.get(api("/judge-scores/"), () =>
+      HttpResponse.json({ detail: "db down" }, { status: 500 }),
+    ),
+    http.post(api("/judge-scores/"), () => HttpResponse.json({}, { status: 201 })),
+  );
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+  await userEvent.type(await screen.findByLabelText("E1"), "8.25");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("db down");
+  expect(screen.getByLabelText("E1")).toHaveValue("8.25");
+});
+
 test("a failed routines query surfaces an error instead of hanging on Loading", async () => {
   mockBase();
   server.use(

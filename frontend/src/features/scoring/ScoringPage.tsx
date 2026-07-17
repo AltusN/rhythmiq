@@ -176,6 +176,7 @@ export function ScoringPage() {
           (detailError ? <ErrorBanner message={detailError.message} /> : <p>Loading…</p>)}
         {selectedEntry !== null && showForm && (
           <div>
+            {detailError && <ErrorBanner message={detailError.message} />}
             <h2 className="mb-3 text-lg font-semibold">
               Bib {selectedEntry.bib_number} · {nameFor(selectedEntry)} ·{" "}
               {apparatus} · {labelize(selectedEntry.level)}
