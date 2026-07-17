@@ -41,6 +41,19 @@ ruff format .                   # format
 `pre-commit` runs `ruff --fix` + `ruff format` on commit but isn't in `requirements.txt` —
 install separately and run `pre-commit install` once.
 
+Frontend commands run from `frontend/` (Node 20+):
+
+```bash
+npm install          # once
+npm run dev          # Vite dev server at http://127.0.0.1:5173 (proxies /api → :8000)
+npm test             # Vitest (watch); npm test -- --run for CI mode
+npm run build        # typecheck + production build
+```
+
+`make types` re-exports the OpenAPI schema and regenerates
+`frontend/src/api/schema.d.ts` — run it after any backend schema/router change and
+commit the result. `make frontend` = `npm run dev`.
+
 The schema is never auto-created on app startup — `alembic upgrade head` is the only way to
 build or update it. Adding a new value to an existing enum (e.g. a new `Level`) is not
 detected by autogenerate and needs a hand-written `op.execute("ALTER TYPE ... ADD VALUE ...")`
@@ -65,6 +78,16 @@ migration.
   `get_db` so router tests exercise the full FastAPI request/response pipeline (not just the
   handler function).
 - Test layout mirrors app layout: `test_models/`, `test_schemas/`, `test_routers/`.
+- `frontend/` — React 19 + Vite SPA (Phase 1: meet-day scoring; see
+  `docs/superpowers/specs/2026-07-16-frontend-v1-design.md`). Talks to the API via
+  the Vite dev proxy (`/api/*` → `127.0.0.1:8000`, prefix stripped) — no CORS config.
+  Types are generated from OpenAPI into `src/api/schema.d.ts` (committed; `make types`).
+  Server state via TanStack Query (standings poll every 5s); forms via React Hook
+  Form + Zod mirroring DB constraints; `src/lib/score-math.ts` mirrors `app/scoring.py`
+  (keep their worked-example tests in sync). Judge panel slot→judge mapping lives in
+  localStorage per meet (`rhythmiq.panel.<meetId>`) — v1 only, becomes a backend
+  model with auth later. Frontend tests (Vitest + Testing Library + MSW) live in
+  `frontend/test/`, mirroring `frontend/src/`.
 
 ### Router conventions (mirrored across every resource)
 
