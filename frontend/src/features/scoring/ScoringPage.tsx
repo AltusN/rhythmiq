@@ -38,6 +38,12 @@ export function ScoringPage() {
   const [selectedEntryId, setSelectedEntryId] = useState<number | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [panel, setPanel] = useState<PanelAssignment>(() => loadPanel(meet.id));
+  const [formDirty, setFormDirty] = useState(false);
+
+  // Runs BEFORE any switch state is set, so the keep-mounted (readyFormKey)
+  // machinery never sees a half-committed switch.
+  const confirmDiscard = () =>
+    !formDirty || window.confirm("Discard unsaved scores?");
 
   const { nameFor, error: namesError } = useCompetitorNames();
 
@@ -177,21 +183,32 @@ export function ScoringPage() {
         nameFor={nameFor}
         scoredTotals={scoredTotals}
         selectedEntryId={selectedEntryId}
-        onSelect={(entry) => setSelectedEntryId(entry.id)}
+        onSelect={(entry) => {
+          if (entry.id === selectedEntryId) return;
+          if (!confirmDiscard()) return;
+          setFormDirty(false);
+          setSelectedEntryId(entry.id);
+        }}
         search={search}
         onSearchChange={setSearch}
         level={level}
         onLevelChange={(l) => {
+          if (!confirmDiscard()) return;
+          setFormDirty(false);
           setLevel(l);
           setSelectedEntryId(null);
         }}
         ageGroup={ageGroup}
         onAgeGroupChange={(a) => {
+          if (!confirmDiscard()) return;
+          setFormDirty(false);
           setAgeGroup(a);
           setSelectedEntryId(null);
         }}
         apparatus={apparatus}
         onApparatusChange={(a) => {
+          if (!confirmDiscard()) return;
+          setFormDirty(false);
           setApparatus(a as Apparatus);
           setSelectedEntryId(null);
         }}
@@ -240,6 +257,7 @@ export function ScoringPage() {
               penaltyLocked={(penaltyRecordsQ.data ?? []).length > 0}
               meetLocked={meetLocked}
               onSaved={(_result, next) => afterSave(next)}
+              onDirtyChange={setFormDirty}
             />
             <p className="mt-5 text-xs text-gray-500">
               Panel: D = {slotLabel(panel.D)} · E1 = {slotLabel(panel.E1)} · E2 ={" "}

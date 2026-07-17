@@ -286,6 +286,43 @@ test("E-only levels do not warn about unassigned D/A slots", async () => {
   expect(screen.queryByRole("button", { name: "Assign judges…" })).toBeNull();
 });
 
+test("switching competitors with unsaved edits prompts; declining keeps the form", async () => {
+  const second = makeEntry({ id: 22, meet_id: 5, gymnast_id: 7, group_id: null, level: "senior", bib_number: "13" });
+  mockBase({ entries: [seniorEntry, second] });
+  const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+  await userEvent.type(await screen.findByLabelText("E1"), "8.25");
+  await userEvent.click(screen.getByRole("button", { name: /13 ·/ }));
+  expect(confirmSpy).toHaveBeenCalledWith("Discard unsaved scores?");
+  expect(screen.getByLabelText("E1")).toHaveValue("8.25"); // still bib 12's form
+
+  confirmSpy.mockReturnValue(true);
+  await userEvent.click(screen.getByRole("button", { name: /13 ·/ }));
+  await waitFor(() => expect(screen.getByLabelText("E1")).toHaveValue(""));
+  confirmSpy.mockRestore();
+});
+
+test("a clean save clears dirtiness, so switching does not prompt", async () => {
+  const second = makeEntry({ id: 22, meet_id: 5, gymnast_id: 7, group_id: null, level: "senior", bib_number: "13" });
+  mockBase({ entries: [seniorEntry, second] });
+  server.use(
+    http.post(api("/routines/"), () =>
+      HttpResponse.json(makeRoutine({ id: 77, entry_id: 21 }), { status: 201 }),
+    ),
+    http.post(api("/judge-scores/"), () => HttpResponse.json({}, { status: 201 })),
+  );
+  const confirmSpy = vi.spyOn(window, "confirm");
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+  await userEvent.type(await screen.findByLabelText("E1"), "8.25");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  await screen.findByText("Saved ✓");
+  await userEvent.click(screen.getByRole("button", { name: /13 ·/ }));
+  expect(confirmSpy).not.toHaveBeenCalled();
+  confirmSpy.mockRestore();
+});
+
 test("completed meet renders the form read-only", async () => {
   mockBase({ meet: makeMeet({ id: 5, status: "completed" }) });
   renderApp("/meets/5/scoring");

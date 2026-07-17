@@ -71,6 +71,7 @@ export function ScoreForm({
   penaltyLocked,
   meetLocked,
   onSaved,
+  onDirtyChange,
 }: {
   entry: MeetEntryRead;
   apparatus: Apparatus;
@@ -80,6 +81,7 @@ export function ScoreForm({
   penaltyLocked: boolean;
   meetLocked: boolean;
   onSaved: (result: SaveScoresResult, next: boolean) => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const boxes = boxesFor(panel);
   const eOnly = isEOnlyLevel(entry.level);
@@ -106,9 +108,14 @@ export function ScoreForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const { register, handleSubmit, watch, setError, setFocus, formState } =
+  const { register, handleSubmit, watch, setError, setFocus, reset, formState } =
     useForm<FormValues>({ defaultValues });
   const [saving, setSaving] = useState(false);
+
+  const { isDirty } = formState;
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   // Mount-only, like defaultValues: the component is keyed by (entry, apparatus) in
   // ScoringPage, so every competitor/apparatus switch is a fresh mount.
@@ -167,6 +174,10 @@ export function ScoreForm({
         });
         const clean =
           !result.formError && Object.keys(result.boxErrors).length === 0;
+        // Re-baseline dirtiness to the just-saved values (not to empty): without
+        // this, isDirty compares against mount-time defaults forever and the
+        // discard guard would prompt even after a successful save.
+        if (clean) reset(values);
         setJustSaved(clean);
         if (result.formError) {
           setError("root.server", { type: "server", message: result.formError });
