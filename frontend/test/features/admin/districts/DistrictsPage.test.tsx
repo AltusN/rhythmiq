@@ -87,3 +87,45 @@ test("keeps the dialog open and shows the detail on a 409", async () => {
   expect(await screen.findByRole("alert")).toHaveTextContent("already exists");
   expect(screen.getByLabelText("Name")).toHaveValue("Gauteng");
 });
+
+test("edits a district, sending only the changed field", async () => {
+  server.use(
+    http.get(api("/districts/"), () =>
+      HttpResponse.json([makeDistrict({ id: 4, name: "Gauteng", abbreviation: "GAU" })]),
+    ),
+  );
+  let patched: Record<string, unknown> | null = null;
+  let patchedId: string | undefined;
+  server.use(
+    http.patch(api("/districts/:districtId"), async ({ request, params }) => {
+      patched = (await request.json()) as Record<string, unknown>;
+      patchedId = params.districtId as string;
+      return HttpResponse.json(makeDistrict({ id: 4 }));
+    }),
+  );
+  renderApp("/admin/districts");
+  await userEvent.click(await screen.findByRole("button", { name: "Edit Gauteng" }));
+  const name = screen.getByLabelText("Name");
+  expect(name).toHaveValue("Gauteng");
+  await userEvent.clear(name);
+  await userEvent.type(name, "Gauteng North");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(patched).toEqual({ name: "Gauteng North" }));
+  expect(patchedId).toBe("4");
+});
+
+test("reopening the dialog for another row resets the fields", async () => {
+  server.use(
+    http.get(api("/districts/"), () =>
+      HttpResponse.json([
+        makeDistrict({ id: 1, name: "Western Cape", abbreviation: "WC" }),
+        makeDistrict({ id: 2, name: "Gauteng", abbreviation: "GAU" }),
+      ]),
+    ),
+  );
+  renderApp("/admin/districts");
+  await userEvent.click(await screen.findByRole("button", { name: "Edit Western Cape" }));
+  await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  await userEvent.click(screen.getByRole("button", { name: "Edit Gauteng" }));
+  expect(screen.getByLabelText("Name")).toHaveValue("Gauteng");
+});
