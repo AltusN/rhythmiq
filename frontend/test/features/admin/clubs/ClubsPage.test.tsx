@@ -87,6 +87,15 @@ test("edits a club, sending only the changed field", async () => {
   await waitFor(() => expect(patched).toEqual({ abbreviation: "STARS" }));
 });
 
+test("district cannot be edited after club creation", async () => {
+  mockBase([makeClub({ id: 5, name: "Star Gymnastics", abbreviation: "STAR", district_id: 1 })]);
+  renderApp("/admin/clubs");
+  await userEvent.click(await screen.findByRole("button", { name: "Edit Star Gymnastics" }));
+  await within(screen.getByLabelText("District")).findByText("Western Cape");
+  const districtSelect = screen.getByLabelText("District") as HTMLSelectElement;
+  expect(districtSelect.disabled).toBe(true);
+});
+
 test("surfaces a 409 when a club still has dependents", async () => {
   mockBase([makeClub({ id: 5, name: "Star Gymnastics", district_id: 1 })]);
   server.use(

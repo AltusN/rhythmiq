@@ -82,6 +82,8 @@ export function ClubForm({
           label="District"
           noneLabel="— pick —"
           options={districts.map((d) => ({ id: d.id, label: d.name }))}
+          disabled={!!initial}
+          title={initial ? "District cannot be changed after creation" : undefined}
           {...register("district_id")}
         />
         {errors.district_id && (
