@@ -12,6 +12,7 @@ import { ClubForm, type ClubBody } from "./ClubForm";
 export function ClubsPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [districtFilter, setDistrictFilter] = useState("");
   // null = closed; { row: null } = create; { row } = edit
   const [dialog, setDialog] = useState<{ row: ClubRead | null } | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -25,10 +26,13 @@ export function ClubsPage() {
     },
   });
 
+  const districtId = districtFilter === "" ? undefined : Number(districtFilter);
   const list = useResourceList<ClubRead>({
-    queryKey: ["clubs", {}],
+    queryKey: ["clubs", { district_id: districtId }],
     fetchRows: async () => {
-      const { data, error } = await client.GET("/clubs/");
+      const { data, error } = await client.GET("/clubs/", {
+        params: { query: districtId === undefined ? {} : { district_id: districtId } },
+      });
       if (error) throw new Error(apiDetail(error));
       return data;
     },
@@ -99,15 +103,33 @@ export function ClubsPage() {
           New club
         </button>
       </div>
-      <label className="mb-3 block text-sm">
-        Search
-        <input
-          aria-label="Search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="ml-2 rounded border border-gray-300 p-1"
-        />
-      </label>
+      <div className="mb-3 flex gap-3">
+        <label className="text-sm">
+          Search
+          <input
+            aria-label="Search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="ml-2 rounded border border-gray-300 p-1"
+          />
+        </label>
+        <label className="text-sm">
+          District filter
+          <select
+            aria-label="District filter"
+            value={districtFilter}
+            onChange={(e) => setDistrictFilter(e.target.value)}
+            className="ml-2 rounded border border-gray-300 p-1"
+          >
+            <option value="">All districts</option>
+            {districtsQuery.data?.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
       <ErrorBanner
         message={
           list.error ||

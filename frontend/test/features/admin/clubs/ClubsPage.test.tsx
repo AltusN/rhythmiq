@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { makeClub, makeDistrict } from "../../../fixtures";
@@ -18,7 +18,11 @@ test("lists clubs with their district name", async () => {
   mockBase([makeClub({ id: 5, name: "Star Gymnastics", abbreviation: "STAR", district_id: 1 })]);
   renderApp("/admin/clubs");
   expect(await screen.findByText("Star Gymnastics")).toBeInTheDocument();
-  expect(screen.getByText("Western Cape")).toBeInTheDocument();
+  // Scoped to the table: "Western Cape" also appears as a district-filter
+  // <option>, which is an equally valid getByText match outside the table.
+  expect(
+    within(screen.getByRole("table")).getByText("Western Cape"),
+  ).toBeInTheDocument();
 });
 
 test("creates a club", async () => {
@@ -32,7 +36,9 @@ test("creates a club", async () => {
   );
   renderApp("/admin/clubs");
   await userEvent.click(await screen.findByRole("button", { name: "New club" }));
-  await screen.findByText("Western Cape");
+  // "Western Cape" also appears as a district-filter <option> outside the
+  // dialog, so scope the wait to the form's own District <select>.
+  await within(screen.getByLabelText("District")).findByText("Western Cape");
   await userEvent.type(screen.getByLabelText("Name"), "Acro Academy");
   await userEvent.type(screen.getByLabelText("Abbreviation"), "ACRO");
   await userEvent.selectOptions(screen.getByLabelText("District"), "1");
@@ -53,7 +59,9 @@ test("requires a district", async () => {
   );
   renderApp("/admin/clubs");
   await userEvent.click(await screen.findByRole("button", { name: "New club" }));
-  await screen.findByText("Western Cape");
+  // "Western Cape" also appears as a district-filter <option> outside the
+  // dialog, so scope the wait to the form's own District <select>.
+  await within(screen.getByLabelText("District")).findByText("Western Cape");
   await userEvent.type(screen.getByLabelText("Name"), "Acro Academy");
   await userEvent.type(screen.getByLabelText("Abbreviation"), "ACRO");
   await userEvent.click(screen.getByRole("button", { name: "Save" }));
@@ -120,6 +128,49 @@ test("a delete error is cleared by a later successful save", async () => {
   await waitFor(() => expect(patched).toEqual({ abbreviation: "STARS" }));
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   confirmSpy.mockRestore();
+});
+
+test("the district filter refetches scoped to that district", async () => {
+  mockBase([makeClub({ id: 5, name: "Star Gymnastics", abbreviation: "STAR", district_id: 1 })]);
+  const requested: (string | null)[] = [];
+  server.use(
+    http.get(api("/districts/"), () =>
+      HttpResponse.json([
+        makeDistrict({ id: 1, name: "Western Cape" }),
+        makeDistrict({ id: 2, name: "Gauteng" }),
+      ]),
+    ),
+    http.get(api("/clubs/"), ({ request }) => {
+      requested.push(new URL(request.url).searchParams.get("district_id"));
+      return HttpResponse.json([]);
+    }),
+  );
+  renderApp("/admin/clubs");
+  // Wait for the districts list to actually populate the <select> before
+  // selecting — the label itself renders synchronously, before the async
+  // districts fetch resolves.
+  await screen.findByText("Gauteng");
+  await userEvent.selectOptions(screen.getByLabelText("District filter"), "2");
+  await screen.findByText("No clubs yet.");
+  expect(requested).toContain("2");
+});
+
+test("typing in the search box does not trigger a network request", async () => {
+  mockBase([makeClub({ id: 5, name: "Star Gymnastics", abbreviation: "STAR", district_id: 1 })]);
+  let requestCount = 0;
+  server.use(
+    http.get(api("/clubs/"), () => {
+      requestCount += 1;
+      return HttpResponse.json([
+        makeClub({ id: 5, name: "Star Gymnastics", abbreviation: "STAR", district_id: 1 }),
+      ]);
+    }),
+  );
+  renderApp("/admin/clubs");
+  await screen.findByText("Star Gymnastics");
+  const countAfterLoad = requestCount;
+  await userEvent.type(screen.getByLabelText("Search"), "star");
+  expect(requestCount).toBe(countAfterLoad);
 });
 
 test("surfaces a failure to load districts", async () => {
