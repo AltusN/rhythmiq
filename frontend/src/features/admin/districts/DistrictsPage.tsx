@@ -46,13 +46,18 @@ export function DistrictsPage() {
     },
     onSuccess: () => {
       setFormError(null);
+      clearDeleteError();
       setDialog(null);
       queryClient.invalidateQueries({ queryKey: ["districts"] });
     },
     onError: (e: Error) => setFormError(e.message),
   });
 
-  const { confirmDelete, error: deleteError } = useResourceDelete<DistrictRead>({
+  const {
+    confirmDelete,
+    error: deleteError,
+    clearError: clearDeleteError,
+  } = useResourceDelete<DistrictRead>({
     queryKey: ["districts"],
     describe: (d) => `Delete district "${d.name}"?`,
     remove: async (d) => {

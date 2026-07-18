@@ -68,14 +68,19 @@ export function GymnastsPage() {
     },
     onSuccess: () => {
       setFormError(null);
+      clearDeleteError();
       setDialog(null);
       queryClient.invalidateQueries({ queryKey: ["gymnasts"] });
     },
     onError: (e: Error) => setFormError(e.message),
   });
 
-  const { confirmDelete, error: deleteError } = useResourceDelete<GymnastRead>({
-    queryKey: ["gymnasts", { club_id: clubId }],
+  const {
+    confirmDelete,
+    error: deleteError,
+    clearError: clearDeleteError,
+  } = useResourceDelete<GymnastRead>({
+    queryKey: ["gymnasts"],
     describe: (g) =>
       `Delete gymnast "${g.first_name} ${g.last_name}"? This also deletes their meet entries and routines.`,
     remove: async (g) => {

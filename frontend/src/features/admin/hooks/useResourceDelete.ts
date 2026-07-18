@@ -1,5 +1,5 @@
-import { hashKey, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 /**
  * Confirm, delete, invalidate. A 409 (RESTRICT: dependents exist) surfaces as the
@@ -13,11 +13,11 @@ import { useEffect, useState } from "react";
  * can't express both, so the caller supplies the full text.
  *
  * A delete error is only meaningful until the list it refers to is confirmed
- * fresh again — e.g. a later successful save on the same resource. Rather than
- * requiring every caller to remember to clear it after every *other* mutation
- * that touches this resource, this hook watches the shared query-cache entry for
- * `queryKey` and clears its own error the next time that entry refreshes
- * successfully, regardless of what triggered the refetch.
+ * fresh again — e.g. a later successful save on the same resource. The hook
+ * doesn't guess when that happens: it exposes `clearError` and the caller
+ * clears it explicitly from whichever action actually resolved it (typically
+ * the save mutation's `onSuccess`, right alongside clearing that mutation's
+ * own form error).
  */
 export function useResourceDelete<T>({
   queryKey,
@@ -27,22 +27,9 @@ export function useResourceDelete<T>({
   queryKey: unknown[];
   describe: (row: T) => string;
   remove: (row: T) => Promise<void>;
-}): { confirmDelete: (row: T) => void; error: string | null } {
+}): { confirmDelete: (row: T) => void; error: string | null; clearError: () => void } {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
-  const targetHash = hashKey(queryKey);
-
-  useEffect(() => {
-    return queryClient.getQueryCache().subscribe((event) => {
-      if (
-        event.type === "updated" &&
-        event.action.type === "success" &&
-        event.query.queryHash === targetHash
-      ) {
-        setError(null);
-      }
-    });
-  }, [queryClient, targetHash]);
 
   const mutation = useMutation({
     mutationFn: remove,
@@ -58,5 +45,5 @@ export function useResourceDelete<T>({
     mutation.mutate(row);
   };
 
-  return { confirmDelete, error };
+  return { confirmDelete, error, clearError: () => setError(null) };
 }
