@@ -1,26 +1,30 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { apiDetail, client } from "../../../api/client";
 import type { DistrictRead } from "../../../api/types";
 import { ErrorBanner } from "../../../components/ErrorBanner";
 import { FormDialog } from "../components/FormDialog";
 import { ResourceTable } from "../components/ResourceTable";
+import { useResourceDelete } from "../hooks/useResourceDelete";
+import { useResourceList } from "../hooks/useResourceList";
 import { DistrictForm, type DistrictBody } from "./DistrictForm";
 
 export function DistrictsPage() {
   const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
   // null = closed; { row: null } = create; { row } = edit
   const [dialog, setDialog] = useState<{ row: DistrictRead | null } | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-  const [listError, setListError] = useState<string | null>(null);
 
-  const districtsQuery = useQuery({
+  const list = useResourceList<DistrictRead>({
     queryKey: ["districts"],
-    queryFn: async (): Promise<DistrictRead[]> => {
+    fetchRows: async () => {
       const { data, error } = await client.GET("/districts/");
       if (error) throw new Error(apiDetail(error));
       return data;
     },
+    search,
+    searchText: (d) => `${d.name} ${d.abbreviation}`,
   });
 
   const saveMutation = useMutation({
@@ -42,31 +46,22 @@ export function DistrictsPage() {
     },
     onSuccess: () => {
       setFormError(null);
-      setListError(null);
       setDialog(null);
       queryClient.invalidateQueries({ queryKey: ["districts"] });
     },
     onError: (e: Error) => setFormError(e.message),
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: async (row: DistrictRead) => {
+  const { confirmDelete, error: deleteError } = useResourceDelete<DistrictRead>({
+    queryKey: ["districts"],
+    describe: (d) => `Delete district "${d.name}"?`,
+    remove: async (d) => {
       const { error } = await client.DELETE("/districts/{district_id}", {
-        params: { path: { district_id: row.id } },
+        params: { path: { district_id: d.id } },
       });
       if (error) throw new Error(apiDetail(error));
     },
-    onSuccess: () => {
-      setListError(null);
-      queryClient.invalidateQueries({ queryKey: ["districts"] });
-    },
-    onError: (e: Error) => setListError(e.message),
   });
-
-  const confirmDelete = (row: DistrictRead) => {
-    if (!window.confirm(`Delete district "${row.name}"?`)) return;
-    deleteMutation.mutate(row);
-  };
 
   return (
     <div>
@@ -83,12 +78,19 @@ export function DistrictsPage() {
           New district
         </button>
       </div>
-      <ErrorBanner
-        message={districtsQuery.error ? districtsQuery.error.message : listError}
-      />
-      {districtsQuery.data && (
+      <label className="mb-3 block text-sm">
+        Search
+        <input
+          aria-label="Search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="ml-2 rounded border border-gray-300 p-1"
+        />
+      </label>
+      <ErrorBanner message={list.error ?? deleteError} />
+      {list.loaded && (
         <ResourceTable
-          rows={districtsQuery.data}
+          rows={list.rows}
           columns={[
             { header: "Name", render: (d) => d.name },
             { header: "Abbreviation", render: (d) => d.abbreviation },

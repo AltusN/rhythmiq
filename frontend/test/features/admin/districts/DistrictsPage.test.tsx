@@ -238,3 +238,19 @@ test("clears a stale delete error when a save succeeds", async () => {
   // The old delete error should no longer appear in the banner
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
+
+test("search filters districts client-side", async () => {
+  server.use(
+    http.get(api("/districts/"), () =>
+      HttpResponse.json([
+        makeDistrict({ id: 1, name: "Western Cape", abbreviation: "WC" }),
+        makeDistrict({ id: 2, name: "Gauteng", abbreviation: "GAU" }),
+      ]),
+    ),
+  );
+  renderApp("/admin/districts");
+  await screen.findByText("Western Cape");
+  await userEvent.type(screen.getByLabelText("Search"), "gau");
+  expect(screen.queryByText("Western Cape")).toBeNull();
+  expect(screen.getByText("Gauteng")).toBeInTheDocument();
+});

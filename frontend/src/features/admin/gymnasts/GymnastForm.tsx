@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import type { ClubRead, GroupRead, GymnastRead } from "../../../api/types";
 import { ErrorBanner } from "../../../components/ErrorBanner";
+import { FkSelect } from "../components/FkSelect";
 
 /** Select and date inputs hand back strings; "" means "not set" and becomes null. */
 const gymnastSchema = z.object({
@@ -105,28 +106,18 @@ export function GymnastForm({
           <span className="text-xs text-red-700">{errors.last_name.message}</span>
         )}
       </label>
-      <label className="text-sm">
-        Club
-        <select {...register("club_id")} aria-label="Club" className={fieldClass}>
-          <option value="">— none —</option>
-          {clubs.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="text-sm">
-        Group
-        <select {...register("group_id")} aria-label="Group" className={fieldClass}>
-          <option value="">— none —</option>
-          {groups.map((g) => (
-            <option key={g.id} value={g.id}>
-              {g.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <FkSelect
+        label="Club"
+        noneLabel="— none —"
+        options={clubs.map((c) => ({ id: c.id, label: c.name }))}
+        {...register("club_id")}
+      />
+      <FkSelect
+        label="Group"
+        noneLabel="— none —"
+        options={groups.map((g) => ({ id: g.id, label: g.name }))}
+        {...register("group_id")}
+      />
       <label className="text-sm">
         Date of birth
         <input

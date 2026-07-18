@@ -5,6 +5,8 @@ import type { ClubRead, GroupRead, GymnastRead } from "../../../api/types";
 import { ErrorBanner } from "../../../components/ErrorBanner";
 import { FormDialog } from "../components/FormDialog";
 import { ResourceTable } from "../components/ResourceTable";
+import { useResourceDelete } from "../hooks/useResourceDelete";
+import { useResourceList } from "../hooks/useResourceList";
 import { GymnastForm, type GymnastBody } from "./GymnastForm";
 
 export function GymnastsPage() {
@@ -14,7 +16,6 @@ export function GymnastsPage() {
   // null = closed; { row: null } = create; { row } = edit
   const [dialog, setDialog] = useState<{ row: GymnastRead | null } | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-  const [listError, setListError] = useState<string | null>(null);
 
   const clubsQuery = useQuery({
     queryKey: ["clubs", {}],
@@ -35,15 +36,17 @@ export function GymnastsPage() {
   });
 
   const clubId = clubFilter === "" ? undefined : Number(clubFilter);
-  const gymnastsQuery = useQuery({
+  const list = useResourceList<GymnastRead>({
     queryKey: ["gymnasts", { club_id: clubId }],
-    queryFn: async (): Promise<GymnastRead[]> => {
+    fetchRows: async () => {
       const { data, error } = await client.GET("/gymnasts/", {
         params: { query: clubId === undefined ? {} : { club_id: clubId } },
       });
       if (error) throw new Error(apiDetail(error));
       return data;
     },
+    search,
+    searchText: (g) => `${g.first_name} ${g.last_name}`,
   });
 
   const saveMutation = useMutation({
@@ -65,47 +68,26 @@ export function GymnastsPage() {
     },
     onSuccess: () => {
       setFormError(null);
-      setListError(null);
       setDialog(null);
       queryClient.invalidateQueries({ queryKey: ["gymnasts"] });
     },
     onError: (e: Error) => setFormError(e.message),
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: async (row: GymnastRead) => {
+  const { confirmDelete, error: deleteError } = useResourceDelete<GymnastRead>({
+    queryKey: ["gymnasts", { club_id: clubId }],
+    describe: (g) =>
+      `Delete gymnast "${g.first_name} ${g.last_name}"? This also deletes their meet entries and routines.`,
+    remove: async (g) => {
       const { error } = await client.DELETE("/gymnasts/{gymnast_id}", {
-        params: { path: { gymnast_id: row.id } },
+        params: { path: { gymnast_id: g.id } },
       });
       if (error) throw new Error(apiDetail(error));
     },
-    onSuccess: () => {
-      setListError(null);
-      queryClient.invalidateQueries({ queryKey: ["gymnasts"] });
-    },
-    onError: (e: Error) => setListError(e.message),
   });
-
-  const confirmDelete = (row: GymnastRead) => {
-    const name = `${row.first_name} ${row.last_name}`;
-    if (
-      !window.confirm(
-        `Delete gymnast "${name}"? This also deletes their meet entries and routines.`,
-      )
-    )
-      return;
-    deleteMutation.mutate(row);
-  };
 
   const clubName = (id: number | null | undefined) =>
     id === null ? "—" : (clubsQuery.data?.find((c) => c.id === id)?.name ?? "—");
-
-  const needle = search.trim().toLowerCase();
-  const rows = (gymnastsQuery.data ?? []).filter((g) =>
-    needle === ""
-      ? true
-      : `${g.first_name} ${g.last_name}`.toLowerCase().includes(needle),
-  );
 
   return (
     <div>
@@ -151,15 +133,15 @@ export function GymnastsPage() {
       </div>
       <ErrorBanner
         message={
-          (gymnastsQuery.error ? gymnastsQuery.error.message : null) ||
+          list.error ||
           (clubsQuery.error ? clubsQuery.error.message : null) ||
           (groupsQuery.error ? groupsQuery.error.message : null) ||
-          listError
+          deleteError
         }
       />
-      {gymnastsQuery.data && (
+      {list.loaded && (
         <ResourceTable
-          rows={rows}
+          rows={list.rows}
           columns={[
             { header: "Name", render: (g) => `${g.first_name} ${g.last_name}` },
             { header: "Club", render: (g) => clubName(g.club_id) },
