@@ -10,6 +10,7 @@ export function DistrictsPage() {
   // null = closed; { row: null } = create; { row } = edit
   const [dialog, setDialog] = useState<{ row: DistrictRead | null } | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
 
   const districtsQuery = useQuery({
     queryKey: ["districts"],
@@ -45,6 +46,25 @@ export function DistrictsPage() {
     onError: (e: Error) => setFormError(e.message),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (row: DistrictRead) => {
+      const { error } = await client.DELETE("/districts/{district_id}", {
+        params: { path: { district_id: row.id } },
+      });
+      if (error) throw new Error(apiDetail(error));
+    },
+    onSuccess: () => {
+      setListError(null);
+      queryClient.invalidateQueries({ queryKey: ["districts"] });
+    },
+    onError: (e: Error) => setListError(e.message),
+  });
+
+  const confirmDelete = (row: DistrictRead) => {
+    if (!window.confirm(`Delete district "${row.name}"?`)) return;
+    deleteMutation.mutate(row);
+  };
+
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
@@ -60,7 +80,9 @@ export function DistrictsPage() {
           New district
         </button>
       </div>
-      <ErrorBanner message={districtsQuery.error ? districtsQuery.error.message : null} />
+      <ErrorBanner
+        message={districtsQuery.error ? districtsQuery.error.message : listError}
+      />
       {districtsQuery.data?.length === 0 && (
         <p className="text-sm text-gray-500">No districts yet.</p>
       )}
@@ -89,6 +111,14 @@ export function DistrictsPage() {
                     className="rounded border border-gray-300 px-2 py-0.5 text-xs"
                   >
                     Edit
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Delete ${d.name}`}
+                    onClick={() => confirmDelete(d)}
+                    className="ml-2 rounded border border-gray-300 px-2 py-0.5 text-xs text-red-700"
+                  >
+                    Delete
                   </button>
                 </td>
               </tr>

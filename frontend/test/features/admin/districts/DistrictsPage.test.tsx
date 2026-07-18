@@ -126,6 +126,68 @@ test("reopening the dialog for another row resets the fields", async () => {
   renderApp("/admin/districts");
   await userEvent.click(await screen.findByRole("button", { name: "Edit Western Cape" }));
   await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
-  await userEvent.click(screen.getByRole("button", { name: "Edit Gauteng" }));
+  await userEvent.click(await screen.findByRole("button", { name: "Edit Gauteng" }));
   expect(screen.getByLabelText("Name")).toHaveValue("Gauteng");
+});
+
+test("deletes a district after confirmation", async () => {
+  server.use(
+    http.get(api("/districts/"), () =>
+      HttpResponse.json([makeDistrict({ id: 4, name: "Gauteng" })]),
+    ),
+  );
+  let deletedId: string | undefined;
+  server.use(
+    http.delete(api("/districts/:districtId"), ({ params }) => {
+      deletedId = params.districtId as string;
+      return new HttpResponse(null, { status: 204 });
+    }),
+  );
+  const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+  renderApp("/admin/districts");
+  await userEvent.click(await screen.findByRole("button", { name: "Delete Gauteng" }));
+  await waitFor(() => expect(deletedId).toBe("4"));
+  expect(confirmSpy.mock.calls[0][0]).toContain("Gauteng");
+  confirmSpy.mockRestore();
+});
+
+test("declining the confirm aborts the delete", async () => {
+  server.use(
+    http.get(api("/districts/"), () =>
+      HttpResponse.json([makeDistrict({ id: 4, name: "Gauteng" })]),
+    ),
+  );
+  let called = false;
+  server.use(
+    http.delete(api("/districts/:districtId"), () => {
+      called = true;
+      return new HttpResponse(null, { status: 204 });
+    }),
+  );
+  const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+  renderApp("/admin/districts");
+  await userEvent.click(await screen.findByRole("button", { name: "Delete Gauteng" }));
+  expect(called).toBe(false);
+  confirmSpy.mockRestore();
+});
+
+test("shows the API detail when a delete is blocked by dependents", async () => {
+  server.use(
+    http.get(api("/districts/"), () =>
+      HttpResponse.json([makeDistrict({ id: 4, name: "Gauteng" })]),
+    ),
+  );
+  server.use(
+    http.delete(api("/districts/:districtId"), () =>
+      HttpResponse.json(
+        { detail: "Cannot delete district with existing clubs" },
+        { status: 409 },
+      ),
+    ),
+  );
+  const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+  renderApp("/admin/districts");
+  await userEvent.click(await screen.findByRole("button", { name: "Delete Gauteng" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("existing clubs");
+  confirmSpy.mockRestore();
 });
