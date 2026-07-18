@@ -12,6 +12,7 @@ export function GymnastsPage() {
   // null = closed; { row: null } = create; { row } = edit
   const [dialog, setDialog] = useState<{ row: GymnastRead | null } | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
 
   const clubsQuery = useQuery({
     queryKey: ["clubs", {}],
@@ -45,6 +46,15 @@ export function GymnastsPage() {
 
   const saveMutation = useMutation({
     mutationFn: async (body: GymnastBody) => {
+      const editingRow = dialog?.row ?? null;
+      if (editingRow) {
+        const { data, error } = await client.PATCH("/gymnasts/{gymnast_id}", {
+          params: { path: { gymnast_id: editingRow.id } },
+          body,
+        });
+        if (error) throw new Error(apiDetail(error));
+        return data;
+      }
       const { data, error } = await client.POST("/gymnasts/", {
         body: body as { first_name: string; last_name: string },
       });
@@ -53,11 +63,37 @@ export function GymnastsPage() {
     },
     onSuccess: () => {
       setFormError(null);
+      setListError(null);
       setDialog(null);
       queryClient.invalidateQueries({ queryKey: ["gymnasts"] });
     },
     onError: (e: Error) => setFormError(e.message),
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (row: GymnastRead) => {
+      const { error } = await client.DELETE("/gymnasts/{gymnast_id}", {
+        params: { path: { gymnast_id: row.id } },
+      });
+      if (error) throw new Error(apiDetail(error));
+    },
+    onSuccess: () => {
+      setListError(null);
+      queryClient.invalidateQueries({ queryKey: ["gymnasts"] });
+    },
+    onError: (e: Error) => setListError(e.message),
+  });
+
+  const confirmDelete = (row: GymnastRead) => {
+    const name = `${row.first_name} ${row.last_name}`;
+    if (
+      !window.confirm(
+        `Delete gymnast "${name}"? This also deletes their meet entries and routines.`,
+      )
+    )
+      return;
+    deleteMutation.mutate(row);
+  };
 
   const clubName = (id: number | null | undefined) =>
     id === null ? "—" : (clubsQuery.data?.find((c) => c.id === id)?.name ?? "—");
@@ -115,7 +151,8 @@ export function GymnastsPage() {
         message={
           (gymnastsQuery.error ? gymnastsQuery.error.message : null) ||
           (clubsQuery.error ? clubsQuery.error.message : null) ||
-          (groupsQuery.error ? groupsQuery.error.message : null)
+          (groupsQuery.error ? groupsQuery.error.message : null) ||
+          listError
         }
       />
       {gymnastsQuery.data && rows.length === 0 && (
@@ -129,6 +166,7 @@ export function GymnastsPage() {
               <th className="py-1">Club</th>
               <th className="py-1">Date of birth</th>
               <th className="py-1">Country</th>
+              <th className="py-1" />
             </tr>
           </thead>
           <tbody>
@@ -140,6 +178,27 @@ export function GymnastsPage() {
                 <td className="py-1">{clubName(g.club_id)}</td>
                 <td className="py-1">{g.date_of_birth ?? "—"}</td>
                 <td className="py-1">{g.country_code ?? "—"}</td>
+                <td className="py-1 text-right">
+                  <button
+                    type="button"
+                    aria-label={`Edit ${g.first_name} ${g.last_name}`}
+                    onClick={() => {
+                      setFormError(null);
+                      setDialog({ row: g });
+                    }}
+                    className="rounded border border-gray-300 px-2 py-0.5 text-xs"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Delete ${g.first_name} ${g.last_name}`}
+                    onClick={() => confirmDelete(g)}
+                    className="ml-2 rounded border border-gray-300 px-2 py-0.5 text-xs text-red-700"
+                  >
+                    Delete
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

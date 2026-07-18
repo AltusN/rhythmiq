@@ -207,3 +207,91 @@ test("clears a stale form error once a retry succeeds", async () => {
   await userEvent.click(await screen.findByRole("button", { name: "New gymnast" }));
   expect(screen.queryByText("club_id: FK not found")).toBeNull();
 });
+
+test("edit sends only the changed field and leaves the untouched group alone", async () => {
+  mockBase([
+    makeGymnast({
+      id: 10,
+      first_name: "Anna",
+      last_name: "Botha",
+      club_id: 1,
+      group_id: 3,
+      date_of_birth: "2011-04-02",
+    }),
+  ]);
+  let patched: Record<string, unknown> | null = null;
+  server.use(
+    http.patch(api("/gymnasts/:gymnastId"), async ({ request }) => {
+      patched = (await request.json()) as Record<string, unknown>;
+      return HttpResponse.json(makeGymnast({ id: 10 }));
+    }),
+  );
+  renderApp("/admin/gymnasts");
+  await userEvent.click(await screen.findByRole("button", { name: "Edit Anna Botha" }));
+  const last = screen.getByLabelText("Last name");
+  await userEvent.clear(last);
+  await userEvent.type(last, "Botha-Smit");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(patched).toEqual({ last_name: "Botha-Smit" }));
+});
+
+test("clearing the club sends an explicit null", async () => {
+  mockBase([
+    makeGymnast({ id: 10, first_name: "Anna", last_name: "Botha", club_id: 1 }),
+  ]);
+  let patched: Record<string, unknown> | null = null;
+  server.use(
+    http.patch(api("/gymnasts/:gymnastId"), async ({ request }) => {
+      patched = (await request.json()) as Record<string, unknown>;
+      return HttpResponse.json(makeGymnast({ id: 10 }));
+    }),
+  );
+  renderApp("/admin/gymnasts");
+  await userEvent.click(await screen.findByRole("button", { name: "Edit Anna Botha" }));
+  await userEvent.selectOptions(screen.getByLabelText("Club"), "");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(patched).toEqual({ club_id: null }));
+});
+
+test("deletes a gymnast after confirmation and surfaces a 409", async () => {
+  mockBase([
+    makeGymnast({ id: 10, first_name: "Anna", last_name: "Botha", club_id: 1 }),
+  ]);
+  server.use(
+    http.delete(api("/gymnasts/:gymnastId"), () =>
+      HttpResponse.json({ detail: "Cannot delete gymnast with entries" }, { status: 409 }),
+    ),
+  );
+  const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+  renderApp("/admin/gymnasts");
+  await userEvent.click(await screen.findByRole("button", { name: "Delete Anna Botha" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("with entries");
+  expect(confirmSpy.mock.calls[0][0]).toContain("Anna Botha");
+  confirmSpy.mockRestore();
+});
+
+test("a later successful save clears a stale delete error", async () => {
+  mockBase([
+    makeGymnast({ id: 10, first_name: "Anna", last_name: "Botha", club_id: 1 }),
+  ]);
+  server.use(
+    http.delete(api("/gymnasts/:gymnastId"), () =>
+      HttpResponse.json({ detail: "Cannot delete gymnast with entries" }, { status: 409 }),
+    ),
+    http.patch(api("/gymnasts/:gymnastId"), () =>
+      HttpResponse.json(makeGymnast({ id: 10, first_name: "Anna", last_name: "Ndlovu" })),
+    ),
+  );
+  const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+  renderApp("/admin/gymnasts");
+  await userEvent.click(await screen.findByRole("button", { name: "Delete Anna Botha" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("with entries");
+  confirmSpy.mockRestore();
+
+  await userEvent.click(screen.getByRole("button", { name: "Edit Anna Botha" }));
+  const last = screen.getByLabelText("Last name");
+  await userEvent.clear(last);
+  await userEvent.type(last, "Ndlovu");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+});
