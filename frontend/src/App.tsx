@@ -1,5 +1,11 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
+import { AdminShell } from "./features/admin/AdminShell";
+import { ClubsPage } from "./features/admin/clubs/ClubsPage";
+import { CoachesPage } from "./features/admin/coaches/CoachesPage";
+import { DistrictsPage } from "./features/admin/districts/DistrictsPage";
+import { GroupsPage } from "./features/admin/groups/GroupsPage";
+import { GymnastsPage } from "./features/admin/gymnasts/GymnastsPage";
 import { EntriesPage } from "./features/entries/EntriesPage";
 import { MeetListPage } from "./features/meets/MeetListPage";
 import { MeetShell } from "./features/meets/MeetShell";
@@ -16,6 +22,14 @@ export default function App() {
           <Route path="scoring" element={<ScoringPage />} />
           <Route path="entries" element={<EntriesPage />} />
           <Route path="standings" element={<StandingsPage />} />
+        </Route>
+        <Route path="/admin" element={<AdminShell />}>
+          <Route index element={<Navigate to="districts" replace />} />
+          <Route path="districts" element={<DistrictsPage />} />
+          <Route path="clubs" element={<ClubsPage />} />
+          <Route path="coaches" element={<CoachesPage />} />
+          <Route path="groups" element={<GroupsPage />} />
+          <Route path="gymnasts" element={<GymnastsPage />} />
         </Route>
       </Route>
     </Routes>

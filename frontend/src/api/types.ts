@@ -15,3 +15,6 @@ export type MeetStatus = components["schemas"]["MeetStatus"];
 export type Apparatus = components["schemas"]["Apparatus"];
 export type Level = components["schemas"]["Level"];
 export type AgeGroup = components["schemas"]["AgeGroup"];
+export type DistrictRead = components["schemas"]["DistrictRead"];
+export type ClubRead = components["schemas"]["ClubRead"];
+export type CoachRead = components["schemas"]["CoachRead"];

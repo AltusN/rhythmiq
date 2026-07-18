@@ -13,10 +13,25 @@ test("toDec formats to 2 decimals", () => {
   expect(toDec(0)).toBe("0.00");
 });
 
-test("apiDetail extracts string detail and stringifies 422 arrays", () => {
+test("apiDetail extracts string detail", () => {
   expect(apiDetail({ detail: "Meet with id 9 not found" })).toBe(
     "Meet with id 9 not found",
   );
-  expect(apiDetail({ detail: [{ msg: "bad" }] })).toBe('[{"msg":"bad"}]');
   expect(apiDetail(undefined)).toBe("Request failed");
+});
+
+test("apiDetail formats 422 validation arrays as field: message lines", () => {
+  const body = {
+    detail: [
+      { loc: ["body", "abbreviation"], msg: "String should have at most 10 characters" },
+      { loc: ["body", "name"], msg: "Field required" },
+    ],
+  };
+  expect(apiDetail(body)).toBe(
+    "abbreviation: String should have at most 10 characters\nname: Field required",
+  );
+});
+
+test("apiDetail falls back to JSON for unrecognised array shapes", () => {
+  expect(apiDetail({ detail: [{ oops: 1 }] })).toBe('[{"oops":1}]');
 });

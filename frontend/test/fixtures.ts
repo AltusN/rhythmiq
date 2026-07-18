@@ -1,4 +1,7 @@
 import type {
+  ClubRead,
+  CoachRead,
+  DistrictRead,
   GroupRead,
   GymnastRead,
   JudgeRead,
@@ -75,6 +78,31 @@ export function makeRoutine(overrides: Partial<RoutineRead> = {}): RoutineRead {
     apparatus: "hoop",
     order_of_performance: null,
     penalty: "0.00",
+    ...overrides,
+  };
+}
+
+export function makeDistrict(overrides: Partial<DistrictRead> = {}): DistrictRead {
+  return { id: id(), name: "Western Cape", abbreviation: "WC", ...overrides };
+}
+
+export function makeClub(overrides: Partial<ClubRead> = {}): ClubRead {
+  return {
+    id: id(),
+    district_id: 1,
+    name: "Star Gymnastics",
+    abbreviation: "STAR",
+    ...overrides,
+  };
+}
+
+export function makeCoach(overrides: Partial<CoachRead> = {}): CoachRead {
+  return {
+    id: id(),
+    club_id: 1,
+    first_name: "Thabo",
+    last_name: "Mokoena",
+    is_head_coach: false,
     ...overrides,
   };
 }

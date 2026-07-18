@@ -1,0 +1,297 @@
+import { screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
+import { makeClub, makeGroup, makeGymnast } from "../../../fixtures";
+import { api, server } from "../../../msw/server";
+import { renderApp } from "../../../utils";
+
+function mockBase(gymnasts: unknown[] = []) {
+  server.use(
+    http.get(api("/gymnasts/"), () => HttpResponse.json(gymnasts)),
+    http.get(api("/clubs/"), () =>
+      HttpResponse.json([
+        makeClub({ id: 1, name: "Star Gymnastics" }),
+        makeClub({ id: 2, name: "Acro Academy" }),
+      ]),
+    ),
+    http.get(api("/groups/"), () => HttpResponse.json([])),
+  );
+}
+
+test("lists gymnasts with their club name", async () => {
+  mockBase([
+    makeGymnast({ id: 10, first_name: "Anna", last_name: "Botha", club_id: 1 }),
+  ]);
+  renderApp("/admin/gymnasts");
+  expect(await screen.findByText("Anna Botha")).toBeInTheDocument();
+  // Scoped to the table: "Star Gymnastics" also appears as a club-filter
+  // <option>, which is an equally valid getByText match outside the table.
+  expect(
+    within(screen.getByRole("table")).getByText("Star Gymnastics"),
+  ).toBeInTheDocument();
+});
+
+test("shows an em dash for a gymnast with no club", async () => {
+  // dob and country are filled in so the club cell is the only em dash on the row.
+  mockBase([
+    makeGymnast({
+      id: 11,
+      first_name: "Mia",
+      last_name: "Nel",
+      club_id: null,
+      date_of_birth: "2012-08-19",
+      country_code: "RSA",
+    }),
+  ]);
+  renderApp("/admin/gymnasts");
+  expect(await screen.findByText("Mia Nel")).toBeInTheDocument();
+  expect(screen.getByText("—")).toBeInTheDocument();
+});
+
+test("search filters rows by name, client-side", async () => {
+  mockBase([
+    makeGymnast({ id: 10, first_name: "Anna", last_name: "Botha", club_id: 1 }),
+    makeGymnast({ id: 11, first_name: "Mia", last_name: "Nel", club_id: 2 }),
+  ]);
+  renderApp("/admin/gymnasts");
+  await screen.findByText("Anna Botha");
+  await userEvent.type(screen.getByLabelText("Search"), "nel");
+  expect(screen.queryByText("Anna Botha")).toBeNull();
+  expect(screen.getByText("Mia Nel")).toBeInTheDocument();
+});
+
+test("the club filter refetches scoped to that club", async () => {
+  mockBase([makeGymnast({ id: 10, first_name: "Anna", last_name: "Botha", club_id: 1 })]);
+  const requested: (string | null)[] = [];
+  server.use(
+    http.get(api("/gymnasts/"), ({ request }) => {
+      requested.push(new URL(request.url).searchParams.get("club_id"));
+      return HttpResponse.json([]);
+    }),
+  );
+  renderApp("/admin/gymnasts");
+  // Wait for the clubs list to actually populate the <select> before
+  // selecting — the label itself renders synchronously, before the async
+  // clubs fetch resolves.
+  await screen.findByText("Acro Academy");
+  await userEvent.selectOptions(screen.getByLabelText("Club filter"), "2");
+  await screen.findByText("No gymnasts yet.");
+  expect(requested).toContain("2");
+});
+
+test("surface clubs fetch error when gymnasts succeeds", async () => {
+  server.use(
+    http.get(api("/gymnasts/"), () =>
+      HttpResponse.json([
+        makeGymnast({ id: 10, first_name: "Anna", last_name: "Botha", club_id: 1 }),
+      ]),
+    ),
+    http.get(api("/clubs/"), () =>
+      HttpResponse.json({ detail: "Clubs endpoint failed" }, { status: 500 }),
+    ),
+    http.get(api("/groups/"), () => HttpResponse.json([])),
+  );
+  renderApp("/admin/gymnasts");
+  expect(await screen.findByText("Clubs endpoint failed")).toBeInTheDocument();
+});
+
+test("creates a gymnast, sending nulls for the fields left blank", async () => {
+  mockBase();
+  server.use(
+    http.get(api("/groups/"), () =>
+      HttpResponse.json([makeGroup({ id: 3, name: "Zvezda RG" })]),
+    ),
+  );
+  let posted: Record<string, unknown> | null = null;
+  server.use(
+    http.post(api("/gymnasts/"), async ({ request }) => {
+      posted = (await request.json()) as Record<string, unknown>;
+      return HttpResponse.json(makeGymnast(), { status: 201 });
+    }),
+  );
+  renderApp("/admin/gymnasts");
+  await userEvent.click(await screen.findByRole("button", { name: "New gymnast" }));
+  await userEvent.type(screen.getByLabelText("First name"), "Zoe");
+  await userEvent.type(screen.getByLabelText("Last name"), "Kruger");
+  await userEvent.selectOptions(screen.getByLabelText("Club"), "1");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() =>
+    expect(posted).toEqual({
+      first_name: "Zoe",
+      last_name: "Kruger",
+      club_id: 1,
+      group_id: null,
+      date_of_birth: null,
+      country_code: null,
+    }),
+  );
+});
+
+test("sends the optional date and country when filled in", async () => {
+  mockBase();
+  let posted: Record<string, unknown> | null = null;
+  server.use(
+    http.post(api("/gymnasts/"), async ({ request }) => {
+      posted = (await request.json()) as Record<string, unknown>;
+      return HttpResponse.json(makeGymnast(), { status: 201 });
+    }),
+  );
+  renderApp("/admin/gymnasts");
+  await userEvent.click(await screen.findByRole("button", { name: "New gymnast" }));
+  await userEvent.type(screen.getByLabelText("First name"), "Zoe");
+  await userEvent.type(screen.getByLabelText("Last name"), "Kruger");
+  await userEvent.type(screen.getByLabelText("Date of birth"), "2011-04-02");
+  await userEvent.type(screen.getByLabelText("Country code"), "RSA");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() =>
+    expect(posted).toMatchObject({ date_of_birth: "2011-04-02", country_code: "RSA" }),
+  );
+});
+
+test("rejects an over-long country code before sending", async () => {
+  mockBase();
+  let called = false;
+  server.use(
+    http.post(api("/gymnasts/"), () => {
+      called = true;
+      return HttpResponse.json(makeGymnast(), { status: 201 });
+    }),
+  );
+  renderApp("/admin/gymnasts");
+  await userEvent.click(await screen.findByRole("button", { name: "New gymnast" }));
+  await userEvent.type(screen.getByLabelText("First name"), "Zoe");
+  await userEvent.type(screen.getByLabelText("Last name"), "Kruger");
+  await userEvent.type(screen.getByLabelText("Country code"), "RSAX");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  expect(await screen.findByText("At most 3 characters")).toBeInTheDocument();
+  expect(called).toBe(false);
+});
+
+test("surfaces a groups fetch error when gymnasts and clubs succeed", async () => {
+  server.use(
+    http.get(api("/gymnasts/"), () =>
+      HttpResponse.json([
+        makeGymnast({ id: 10, first_name: "Anna", last_name: "Botha", club_id: 1 }),
+      ]),
+    ),
+    http.get(api("/clubs/"), () => HttpResponse.json([])),
+    http.get(api("/groups/"), () =>
+      HttpResponse.json({ detail: "Groups endpoint failed" }, { status: 500 }),
+    ),
+  );
+  renderApp("/admin/gymnasts");
+  expect(await screen.findByText("Groups endpoint failed")).toBeInTheDocument();
+});
+
+test("clears a stale form error once a retry succeeds", async () => {
+  mockBase();
+  let attempts = 0;
+  server.use(
+    http.post(api("/gymnasts/"), async () => {
+      attempts += 1;
+      if (attempts === 1) {
+        return HttpResponse.json({ detail: "club_id: FK not found" }, { status: 404 });
+      }
+      return HttpResponse.json(makeGymnast(), { status: 201 });
+    }),
+  );
+  renderApp("/admin/gymnasts");
+  await userEvent.click(await screen.findByRole("button", { name: "New gymnast" }));
+  await userEvent.type(screen.getByLabelText("First name"), "Zoe");
+  await userEvent.type(screen.getByLabelText("Last name"), "Kruger");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  expect(await screen.findByText("club_id: FK not found")).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  // A successful save closes the dialog, which takes the stale error with it.
+  await waitFor(() => expect(screen.queryByText("club_id: FK not found")).toBeNull());
+  await userEvent.click(await screen.findByRole("button", { name: "New gymnast" }));
+  expect(screen.queryByText("club_id: FK not found")).toBeNull();
+});
+
+test("edit sends only the changed field and leaves the untouched group alone", async () => {
+  mockBase([
+    makeGymnast({
+      id: 10,
+      first_name: "Anna",
+      last_name: "Botha",
+      club_id: 1,
+      group_id: 3,
+      date_of_birth: "2011-04-02",
+    }),
+  ]);
+  let patched: Record<string, unknown> | null = null;
+  server.use(
+    http.patch(api("/gymnasts/:gymnastId"), async ({ request }) => {
+      patched = (await request.json()) as Record<string, unknown>;
+      return HttpResponse.json(makeGymnast({ id: 10 }));
+    }),
+  );
+  renderApp("/admin/gymnasts");
+  await userEvent.click(await screen.findByRole("button", { name: "Edit Anna Botha" }));
+  const last = screen.getByLabelText("Last name");
+  await userEvent.clear(last);
+  await userEvent.type(last, "Botha-Smit");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(patched).toEqual({ last_name: "Botha-Smit" }));
+});
+
+test("clearing the club sends an explicit null", async () => {
+  mockBase([
+    makeGymnast({ id: 10, first_name: "Anna", last_name: "Botha", club_id: 1 }),
+  ]);
+  let patched: Record<string, unknown> | null = null;
+  server.use(
+    http.patch(api("/gymnasts/:gymnastId"), async ({ request }) => {
+      patched = (await request.json()) as Record<string, unknown>;
+      return HttpResponse.json(makeGymnast({ id: 10 }));
+    }),
+  );
+  renderApp("/admin/gymnasts");
+  await userEvent.click(await screen.findByRole("button", { name: "Edit Anna Botha" }));
+  await userEvent.selectOptions(screen.getByLabelText("Club"), "");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(patched).toEqual({ club_id: null }));
+});
+
+test("deletes a gymnast after confirmation and surfaces a 409", async () => {
+  mockBase([
+    makeGymnast({ id: 10, first_name: "Anna", last_name: "Botha", club_id: 1 }),
+  ]);
+  server.use(
+    http.delete(api("/gymnasts/:gymnastId"), () =>
+      HttpResponse.json({ detail: "Cannot delete gymnast with entries" }, { status: 409 }),
+    ),
+  );
+  const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+  renderApp("/admin/gymnasts");
+  await userEvent.click(await screen.findByRole("button", { name: "Delete Anna Botha" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("with entries");
+  expect(confirmSpy.mock.calls[0][0]).toContain("Anna Botha");
+  confirmSpy.mockRestore();
+});
+
+test("a later successful save clears a stale delete error", async () => {
+  mockBase([
+    makeGymnast({ id: 10, first_name: "Anna", last_name: "Botha", club_id: 1 }),
+  ]);
+  server.use(
+    http.delete(api("/gymnasts/:gymnastId"), () =>
+      HttpResponse.json({ detail: "Cannot delete gymnast with entries" }, { status: 409 }),
+    ),
+    http.patch(api("/gymnasts/:gymnastId"), () =>
+      HttpResponse.json(makeGymnast({ id: 10, first_name: "Anna", last_name: "Ndlovu" })),
+    ),
+  );
+  const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+  renderApp("/admin/gymnasts");
+  await userEvent.click(await screen.findByRole("button", { name: "Delete Anna Botha" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("with entries");
+  confirmSpy.mockRestore();
+
+  await userEvent.click(screen.getByRole("button", { name: "Edit Anna Botha" }));
+  const last = screen.getByLabelText("Last name");
+  await userEvent.clear(last);
+  await userEvent.type(last, "Ndlovu");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+});
