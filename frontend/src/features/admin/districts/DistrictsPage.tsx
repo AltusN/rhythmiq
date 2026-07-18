@@ -1,9 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { apiDetail, client } from "../../../api/client";
 import type { DistrictRead } from "../../../api/types";
 import { ErrorBanner } from "../../../components/ErrorBanner";
+import { DistrictForm, type DistrictBody } from "./DistrictForm";
 
 export function DistrictsPage() {
+  const queryClient = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
   const districtsQuery = useQuery({
     queryKey: ["districts"],
     queryFn: async (): Promise<DistrictRead[]> => {
@@ -13,9 +19,39 @@ export function DistrictsPage() {
     },
   });
 
+  const saveMutation = useMutation({
+    mutationFn: async (body: DistrictBody) => {
+      const { data, error } = await client.POST("/districts/", {
+        body: body as { name: string; abbreviation: string },
+      });
+      if (error) throw new Error(apiDetail(error));
+      return data;
+    },
+    onSuccess: () => {
+      setFormError(null);
+      setDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["districts"] });
+    },
+    onError: (e: Error) => setFormError(e.message),
+  });
+
+  const openCreate = () => {
+    setFormError(null);
+    setDialogOpen(true);
+  };
+
   return (
     <div>
-      <h1 className="mb-3 text-xl font-bold">Districts</h1>
+      <div className="mb-3 flex items-center justify-between">
+        <h1 className="text-xl font-bold">Districts</h1>
+        <button
+          type="button"
+          onClick={openCreate}
+          className="rounded bg-blue-600 px-3 py-1 text-sm font-semibold text-white hover:bg-blue-700"
+        >
+          New district
+        </button>
+      </div>
       <ErrorBanner message={districtsQuery.error ? districtsQuery.error.message : null} />
       {districtsQuery.data?.length === 0 && (
         <p className="text-sm text-gray-500">No districts yet.</p>
@@ -37,6 +73,20 @@ export function DistrictsPage() {
             ))}
           </tbody>
         </table>
+      )}
+      {dialogOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/30">
+          <div className="w-96 rounded border border-gray-200 bg-white p-4 shadow-lg">
+            <h2 className="mb-2 text-lg font-semibold">New district</h2>
+            <DistrictForm
+              initial={null}
+              pending={saveMutation.isPending}
+              error={formError}
+              onSubmit={(body) => saveMutation.mutate(body)}
+              onCancel={() => setDialogOpen(false)}
+            />
+          </div>
+        </div>
       )}
     </div>
   );
