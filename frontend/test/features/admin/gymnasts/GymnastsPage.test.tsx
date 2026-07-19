@@ -367,9 +367,60 @@ test("clears the group when the club changes", async () => {
   await userEvent.type(screen.getByLabelText("First name"), "Ana");
   await userEvent.type(screen.getByLabelText("Last name"), "Meyer");
   await userEvent.click(screen.getByRole("button", { name: "Save" }));
-  await waitFor(() => expect(posted).not.toBeNull());
-  expect(posted!.group_id).toBeNull();
-  expect(posted!.club_id).toBe(2);
+  await waitFor(() =>
+    expect(posted).toEqual({
+      first_name: "Ana",
+      last_name: "Meyer",
+      club_id: 2,
+      group_id: null,
+      date_of_birth: null,
+      country_code: null,
+    }),
+  );
+});
+
+test("edit: changing the club clears the group in the PATCH body", async () => {
+  // Group 10 belongs to club 1, so it is NOT an orphan for this gymnast — this
+  // isolates the shouldDirty behaviour from the separate orphan-preservation path.
+  mockBase([
+    makeGymnast({
+      id: 10,
+      first_name: "Anna",
+      last_name: "Botha",
+      club_id: 1,
+      group_id: 10,
+    }),
+  ]);
+  server.use(
+    http.get(api("/clubs/"), () =>
+      HttpResponse.json([makeClub({ id: 1, name: "Cape RG" }), makeClub({ id: 2, name: "Durban RG" })]),
+    ),
+  );
+  server.use(
+    http.get(api("/groups/"), () =>
+      HttpResponse.json([
+        makeGroup({ id: 10, club_id: 1, name: "Cape Juniors" }),
+        makeGroup({ id: 20, club_id: 2, name: "Durban Seniors" }),
+      ]),
+    ),
+  );
+  let patched: Record<string, unknown> | null = null;
+  server.use(
+    http.patch(api("/gymnasts/:gymnastId"), async ({ request }) => {
+      patched = (await request.json()) as Record<string, unknown>;
+      return HttpResponse.json(makeGymnast({ id: 10 }));
+    }),
+  );
+  renderApp("/admin/gymnasts");
+  await userEvent.click(await screen.findByRole("button", { name: "Edit Anna Botha" }));
+
+  const group = screen.getByLabelText("Group") as HTMLSelectElement;
+  await waitFor(() => expect(group.value).toBe("10"));
+
+  await userEvent.selectOptions(screen.getByLabelText("Club"), "2");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+  await waitFor(() => expect(patched).toEqual({ club_id: 2, group_id: null }));
 });
 
 test("keeps an orphaned group in the options and does not drop it on an unrelated save", async () => {
@@ -403,7 +454,8 @@ test("keeps an orphaned group in the options and does not drop it on an unrelate
 
   const group = screen.getByLabelText("Group") as HTMLSelectElement;
   await waitFor(() => expect(group.value).toBe("20"));
-  expect(within(group).getByText(/Durban Seniors/)).toBeInTheDocument();
+  // Must be flagged as belonging to another club, not just present by name.
+  expect(within(group).getByText("Durban Seniors (other club)")).toBeInTheDocument();
 
   const first = screen.getByLabelText("First name");
   await userEvent.clear(first);
