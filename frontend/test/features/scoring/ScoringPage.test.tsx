@@ -244,6 +244,26 @@ test("the age-group filter reaches the API and clears the selection", async () =
   expect(await screen.findByText("Pick a competitor to score.")).toBeInTheDocument();
 });
 
+test("the apparatus select reaches the API and clears the selection", async () => {
+  // Apparatus is not a filter — it's half the key the lazily-created Routine is
+  // keyed on — so it lives in its own row above the level/age filters. This pins
+  // that moving it kept it wired to both the standings query and the selection reset.
+  mockBase();
+  let seenApparatus: string | null = null;
+  server.use(
+    http.get(api("/meets/:meetId/standings"), ({ request }) => {
+      seenApparatus = new URL(request.url).searchParams.get("apparatus");
+      return HttpResponse.json({ meet_id: 5, provisional: true, rows: [] });
+    }),
+  );
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+  await screen.findByLabelText("D-Body");
+  await userEvent.selectOptions(screen.getByLabelText("Apparatus"), "ribbon");
+  await waitFor(() => expect(seenApparatus).toBe("ribbon"));
+  expect(await screen.findByText("Pick a competitor to score.")).toBeInTheDocument();
+});
+
 test("penalty box locks when itemized penalty records exist", async () => {
   const routine = makeRoutine({ id: 77, entry_id: 21, penalty: "0.30" });
   mockBase({

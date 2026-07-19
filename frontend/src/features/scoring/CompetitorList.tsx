@@ -50,12 +50,37 @@ export function CompetitorList({
         onChange={(e) => onSearchChange(e.target.value)}
         className="my-2 w-full rounded border border-gray-300 p-1 text-sm"
       />
+      {/*
+        Apparatus is NOT a filter. Level and age group narrow which competitors are
+        listed; apparatus decides which routine is being scored -- it's half the key
+        the lazily-created Routine is keyed on (see save-scores.ts). Keeping it in the
+        filter row read as "another way to narrow the list", so it gets its own
+        full-width row above them.
+      */}
+      <label
+        htmlFor="scoring-apparatus"
+        className="text-xs font-semibold uppercase text-gray-500"
+      >
+        Apparatus
+      </label>
+      <select
+        id="scoring-apparatus"
+        value={apparatus}
+        onChange={(e) => onApparatusChange(e.target.value)}
+        className="mb-2 mt-1 block w-full rounded border border-gray-300 p-1 text-sm"
+      >
+        {APPARATUS.map((a) => (
+          <option key={a} value={a}>
+            {a}
+          </option>
+        ))}
+      </select>
       <div className="mb-2 flex gap-2">
         <select
           aria-label="Level filter"
           value={level}
           onChange={(e) => onLevelChange(e.target.value)}
-          className="flex-1 rounded border border-gray-300 p-1 text-sm"
+          className="min-w-0 flex-1 rounded border border-gray-300 p-1 text-sm"
         >
           <option value="">All levels</option>
           {LEVELS.map((l) => (
@@ -68,22 +93,10 @@ export function CompetitorList({
           aria-label="Age group filter"
           value={ageGroup}
           onChange={(e) => onAgeGroupChange(e.target.value)}
-          className="flex-1 rounded border border-gray-300 p-1 text-sm"
+          className="min-w-0 flex-1 rounded border border-gray-300 p-1 text-sm"
         >
           <option value="">All ages</option>
           {AGE_GROUPS.map((a) => (
-            <option key={a} value={a}>
-              {a}
-            </option>
-          ))}
-        </select>
-        <select
-          aria-label="Apparatus"
-          value={apparatus}
-          onChange={(e) => onApparatusChange(e.target.value)}
-          className="flex-1 rounded border border-gray-300 p-1 text-sm"
-        >
-          {APPARATUS.map((a) => (
             <option key={a} value={a}>
               {a}
             </option>
