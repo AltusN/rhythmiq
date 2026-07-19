@@ -64,12 +64,15 @@ test("creates a gymnast profile, sending group_id null", async () => {
   await waitFor(() =>
     expect(within(screen.getByRole("dialog")).getByText("Ana Meyer")).toBeInTheDocument(),
   );
-  await userEvent.selectOptions(screen.getByLabelText("Gymnast"), "1");
+  await userEvent.selectOptions(screen.getByRole("combobox", { name: "Gymnast" }), "1");
   await userEvent.selectOptions(
     within(screen.getByRole("dialog")).getByLabelText("Apparatus"),
     "ribbon",
   );
-  await userEvent.selectOptions(screen.getByLabelText("Level"), "level_3");
+  await userEvent.selectOptions(
+    within(screen.getByRole("dialog")).getByLabelText("Level"),
+    "level_3",
+  );
   await userEvent.click(screen.getByRole("button", { name: "Save" }));
   await waitFor(() =>
     expect(posted).toEqual({
@@ -98,15 +101,18 @@ test("switching owner kind to Group sends gymnast_id null", async () => {
   await waitFor(() =>
     expect(within(screen.getByRole("dialog")).getByText("Ana Meyer")).toBeInTheDocument(),
   );
-  await userEvent.selectOptions(screen.getByLabelText("Gymnast"), "1");
-  await userEvent.click(screen.getByLabelText("Group"));
+  await userEvent.selectOptions(screen.getByRole("combobox", { name: "Gymnast" }), "1");
+  await userEvent.click(screen.getByRole("radio", { name: "Group" }));
   await waitFor(() => expect(screen.getByLabelText("Group name")).toBeInTheDocument());
   await userEvent.selectOptions(screen.getByLabelText("Group name"), "9");
   await userEvent.selectOptions(
     within(screen.getByRole("dialog")).getByLabelText("Apparatus"),
     "hoop",
   );
-  await userEvent.selectOptions(screen.getByLabelText("Level"), "level_2");
+  await userEvent.selectOptions(
+    within(screen.getByRole("dialog")).getByLabelText("Level"),
+    "level_2",
+  );
   await userEvent.click(screen.getByRole("button", { name: "Save" }));
   await waitFor(() =>
     expect(posted).toEqual({
@@ -136,7 +142,10 @@ test("blocks submission when no owner is picked", async () => {
     within(screen.getByRole("dialog")).getByLabelText("Apparatus"),
     "ribbon",
   );
-  await userEvent.selectOptions(screen.getByLabelText("Level"), "level_3");
+  await userEvent.selectOptions(
+    within(screen.getByRole("dialog")).getByLabelText("Level"),
+    "level_3",
+  );
   await userEvent.click(screen.getByRole("button", { name: "Save" }));
   expect(await screen.findByText("Pick a gymnast or group")).toBeInTheDocument();
   expect(called).toBe(false);
@@ -157,12 +166,15 @@ test("blocks choreography notes over 500 characters", async () => {
   await waitFor(() =>
     expect(within(screen.getByRole("dialog")).getByText("Ana Meyer")).toBeInTheDocument(),
   );
-  await userEvent.selectOptions(screen.getByLabelText("Gymnast"), "1");
+  await userEvent.selectOptions(screen.getByRole("combobox", { name: "Gymnast" }), "1");
   await userEvent.selectOptions(
     within(screen.getByRole("dialog")).getByLabelText("Apparatus"),
     "ribbon",
   );
-  await userEvent.selectOptions(screen.getByLabelText("Level"), "level_3");
+  await userEvent.selectOptions(
+    within(screen.getByRole("dialog")).getByLabelText("Level"),
+    "level_3",
+  );
   const notes = screen.getByLabelText("Choreography notes");
   await userEvent.click(notes);
   await userEvent.paste("x".repeat(501));
@@ -184,12 +196,15 @@ test("shows the 409 detail on a duplicate profile", async () => {
   await waitFor(() =>
     expect(within(screen.getByRole("dialog")).getByText("Ana Meyer")).toBeInTheDocument(),
   );
-  await userEvent.selectOptions(screen.getByLabelText("Gymnast"), "1");
+  await userEvent.selectOptions(screen.getByRole("combobox", { name: "Gymnast" }), "1");
   await userEvent.selectOptions(
     within(screen.getByRole("dialog")).getByLabelText("Apparatus"),
     "ribbon",
   );
-  await userEvent.selectOptions(screen.getByLabelText("Level"), "level_3");
+  await userEvent.selectOptions(
+    within(screen.getByRole("dialog")).getByLabelText("Level"),
+    "level_3",
+  );
   await userEvent.click(screen.getByRole("button", { name: "Save" }));
   expect(await screen.findByText("Routine profile already exists")).toBeInTheDocument();
 });
@@ -207,6 +222,21 @@ test("filters by apparatus as a server round trip", async () => {
   expect(await screen.findByText("Ana Meyer")).toBeInTheDocument();
   await userEvent.selectOptions(screen.getByLabelText("Apparatus filter"), "hoop");
   await waitFor(() => expect(seen).toContain("hoop"));
+});
+
+test("filters by level as a server round trip", async () => {
+  seedOwners();
+  const seen: (string | null)[] = [];
+  server.use(
+    http.get(api("/routine-profiles/"), ({ request }) => {
+      seen.push(new URL(request.url).searchParams.get("level"));
+      return HttpResponse.json([makeRoutineProfile({ id: 1, gymnast_id: 1, group_id: null })]);
+    }),
+  );
+  renderApp("/admin/routine-profiles");
+  expect(await screen.findByText("Ana Meyer")).toBeInTheDocument();
+  await userEvent.selectOptions(screen.getByLabelText("Level filter"), "level_5");
+  await waitFor(() => expect(seen).toContain("level_5"));
 });
 
 test("search filters rows client-side without refetching", async () => {

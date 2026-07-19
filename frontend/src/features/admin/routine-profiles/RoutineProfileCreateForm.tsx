@@ -80,18 +80,22 @@ export function RoutineProfileCreateForm({
       <fieldset className="text-sm">
         <legend>Owner</legend>
         {/*
-          The visible text after each radio doubles as its implicit accessible name
-          (HTML label-wrapping), independently of any aria-label on the input itself.
-          "Gymnast" alone here would collide with the competitor <select>'s
-          aria-label="Gymnast" below — getByLabelText("Gymnast") would then match two
-          elements. "Gymnast owner" keeps that name distinct.
+          Not wrapped in a <label>: RTL's getByLabelText matches a wrapping <label>'s
+          text content independently of the input's own aria-label, so a
+          <label>Gymnast</label> here would collide with the competitor <select>'s
+          aria-label="Gymnast" below. An explicit aria-label on the input plus a plain
+          sibling span for the visible text keeps the copy symmetric ("Gymnast" /
+          "Group") without that coupling; tests disambiguate the resulting same-named
+          radio/combobox pair by role instead of by label text.
         */}
-        <label className="mr-4">
-          <input type="radio" value="gymnast" {...register("kind")} /> Gymnast owner
-        </label>
-        <label>
-          <input type="radio" value="group" {...register("kind")} /> Group
-        </label>
+        <span className="mr-4">
+          <input type="radio" value="gymnast" aria-label="Gymnast" {...register("kind")} />{" "}
+          <span>Gymnast</span>
+        </span>
+        <span>
+          <input type="radio" value="group" aria-label="Group" {...register("kind")} />{" "}
+          <span>Group</span>
+        </span>
       </fieldset>
       <label className="text-sm">
         {kind === "gymnast" ? "Gymnast" : "Group name"}

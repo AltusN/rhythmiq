@@ -1,9 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { apiDetail, client } from "../../../api/client";
-import type { Apparatus, RoutineProfileRead } from "../../../api/types";
+import type { Apparatus, Level, RoutineProfileRead } from "../../../api/types";
 import { ErrorBanner } from "../../../components/ErrorBanner";
-import { APPARATUS, labelize } from "../../../lib/domain";
+import { APPARATUS, LEVELS, labelize } from "../../../lib/domain";
 import { useCompetitorNames } from "../../../lib/useCompetitorNames";
 import { FormDialog } from "../components/FormDialog";
 import { ResourceTable } from "../components/ResourceTable";
@@ -18,32 +18,29 @@ export function RoutineProfilesPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [apparatus, setApparatus] = useState("");
+  const [level, setLevel] = useState("");
   const [dialog, setDialog] = useState<{ row: RoutineProfileRead | null } | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
   // Reused from the scoring screen — resolves the gymnast-or-group name pair.
-  const { gymnasts, groups, error: namesError } = useCompetitorNames();
-
-  const ownerName = (p: RoutineProfileRead): string => {
-    if (p.gymnast_id != null) {
-      const g = gymnasts.find((g) => g.id === p.gymnast_id);
-      return g ? `${g.first_name} ${g.last_name}` : `Gymnast #${p.gymnast_id}`;
-    }
-    const grp = groups.find((g) => g.id === p.group_id);
-    return grp ? grp.name : `Group #${p.group_id}`;
-  };
+  const { gymnasts, groups, nameFor, error: namesError } = useCompetitorNames();
 
   const list = useResourceList<RoutineProfileRead>({
-    queryKey: ["routine-profiles", apparatus],
+    queryKey: ["routine-profiles", apparatus, level],
     fetchRows: async () => {
       const { data, error } = await client.GET("/routine-profiles/", {
-        params: { query: apparatus === "" ? {} : { apparatus: apparatus as Apparatus } },
+        params: {
+          query: {
+            ...(apparatus === "" ? {} : { apparatus: apparatus as Apparatus }),
+            ...(level === "" ? {} : { level: level as Level }),
+          },
+        },
       });
       if (error) throw new Error(apiDetail(error));
       return data;
     },
     search,
-    searchText: (p) => `${ownerName(p)} ${p.apparatus} ${p.level}`,
+    searchText: (p) => `${nameFor(p)} ${p.apparatus} ${p.level}`,
   });
 
   const saveMutation = useMutation({
@@ -68,7 +65,7 @@ export function RoutineProfilesPage() {
   } = useResourceDelete<RoutineProfileRead>({
     queryKey: ["routine-profiles"],
     describe: (p) =>
-      `Delete the ${labelize(p.apparatus)} profile for ${ownerName(p)}? Routine music will fall back to none.`,
+      `Delete the ${labelize(p.apparatus)} profile for ${nameFor(p)}? Routine music will fall back to none.`,
     remove: async (p) => {
       const { error } = await client.DELETE("/routine-profiles/{profile_id}", {
         params: { path: { profile_id: p.id } },
@@ -121,18 +118,37 @@ export function RoutineProfilesPage() {
             ))}
           </select>
         </label>
+        <label className="text-sm">
+          Level
+          <select
+            aria-label="Level filter"
+            value={level}
+            onChange={(e) => {
+              clearDeleteError();
+              setLevel(e.target.value);
+            }}
+            className="ml-2 rounded border border-gray-300 p-1"
+          >
+            <option value="">— all —</option>
+            {LEVELS.map((l) => (
+              <option key={l} value={l}>
+                {labelize(l)}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
       <ErrorBanner message={list.error ?? deleteError ?? namesError?.message ?? null} />
       {list.loaded && (
         <ResourceTable
           rows={list.rows}
           columns={[
-            { header: "Owner", render: (p) => ownerName(p) },
+            { header: "Owner", render: (p) => nameFor(p) },
             { header: "Apparatus", render: (p) => labelize(p.apparatus) },
             { header: "Level", render: (p) => labelize(p.level) },
             { header: "Music URL", render: (p) => p.music_url ?? "—" },
           ]}
-          rowLabel={(p) => `${ownerName(p)} ${labelize(p.apparatus)}`}
+          rowLabel={(p) => `${nameFor(p)} ${labelize(p.apparatus)}`}
           onEdit={(p) => {
             setFormError(null);
             setDialog({ row: p });
