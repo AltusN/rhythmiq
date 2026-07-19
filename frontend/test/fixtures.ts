@@ -8,6 +8,7 @@ import type {
   JudgeScoreRead,
   MeetEntryRead,
   MeetRead,
+  RoutineProfileRead,
   RoutineRead,
 } from "../src/api/types";
 
@@ -103,6 +104,21 @@ export function makeCoach(overrides: Partial<CoachRead> = {}): CoachRead {
     first_name: "Thabo",
     last_name: "Mokoena",
     is_head_coach: false,
+    ...overrides,
+  };
+}
+
+export function makeRoutineProfile(
+  overrides: Partial<RoutineProfileRead> = {},
+): RoutineProfileRead {
+  return {
+    id: id(),
+    gymnast_id: 1,
+    group_id: null,
+    apparatus: "ribbon",
+    level: "level_3",
+    music_url: null,
+    choreography_notes: null,
     ...overrides,
   };
 }

@@ -40,6 +40,7 @@ function mockStandings({ provisional = true } = {}) {
     http.get(api("/meets/:meetId"), () =>
       HttpResponse.json(makeMeet({ id: 5, status: provisional ? "in_progress" : "completed" })),
     ),
+    http.get(api("/districts/"), () => HttpResponse.json([])),
     http.get(api("/meets/:meetId/standings"), () =>
       HttpResponse.json({
         meet_id: 5,

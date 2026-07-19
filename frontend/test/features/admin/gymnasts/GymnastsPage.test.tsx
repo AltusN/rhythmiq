@@ -295,3 +295,254 @@ test("a later successful save clears a stale delete error", async () => {
   await userEvent.click(screen.getByRole("button", { name: "Save" }));
   await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
 });
+
+test("offers only groups belonging to the selected club", async () => {
+  server.use(http.get(api("/gymnasts/"), () => HttpResponse.json([])));
+  server.use(
+    http.get(api("/clubs/"), () =>
+      HttpResponse.json([makeClub({ id: 1, name: "Cape RG" }), makeClub({ id: 2, name: "Durban RG" })]),
+    ),
+  );
+  server.use(
+    http.get(api("/groups/"), () =>
+      HttpResponse.json([
+        makeGroup({ id: 10, club_id: 1, name: "Cape Juniors" }),
+        makeGroup({ id: 20, club_id: 2, name: "Durban Seniors" }),
+      ]),
+    ),
+  );
+  renderApp("/admin/gymnasts");
+  await userEvent.click(await screen.findByRole("button", { name: "New gymnast" }));
+
+  const group = screen.getByLabelText("Group");
+  expect(group).toBeDisabled();
+
+  // Scoped to the dialog: "Cape RG" also appears as a page-level club-filter
+  // <option>, which is an equally valid (but wrong) getByText match otherwise.
+  const dialog = screen.getByRole("dialog");
+  await waitFor(() => expect(within(dialog).getByText("Cape RG")).toBeInTheDocument());
+  await userEvent.selectOptions(screen.getByLabelText("Club"), "1");
+
+  expect(group).toBeEnabled();
+  expect(within(group).getByText("Cape Juniors")).toBeInTheDocument();
+  expect(within(group).queryByText("Durban Seniors")).not.toBeInTheDocument();
+});
+
+test("clears the group when the club changes", async () => {
+  server.use(http.get(api("/gymnasts/"), () => HttpResponse.json([])));
+  server.use(
+    http.get(api("/clubs/"), () =>
+      HttpResponse.json([makeClub({ id: 1, name: "Cape RG" }), makeClub({ id: 2, name: "Durban RG" })]),
+    ),
+  );
+  server.use(
+    http.get(api("/groups/"), () =>
+      HttpResponse.json([
+        makeGroup({ id: 10, club_id: 1, name: "Cape Juniors" }),
+        makeGroup({ id: 20, club_id: 2, name: "Durban Seniors" }),
+      ]),
+    ),
+  );
+  let posted: Record<string, unknown> | null = null;
+  server.use(
+    http.post(api("/gymnasts/"), async ({ request }) => {
+      posted = (await request.json()) as Record<string, unknown>;
+      return HttpResponse.json(makeGymnast(), { status: 201 });
+    }),
+  );
+  renderApp("/admin/gymnasts");
+  await userEvent.click(await screen.findByRole("button", { name: "New gymnast" }));
+  // Scoped to the dialog: "Cape RG" also appears as a page-level club-filter
+  // <option>, which is an equally valid (but wrong) getByText match otherwise.
+  await waitFor(() =>
+    expect(within(screen.getByRole("dialog")).getByText("Cape RG")).toBeInTheDocument(),
+  );
+
+  await userEvent.selectOptions(screen.getByLabelText("Club"), "1");
+  await userEvent.selectOptions(screen.getByLabelText("Group"), "10");
+  await userEvent.selectOptions(screen.getByLabelText("Club"), "2");
+
+  expect((screen.getByLabelText("Group") as HTMLSelectElement).value).toBe("");
+
+  await userEvent.type(screen.getByLabelText("First name"), "Ana");
+  await userEvent.type(screen.getByLabelText("Last name"), "Meyer");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() =>
+    expect(posted).toEqual({
+      first_name: "Ana",
+      last_name: "Meyer",
+      club_id: 2,
+      group_id: null,
+      date_of_birth: null,
+      country_code: null,
+    }),
+  );
+});
+
+test("edit: changing the club clears the group in the PATCH body", async () => {
+  // Group 10 belongs to club 1, so it is NOT an orphan for this gymnast — this
+  // isolates the shouldDirty behaviour from the separate orphan-preservation path.
+  mockBase([
+    makeGymnast({
+      id: 10,
+      first_name: "Anna",
+      last_name: "Botha",
+      club_id: 1,
+      group_id: 10,
+    }),
+  ]);
+  server.use(
+    http.get(api("/clubs/"), () =>
+      HttpResponse.json([makeClub({ id: 1, name: "Cape RG" }), makeClub({ id: 2, name: "Durban RG" })]),
+    ),
+  );
+  server.use(
+    http.get(api("/groups/"), () =>
+      HttpResponse.json([
+        makeGroup({ id: 10, club_id: 1, name: "Cape Juniors" }),
+        makeGroup({ id: 20, club_id: 2, name: "Durban Seniors" }),
+      ]),
+    ),
+  );
+  let patched: Record<string, unknown> | null = null;
+  server.use(
+    http.patch(api("/gymnasts/:gymnastId"), async ({ request }) => {
+      patched = (await request.json()) as Record<string, unknown>;
+      return HttpResponse.json(makeGymnast({ id: 10 }));
+    }),
+  );
+  renderApp("/admin/gymnasts");
+  await userEvent.click(await screen.findByRole("button", { name: "Edit Anna Botha" }));
+
+  const group = screen.getByLabelText("Group") as HTMLSelectElement;
+  await waitFor(() => expect(group.value).toBe("10"));
+
+  await userEvent.selectOptions(screen.getByLabelText("Club"), "2");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+  await waitFor(() => expect(patched).toEqual({ club_id: 2, group_id: null }));
+});
+
+test("keeps an orphaned group in the options and does not drop it on an unrelated save", async () => {
+  // Gymnast 5 is in club 1 but assigned group 20, which belongs to club 2.
+  // Filtering must not blank the select and silently unassign the group.
+  server.use(
+    http.get(api("/gymnasts/"), () =>
+      HttpResponse.json([
+        makeGymnast({ id: 5, club_id: 1, group_id: 20, first_name: "Ana", last_name: "Meyer" }),
+      ]),
+    ),
+  );
+  server.use(http.get(api("/clubs/"), () => HttpResponse.json([makeClub({ id: 1, name: "Cape RG" })])));
+  server.use(
+    http.get(api("/groups/"), () =>
+      HttpResponse.json([
+        makeGroup({ id: 10, club_id: 1, name: "Cape Juniors" }),
+        makeGroup({ id: 20, club_id: 2, name: "Durban Seniors" }),
+      ]),
+    ),
+  );
+  let patched: Record<string, unknown> | null = null;
+  server.use(
+    http.patch(api("/gymnasts/5"), async ({ request }) => {
+      patched = (await request.json()) as Record<string, unknown>;
+      return HttpResponse.json(makeGymnast({ id: 5 }));
+    }),
+  );
+  renderApp("/admin/gymnasts");
+  await userEvent.click(await screen.findByRole("button", { name: "Edit Ana Meyer" }));
+
+  const group = screen.getByLabelText("Group") as HTMLSelectElement;
+  await waitFor(() => expect(group.value).toBe("20"));
+  // Must be flagged as belonging to another club, not just present by name.
+  expect(within(group).getByText("Durban Seniors (other club)")).toBeInTheDocument();
+
+  const first = screen.getByLabelText("First name");
+  await userEvent.clear(first);
+  await userEvent.type(first, "Anna");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+  await waitFor(() => expect(patched).toEqual({ first_name: "Anna" }));
+});
+
+test("edit: does not resurrect the original group as a ghost option after the club is changed", async () => {
+  // Group 10 genuinely belongs to club 1, the gymnast's originally-loaded club -- it
+  // is NOT an orphan. Once the user actively changes Club away from club 1, group 10
+  // must not reappear as a flagged " (other club)" ghost: that flag exists only to
+  // preserve the as-loaded pairing, and the user has just replaced it.
+  mockBase([
+    makeGymnast({
+      id: 10,
+      first_name: "Anna",
+      last_name: "Botha",
+      club_id: 1,
+      group_id: 10,
+    }),
+  ]);
+  server.use(
+    http.get(api("/clubs/"), () =>
+      HttpResponse.json([makeClub({ id: 1, name: "Cape RG" }), makeClub({ id: 2, name: "Durban RG" })]),
+    ),
+  );
+  server.use(
+    http.get(api("/groups/"), () =>
+      HttpResponse.json([
+        makeGroup({ id: 10, club_id: 1, name: "Cape Juniors" }),
+        makeGroup({ id: 20, club_id: 2, name: "Durban Seniors" }),
+      ]),
+    ),
+  );
+  renderApp("/admin/gymnasts");
+  await userEvent.click(await screen.findByRole("button", { name: "Edit Anna Botha" }));
+
+  const group = screen.getByLabelText("Group") as HTMLSelectElement;
+  await waitFor(() => expect(group.value).toBe("10"));
+  expect(within(group).getByText("Cape Juniors")).toBeInTheDocument();
+
+  await userEvent.selectOptions(screen.getByLabelText("Club"), "2");
+
+  expect(within(group).getByText("Durban Seniors")).toBeInTheDocument();
+  expect(within(group).queryByText("Cape Juniors")).not.toBeInTheDocument();
+  expect(within(group).queryByText(/\(other club\)/)).not.toBeInTheDocument();
+});
+
+test("edit: does not resurrect the ghost after a club round-trip back to the original club", async () => {
+  // Gymnast 5 is a true orphan: club 1, group 20, where group 20 belongs to
+  // club 2. The ghost must show on load, but once the user changes the club
+  // away and then back to club 1 (an ordinary "go back" correction), group_id
+  // has been cleared and no longer matches the as-loaded pairing -- the ghost
+  // must not reappear, or the user could select it and reconstruct the exact
+  // invalid club/group pair this filter exists to prevent.
+  server.use(
+    http.get(api("/gymnasts/"), () =>
+      HttpResponse.json([
+        makeGymnast({ id: 5, club_id: 1, group_id: 20, first_name: "Ana", last_name: "Meyer" }),
+      ]),
+    ),
+  );
+  server.use(
+    http.get(api("/clubs/"), () =>
+      HttpResponse.json([makeClub({ id: 1, name: "Cape RG" }), makeClub({ id: 2, name: "Durban RG" })]),
+    ),
+  );
+  server.use(
+    http.get(api("/groups/"), () =>
+      HttpResponse.json([
+        makeGroup({ id: 10, club_id: 1, name: "Cape Juniors" }),
+        makeGroup({ id: 20, club_id: 2, name: "Durban Seniors" }),
+      ]),
+    ),
+  );
+  renderApp("/admin/gymnasts");
+  await userEvent.click(await screen.findByRole("button", { name: "Edit Ana Meyer" }));
+
+  const group = screen.getByLabelText("Group") as HTMLSelectElement;
+  await waitFor(() => expect(group.value).toBe("20"));
+  expect(within(group).getByText("Durban Seniors (other club)")).toBeInTheDocument();
+
+  await userEvent.selectOptions(screen.getByLabelText("Club"), "2");
+  await userEvent.selectOptions(screen.getByLabelText("Club"), "1");
+
+  expect(within(group).queryByText(/\(other club\)/)).not.toBeInTheDocument();
+  expect(screen.queryByText("Durban Seniors (other club)")).not.toBeInTheDocument();
+});

@@ -7,6 +7,7 @@ export type GroupRead = components["schemas"]["GroupRead"];
 export type JudgeRead = components["schemas"]["JudgeRead"];
 export type JudgeScoreRead = components["schemas"]["JudgeScoreRead"];
 export type RoutineRead = components["schemas"]["RoutineRead"];
+export type RoutineProfileRead = components["schemas"]["RoutineProfileRead"];
 export type PenaltyRecordRead = components["schemas"]["PenaltyRecordRead"];
 export type ApparatusStandingsRead = components["schemas"]["ApparatusStandingsRead"];
 export type AllAroundStandingsRead = components["schemas"]["AllAroundStandingsRead"];

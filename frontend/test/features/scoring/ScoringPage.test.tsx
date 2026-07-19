@@ -25,6 +25,7 @@ function mockBase({
 } = {}) {
   server.use(
     http.get(api("/meets/:meetId"), () => HttpResponse.json(meet)),
+    http.get(api("/districts/"), () => HttpResponse.json([])),
     http.get(api("/meet-entries/"), () => HttpResponse.json(entries)),
     http.get(api("/gymnasts/"), () => HttpResponse.json([gymnast])),
     http.get(api("/groups/"), () => HttpResponse.json([])),

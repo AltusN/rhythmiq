@@ -1,6 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiDetail, client } from "../api/client";
-import type { GroupRead, GymnastRead, MeetEntryRead } from "../api/types";
+import type { GroupRead, GymnastRead } from "../api/types";
+
+/**
+ * Narrow shape `nameFor` actually needs. `MeetEntryRead` (optional fields) and
+ * `RoutineProfileRead` (required fields) both satisfy this structurally, so `nameFor`
+ * resolves names for either without reimplementing the lookup.
+ */
+export type NamedOwner = { gymnast_id?: number | null; group_id?: number | null };
 
 export function useCompetitorNames() {
   const gymnastsQ = useQuery({
@@ -23,7 +30,7 @@ export function useCompetitorNames() {
   const gymnasts: GymnastRead[] = gymnastsQ.data ?? [];
   const groups: GroupRead[] = groupsQ.data ?? [];
 
-  const nameFor = (entry: MeetEntryRead): string => {
+  const nameFor = (entry: NamedOwner): string => {
     if (entry.gymnast_id != null) {
       const g = gymnasts.find((g) => g.id === entry.gymnast_id);
       return g ? `${g.first_name} ${g.last_name}` : `Gymnast #${entry.gymnast_id}`;

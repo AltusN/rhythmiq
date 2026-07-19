@@ -53,7 +53,7 @@ export function GymnastForm({
   onSubmit: (body: GymnastBody) => void;
   onCancel: () => void;
 }) {
-  const { register, handleSubmit, formState } = useForm<GymnastFormValues>({
+  const { register, handleSubmit, formState, watch, setValue } = useForm<GymnastFormValues>({
     resolver: zodResolver(gymnastSchema),
     defaultValues: {
       first_name: initial?.first_name ?? "",
@@ -65,6 +65,40 @@ export function GymnastForm({
     },
   });
   const { dirtyFields, errors } = formState;
+
+  const selectedClubId = watch("club_id");
+  const selectedGroupId = watch("group_id");
+
+  /**
+   * Group.club_id is NOT NULL and routers/gymnast.py rejects a group whose club differs
+   * from the gymnast's (line 44 on POST, line 117 on PATCH), so cross-club options are
+   * provably invalid — filtering them out is correctness, not polish.
+   *
+   * The assigned group is kept as a flagged ghost option when it's an orphan from
+   * another club, but ONLY while the form still holds the exact as-loaded (club,
+   * group) pairing: dropping it on the very first render would blank the select and
+   * silently unassign the gymnast on the next save. That "still holds" check must
+   * compare BOTH the current club value and the current group value against their
+   * initial values — comparing club alone is not enough. A club round-trip (change
+   * away, then change back to the original club) restores a club-only match while
+   * `group_id` stays cleared from the earlier onChange, so a club-only comparison
+   * re-arms the ghost and lets the user select it, reconstructing the exact invalid
+   * club/group pair this filter exists to prevent. Comparing the group value too
+   * closes that gap: once group_id has been cleared, it no longer equals
+   * `initial.group_id`, so the ghost stays gone until the pairing is genuinely
+   * restored.
+   */
+  const groupOptions = (() => {
+    const inClub = groups.filter((g) => String(g.club_id) === selectedClubId);
+    const assignedId = initial?.group_id;
+    if (assignedId == null || inClub.some((g) => g.id === assignedId)) return inClub;
+    const pairingUnchanged =
+      selectedClubId === (initial?.club_id?.toString() ?? "") &&
+      selectedGroupId === (initial?.group_id?.toString() ?? "");
+    if (!pairingUnchanged) return inClub;
+    const orphan = groups.find((g) => g.id === assignedId);
+    return orphan ? [{ ...orphan, name: `${orphan.name} (other club)` }, ...inClub] : inClub;
+  })();
 
   const buildBody = (v: GymnastFormValues): GymnastBody => {
     const full: GymnastBody = {
@@ -110,14 +144,21 @@ export function GymnastForm({
         label="Club"
         noneLabel="— none —"
         options={clubs.map((c) => ({ id: c.id, label: c.name }))}
-        {...register("club_id")}
+        {...register("club_id", {
+          onChange: () => setValue("group_id", "", { shouldDirty: true }),
+        })}
       />
       <FkSelect
         label="Group"
         noneLabel="— none —"
-        options={groups.map((g) => ({ id: g.id, label: g.name }))}
+        options={groupOptions.map((g) => ({ id: g.id, label: g.name }))}
+        disabled={selectedClubId === ""}
+        title={selectedClubId === "" ? "Select a club to choose a group" : undefined}
         {...register("group_id")}
       />
+      {selectedClubId === "" && (
+        <span className="text-xs text-gray-500">Select a club to choose a group</span>
+      )}
       <label className="text-sm">
         Date of birth
         <input

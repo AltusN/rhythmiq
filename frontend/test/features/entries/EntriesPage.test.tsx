@@ -8,6 +8,7 @@ import { renderApp } from "../../utils";
 function mockBase({ meet = makeMeet({ id: 5 }), entries = [] as unknown[] } = {}) {
   server.use(
     http.get(api("/meets/:meetId"), () => HttpResponse.json(meet)),
+    http.get(api("/districts/"), () => HttpResponse.json([])),
     http.get(api("/meet-entries/"), () => HttpResponse.json(entries)),
     http.get(api("/gymnasts/"), () =>
       HttpResponse.json([makeGymnast({ id: 7, first_name: "Lindiwe", last_name: "Nkosi" })]),
