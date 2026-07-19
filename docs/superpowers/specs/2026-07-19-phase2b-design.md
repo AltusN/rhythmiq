@@ -85,11 +85,18 @@ pilot.
 - **No disabled-on-edit fields.** Judge has no parent FK and `JudgeUpdate` carries every
   field, making this the first admin resource with no immutability concern at all.
 
-**Plan-time verification:** the delete confirm copy must state the real consequence, so
-`JudgeScore.judge_id`'s `ondelete` must be read from `app/models.py` before the copy is
-written — RESTRICT means "delete is rejected while scores reference this judge",
-CASCADE means "deleting this judge destroys their scores". Do not guess. Phase 2
-required corrections twice for assumed delete semantics.
+**Delete semantics (verified against `app/models.py`, 2026-07-19):** both
+`JudgeScore.judge_id` and `PenaltyRecord.judge_id` are `ForeignKey(ondelete="RESTRICT")`.
+A judge delete is therefore *rejected* with 409 once that judge has scored or issued a
+penalty — nothing cascades. The confirm copy must not warn about destroying scores; it is
+a plain `Delete judge "X Y"?`, and the 409 `detail` surfaces if dependents exist.
+
+**Uniqueness:** `uq_judge_identity` is a `UniqueConstraint` on
+(`first_name`, `last_name`, `country_code`). Two judges with the same name *and* the same
+country collide with a 409 — but the same name under different countries is fine, and
+because `country_code` is nullable, two same-named judges with no country set also
+collide. Surfaced via `apiDetail` like every other unique violation; not reproduced
+client-side.
 
 ## 2. Routine profiles — `/admin/routine-profiles`
 
