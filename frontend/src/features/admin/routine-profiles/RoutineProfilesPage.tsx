@@ -13,6 +13,10 @@ import {
   RoutineProfileCreateForm,
   type RoutineProfileCreateBody,
 } from "./RoutineProfileCreateForm";
+import {
+  RoutineProfileEditForm,
+  type RoutineProfileEditBody,
+} from "./RoutineProfileEditForm";
 
 export function RoutineProfilesPage() {
   const queryClient = useQueryClient();
@@ -44,8 +48,19 @@ export function RoutineProfilesPage() {
   });
 
   const saveMutation = useMutation({
-    mutationFn: async (body: RoutineProfileCreateBody) => {
-      const { data, error } = await client.POST("/routine-profiles/", { body });
+    mutationFn: async (body: RoutineProfileCreateBody | RoutineProfileEditBody) => {
+      const editingRow = dialog?.row ?? null;
+      if (editingRow) {
+        const { data, error } = await client.PATCH("/routine-profiles/{profile_id}", {
+          params: { path: { profile_id: editingRow.id } },
+          body: body as RoutineProfileEditBody,
+        });
+        if (error) throw new Error(apiDetail(error));
+        return data;
+      }
+      const { data, error } = await client.POST("/routine-profiles/", {
+        body: body as RoutineProfileCreateBody,
+      });
       if (error) throw new Error(apiDetail(error));
       return data;
     },
@@ -166,6 +181,17 @@ export function RoutineProfilesPage() {
           <RoutineProfileCreateForm
             gymnasts={gymnasts}
             groups={groups}
+            pending={saveMutation.isPending}
+            error={formError}
+            onSubmit={(body) => saveMutation.mutate(body)}
+            onCancel={() => setDialog(null)}
+          />
+        )}
+        {dialog?.row && (
+          <RoutineProfileEditForm
+            key={dialog.row.id}
+            initial={dialog.row}
+            ownerName={nameFor(dialog.row)}
             pending={saveMutation.isPending}
             error={formError}
             onSubmit={(body) => saveMutation.mutate(body)}

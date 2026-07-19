@@ -80,21 +80,34 @@ export function RoutineProfileCreateForm({
       <fieldset className="text-sm">
         <legend>Owner</legend>
         {/*
-          Not wrapped in a <label>: RTL's getByLabelText matches a wrapping <label>'s
-          text content independently of the input's own aria-label, so a
-          <label>Gymnast</label> here would collide with the competitor <select>'s
-          aria-label="Gymnast" below. An explicit aria-label on the input plus a plain
-          sibling span for the visible text keeps the copy symmetric ("Gymnast" /
-          "Group") without that coupling; tests disambiguate the resulting same-named
-          radio/combobox pair by role instead of by label text.
+          Wrapping in a <label> would collide with the competitor <select>'s own
+          aria-label="Gymnast"/"Group" below (RTL's getByLabelText matches a wrapping
+          <label>'s text content independently of the input's own aria-label). Each
+          radio keeps its explicit aria-label for that disambiguation, but is paired
+          via htmlFor/id with a separate <label> carrying the visible text, so
+          clicking the word still toggles the radio like a normal form control. Tests
+          disambiguate the resulting same-named radio/combobox pair by role instead of
+          by label text.
         */}
         <span className="mr-4">
-          <input type="radio" value="gymnast" aria-label="Gymnast" {...register("kind")} />{" "}
-          <span>Gymnast</span>
+          <input
+            type="radio"
+            id="owner-kind-gymnast"
+            value="gymnast"
+            aria-label="Gymnast"
+            {...register("kind")}
+          />{" "}
+          <label htmlFor="owner-kind-gymnast">Gymnast</label>
         </span>
         <span>
-          <input type="radio" value="group" aria-label="Group" {...register("kind")} />{" "}
-          <span>Group</span>
+          <input
+            type="radio"
+            id="owner-kind-group"
+            value="group"
+            aria-label="Group"
+            {...register("kind")}
+          />{" "}
+          <label htmlFor="owner-kind-group">Group</label>
         </span>
       </fieldset>
       <label className="text-sm">

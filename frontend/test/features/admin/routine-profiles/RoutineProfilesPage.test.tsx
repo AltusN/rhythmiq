@@ -259,3 +259,80 @@ test("search filters rows client-side without refetching", async () => {
   expect(screen.getByText("Junior Team A")).toBeInTheDocument();
   expect(calls).toBe(before);
 });
+
+test("edit form shows identity as read-only text, not form controls", async () => {
+  seedOwners();
+  server.use(
+    http.get(api("/routine-profiles/"), () =>
+      HttpResponse.json([
+        makeRoutineProfile({
+          id: 3,
+          gymnast_id: 1,
+          group_id: null,
+          apparatus: "ribbon",
+          level: "level_3",
+          music_url: "https://old.example/m.mp3",
+        }),
+      ]),
+    ),
+  );
+  renderApp("/admin/routine-profiles");
+  await userEvent.click(await screen.findByRole("button", { name: "Edit Ana Meyer ribbon" }));
+
+  expect(await screen.findByText("Ana Meyer · ribbon · level 3")).toBeInTheDocument();
+  // Identity is text, not inputs — these controls must not exist in the edit dialog.
+  // Scoped to the dialog: "Apparatus"/"Level" also label the always-visible filter
+  // selects outside the dialog (e.g. the "Apparatus filter" combobox is wrapped by a
+  // <label>Apparatus...</label>, which bare getByLabelText("Apparatus") would match).
+  const dialog = screen.getByRole("dialog");
+  expect(within(dialog).queryByLabelText("Gymnast")).not.toBeInTheDocument();
+  expect(within(dialog).queryByLabelText("Apparatus")).not.toBeInTheDocument();
+  expect(within(dialog).queryByLabelText("Level")).not.toBeInTheDocument();
+  expect(within(dialog).getByLabelText("Music URL")).toHaveValue("https://old.example/m.mp3");
+});
+
+test("PATCHes only the changed field on edit", async () => {
+  seedOwners();
+  server.use(
+    http.get(api("/routine-profiles/"), () =>
+      HttpResponse.json([
+        makeRoutineProfile({ id: 3, gymnast_id: 1, group_id: null, apparatus: "ribbon", level: "level_3" }),
+      ]),
+    ),
+  );
+  let patched: Record<string, unknown> | null = null;
+  server.use(
+    http.patch(api("/routine-profiles/3"), async ({ request }) => {
+      patched = (await request.json()) as Record<string, unknown>;
+      return HttpResponse.json(makeRoutineProfile({ id: 3 }));
+    }),
+  );
+  renderApp("/admin/routine-profiles");
+  await userEvent.click(await screen.findByRole("button", { name: "Edit Ana Meyer ribbon" }));
+  await userEvent.type(await screen.findByLabelText("Music URL"), "https://new.example/m.mp3");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(patched).toEqual({ music_url: "https://new.example/m.mp3" }));
+});
+
+test("clearing the music URL sends null", async () => {
+  seedOwners();
+  server.use(
+    http.get(api("/routine-profiles/"), () =>
+      HttpResponse.json([
+        makeRoutineProfile({ id: 3, gymnast_id: 1, group_id: null, music_url: "https://old.example/m.mp3" }),
+      ]),
+    ),
+  );
+  let patched: Record<string, unknown> | null = null;
+  server.use(
+    http.patch(api("/routine-profiles/3"), async ({ request }) => {
+      patched = (await request.json()) as Record<string, unknown>;
+      return HttpResponse.json(makeRoutineProfile({ id: 3 }));
+    }),
+  );
+  renderApp("/admin/routine-profiles");
+  await userEvent.click(await screen.findByRole("button", { name: "Edit Ana Meyer ribbon" }));
+  await userEvent.clear(await screen.findByLabelText("Music URL"));
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(patched).toEqual({ music_url: null }));
+});
