@@ -58,8 +58,20 @@ export function MeetListPage() {
     onSuccess: () => {
       setFormError(null);
       clearDeleteError();
+      // dialog.row is the row this save was editing (undefined for a create) --
+      // captured here the same way mutationFn reads it above.
+      const editedId = dialog?.row?.id;
       setDialog(null);
       queryClient.invalidateQueries({ queryKey: ["meets"] });
+      if (editedId !== undefined) {
+        // MeetShell keys its detail query off useParams' meetId, which is always a
+        // string -- match that shape or the invalidation silently won't hit it.
+        queryClient.invalidateQueries({ queryKey: ["meet", String(editedId)] });
+        // Medal minima live on this same form and feed medal_for_total
+        // (app/scoring.py), so an edit here can change every standings row's medal
+        // tier, same as editing them from MeetShell's header does.
+        queryClient.invalidateQueries({ queryKey: ["standings"] });
+      }
     },
     onError: (e: Error) => setFormError(e.message),
   });
@@ -79,6 +91,10 @@ export function MeetListPage() {
         params: { path: { meet_id: m.id } },
       });
       if (error) throw new Error(apiDetail(error));
+      // The meet is gone server-side -- drop its cached detail entry rather than
+      // leaving stale data behind for a MeetShell that never gets the chance to
+      // refetch (the meet no longer exists to invalidate-and-refetch against).
+      queryClient.removeQueries({ queryKey: ["meet", String(m.id)] });
     },
   });
 

@@ -74,6 +74,9 @@ export function MeetShell() {
       setDetailsOpen(false);
       queryClient.invalidateQueries({ queryKey: ["meet", meetId] });
       queryClient.invalidateQueries({ queryKey: ["meets"] });
+      // Medal minima live on this same form and feed medal_for_total (app/scoring.py),
+      // so an edit here can change every standings row's medal tier.
+      queryClient.invalidateQueries({ queryKey: ["standings"] });
     },
     onError: (e: Error) => setDetailsError(e.message),
   });

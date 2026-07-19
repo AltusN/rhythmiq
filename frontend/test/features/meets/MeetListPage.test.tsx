@@ -1,9 +1,29 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
+import { MemoryRouter } from "react-router-dom";
+import App from "../../../src/App";
 import { makeDistrict, makeMeet } from "../../fixtures";
 import { api, server } from "../../msw/server";
 import { renderApp } from "../../utils";
+
+/**
+ * Like `renderApp`, but with a caller-supplied QueryClient so a test can share one
+ * client across two separate mounts (e.g. visit the meet detail page, navigate away,
+ * edit from the list, then revisit) -- the only way to prove a cache invalidation
+ * actually happened rather than relying on `staleTime: 0` refetching on every mount
+ * regardless of whether anything was invalidated.
+ */
+function renderAppWithClient(route: string, queryClient: QueryClient) {
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[route]}>
+        <App />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
 
 function seedDistricts() {
   server.use(
@@ -183,4 +203,127 @@ test("blocks setting only one medal minimum", async () => {
   await userEvent.click(screen.getByRole("button", { name: "Save" }));
   expect(await screen.findByText("Set both medal minimums or neither")).toBeInTheDocument();
   expect(called).toBe(false);
+});
+
+test("editing a meet from the list invalidates its cached detail and standings, so revisiting isn't stale", async () => {
+  // A non-zero staleTime is essential here: with the default staleTime: 0, a
+  // remount always refetches regardless of invalidation, which would make this
+  // test pass even without the fix. Only an explicit invalidateQueries call
+  // (not staleness) can force TanStack Query to refetch a query mounted under
+  // an Infinite staleTime -- see Query.isStale(), which returns true whenever
+  // state.isInvalidated is set, independent of staleTime.
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, refetchOnWindowFocus: false, staleTime: Infinity },
+    },
+  });
+
+  let serverMeet = makeMeet({ id: 4, name: "Spring Open", location: "Cape Town" });
+  let meetCalls = 0;
+  let standingsCalls = 0;
+  server.use(
+    http.get(api("/meets/4"), () => {
+      meetCalls += 1;
+      return HttpResponse.json(serverMeet);
+    }),
+    http.get(api("/districts/"), () => HttpResponse.json([])),
+    http.get(api("/meets/4/standings"), () => {
+      standingsCalls += 1;
+      return HttpResponse.json({
+        meet_id: 4,
+        provisional: true,
+        apparatus: "hoop",
+        level: null,
+        age_group: null,
+        rankings: [],
+      });
+    }),
+    http.get(api("/meets/4/all-around"), () =>
+      HttpResponse.json({ meet_id: 4, provisional: true, level: null, age_group: null, rankings: [] }),
+    ),
+  );
+
+  // Phase 1: visit the meet detail page once -- MeetShell caches ["meet", "4"] and
+  // the standings tab caches ["standings", 4, ...].
+  const firstVisit = renderAppWithClient("/meets/4/standings", queryClient);
+  await screen.findByText("Spring Open");
+  expect(meetCalls).toBe(1);
+  expect(standingsCalls).toBe(1);
+  firstVisit.unmount();
+
+  // Phase 2: from the list (a fresh mount, same client), rename the same meet.
+  server.use(
+    http.get(api("/meets/"), () => HttpResponse.json([serverMeet])),
+    http.patch(api("/meets/4"), async ({ request }) => {
+      const body = (await request.json()) as Record<string, unknown>;
+      serverMeet = { ...serverMeet, ...body };
+      return HttpResponse.json(serverMeet);
+    }),
+  );
+  const listVisit = renderAppWithClient("/", queryClient);
+  await userEvent.click(await screen.findByRole("button", { name: "Edit Spring Open" }));
+  const dialog = within(screen.getByRole("dialog"));
+  await userEvent.clear(dialog.getByLabelText("Name"));
+  await userEvent.type(dialog.getByLabelText("Name"), "Spring Classic");
+  await userEvent.click(dialog.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(serverMeet.name).toBe("Spring Classic"));
+  listVisit.unmount();
+
+  // Phase 3: revisit the detail page with the SAME client. Both the meet detail and
+  // standings queries are cached and (under staleTime: Infinity) not naturally
+  // stale -- only the invalidation from the list's save mutation forces a refetch.
+  renderAppWithClient("/meets/4/standings", queryClient);
+  await waitFor(() => expect(meetCalls).toBe(2));
+  await waitFor(() => expect(standingsCalls).toBe(2));
+  expect(await screen.findByText("Spring Classic")).toBeInTheDocument();
+});
+
+test("deleting a meet from the list drops its cached detail entry", async () => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
+  });
+
+  const meet = makeMeet({ id: 4, name: "Spring Open" });
+  server.use(
+    http.get(api("/meets/4"), () => HttpResponse.json(meet)),
+    http.get(api("/districts/"), () => HttpResponse.json([])),
+    http.get(api("/meets/4/standings"), () =>
+      HttpResponse.json({
+        meet_id: 4,
+        provisional: true,
+        apparatus: "hoop",
+        level: null,
+        age_group: null,
+        rankings: [],
+      }),
+    ),
+    http.get(api("/meets/4/all-around"), () =>
+      HttpResponse.json({ meet_id: 4, provisional: true, level: null, age_group: null, rankings: [] }),
+    ),
+  );
+
+  // Visit the detail page once so ["meet", "4"] is actually cached (the scenario
+  // the bug describes: a stale detail entry left behind after the row is gone).
+  const firstVisit = renderAppWithClient("/meets/4/standings", queryClient);
+  await screen.findByText("Spring Open");
+  expect(queryClient.getQueryData(["meet", "4"])).toBeDefined();
+  firstVisit.unmount();
+
+  server.use(http.get(api("/meets/"), () => HttpResponse.json([meet])));
+  let deleteCalled = false;
+  server.use(
+    http.delete(api("/meets/4"), () => {
+      deleteCalled = true;
+      return new HttpResponse(null, { status: 204 });
+    }),
+  );
+  const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+  renderAppWithClient("/", queryClient);
+  await userEvent.click(await screen.findByRole("button", { name: "Delete Spring Open" }));
+  await waitFor(() => expect(deleteCalled).toBe(true));
+  confirmSpy.mockRestore();
+
+  // The cache entry must be gone outright, not merely marked stale -- the meet no
+  // longer exists server-side, so there is nothing left to refetch against.
+  expect(queryClient.getQueryData(["meet", "4"])).toBeUndefined();
 });

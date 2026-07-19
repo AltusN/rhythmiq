@@ -122,3 +122,54 @@ test("the details dialog offers no status control", async () => {
   expect(await dialog.findByLabelText("Name")).toBeInTheDocument();
   expect(dialog.queryByLabelText("Status")).not.toBeInTheDocument();
 });
+
+test("editing meet details invalidates standings, since medal minima feed medal_for_total", async () => {
+  let standingsCalls = 0;
+  server.use(
+    http.get(api("/meets/5"), () =>
+      HttpResponse.json(makeMeet({ id: 5, name: "Winter Cup", status: "scheduled" })),
+    ),
+    http.get(api("/districts/"), () => HttpResponse.json([])),
+    http.get(api("/meets/5/standings"), () => {
+      standingsCalls += 1;
+      return HttpResponse.json({
+        meet_id: 5,
+        provisional: true,
+        apparatus: "hoop",
+        level: null,
+        age_group: null,
+        rankings: [],
+      });
+    }),
+    http.get(api("/meets/5/all-around"), () =>
+      HttpResponse.json({ meet_id: 5, provisional: true, level: null, age_group: null, rankings: [] }),
+    ),
+  );
+  let patched: Record<string, unknown> | null = null;
+  server.use(
+    http.patch(api("/meets/5"), async ({ request }) => {
+      patched = (await request.json()) as Record<string, unknown>;
+      return HttpResponse.json(
+        makeMeet({ id: 5, name: "Winter Cup", medal_gold_min: "9.5", medal_silver_min: "8.5" }),
+      );
+    }),
+  );
+  renderApp("/meets/5/standings");
+  await screen.findByText("Winter Cup");
+  await waitFor(() => expect(standingsCalls).toBe(1));
+
+  await userEvent.click(await screen.findByRole("button", { name: "Edit details" }));
+  const dialog = within(screen.getByRole("dialog"));
+  await userEvent.type(dialog.getByLabelText("Gold minimum"), "9.5");
+  await userEvent.type(dialog.getByLabelText("Silver minimum"), "8.5");
+  await userEvent.click(dialog.getByRole("button", { name: "Save" }));
+  await waitFor(() =>
+    expect(patched).toEqual({ medal_gold_min: 9.5, medal_silver_min: 8.5 }),
+  );
+
+  // The medal minima just changed, which changes every standings row's medal tier
+  // (backend/app/scoring.py:medal_for_total) -- the already-mounted standings query
+  // must be invalidated and refetched, not left showing tiers computed under the
+  // old cutoffs.
+  await waitFor(() => expect(standingsCalls).toBe(2));
+});
