@@ -8,9 +8,9 @@ import type { Band } from "../../lib/score-math";
  *
  * "A" is a DEPRECATED legacy slot: the 8+ band now has two artistry judges, A1/A2. It is
  * kept in the union (but out of PANEL_SLOTS and every band's slot list) purely so
- * ScoreForm.tsx (`panel.A`) and ScoringPage.tsx (`"A"` in its required list and its panel
- * summary line) keep compiling until Tasks 7-8 migrate them. Task 8 deletes it. loadPanel
- * migrates a stored legacy "A" to "A1".
+ * ScoreForm.tsx (`panel.A`, its last remaining consumer) keeps compiling until Task 7
+ * migrates its boxes to A1/A2; Task 8 then deletes this member. ScoringPage was already
+ * migrated off "A". loadPanel migrates a stored legacy "A" to "A1".
  */
 export type PanelSlot =
   | "F"
