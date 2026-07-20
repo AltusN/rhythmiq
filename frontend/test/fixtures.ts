@@ -55,7 +55,7 @@ export function makeJudge(overrides: Partial<JudgeRead> = {}): JudgeRead {
     first_name: "Naledi",
     last_name: "Dlamini",
     country_code: "RSA",
-    brevet: null,
+    category: null,
     ...overrides,
   };
 }

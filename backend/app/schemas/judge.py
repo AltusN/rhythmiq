@@ -3,9 +3,14 @@ Pydantic schemas for /judges: JudgeCreate/JudgeUpdate/JudgeRead.
 
 country_code is normalized to uppercase and validated as 3-letter alpha
 (ISO 3166-1 alpha-3) on both Create and Update.
+
+category is the judge's FIG judging category (JudgeCategory), optional because the
+FIG scale only covers brevet holders -- see the Judge model docstring.
 """
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.models import JudgeCategory
 
 
 class JudgeCreate(BaseModel):
@@ -16,7 +21,9 @@ class JudgeCreate(BaseModel):
         ..., min_length=2, max_length=100, description="The last name of the judge."
     )
     country_code: str | None = Field(None, description="The country code of the judge.")
-    brevet: str | None = Field(None, description="The brevet of the judge.")
+    category: JudgeCategory | None = Field(
+        None, description="The judge's FIG judging category (1 highest, 4 lowest)."
+    )
 
     @field_validator("first_name", "last_name", mode="before")
     @classmethod
@@ -43,7 +50,9 @@ class JudgeUpdate(BaseModel):
         None, min_length=2, max_length=100, description="The last name of the judge."
     )
     country_code: str | None = Field(None, description="The country code of the judge.")
-    brevet: str | None = Field(None, description="The brevet of the judge.")
+    category: JudgeCategory | None = Field(
+        None, description="The judge's FIG judging category (1 highest, 4 lowest)."
+    )
 
     @field_validator("first_name", "last_name", mode="before")
     @classmethod
@@ -70,4 +79,4 @@ class JudgeRead(BaseModel):
     first_name: str
     last_name: str
     country_code: str | None = None
-    brevet: str | None = None
+    category: JudgeCategory | None = None

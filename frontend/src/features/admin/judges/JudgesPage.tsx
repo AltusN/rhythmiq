@@ -7,6 +7,7 @@ import { FormDialog } from "../components/FormDialog";
 import { ResourceTable } from "../components/ResourceTable";
 import { useResourceDelete } from "../hooks/useResourceDelete";
 import { useResourceList } from "../hooks/useResourceList";
+import { judgeCategoryLabel } from "../../../lib/domain";
 import { JudgeForm, type JudgeBody } from "./JudgeForm";
 
 /**
@@ -37,7 +38,7 @@ export function JudgesPage() {
       return data;
     },
     search,
-    searchText: (j) => `${j.first_name} ${j.last_name} ${j.brevet ?? ""}`,
+    searchText: (j) => `${j.first_name} ${j.last_name} ${judgeCategoryLabel(j.category)}`,
   });
   const rows = country === "" ? list.rows : list.rows.filter((j) => j.country_code === country);
 
@@ -138,7 +139,7 @@ export function JudgesPage() {
             { header: "First name", render: (j) => j.first_name },
             { header: "Last name", render: (j) => j.last_name },
             { header: "Country", render: (j) => j.country_code ?? "—" },
-            { header: "Brevet", render: (j) => j.brevet ?? "—" },
+            { header: "Category", render: (j) => judgeCategoryLabel(j.category) },
           ]}
           rowLabel={(j) => `${j.first_name} ${j.last_name}`}
           onEdit={(j) => {

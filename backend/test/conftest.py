@@ -259,13 +259,13 @@ def make_judge(
     first_name="Annette",
     last_name="Nel",
     country_code=None,
-    brevet=None,
+    category=None,
 ) -> Judge:
     judge = Judge(
         first_name=first_name,
         last_name=last_name,
         country_code=country_code,
-        brevet=brevet,
+        category=category,
     )
     db_session.add(judge)
     db_session.flush()  # Get judge.id populated

@@ -9,8 +9,8 @@ test("lists judges", async () => {
   server.use(
     http.get(api("/judges/"), () =>
       HttpResponse.json([
-        makeJudge({ id: 1, first_name: "Naledi", last_name: "Dlamini", country_code: "RSA", brevet: "Cat I" }),
-        makeJudge({ id: 2, first_name: "Elena", last_name: "Petrova", country_code: "BUL", brevet: null }),
+        makeJudge({ id: 1, first_name: "Naledi", last_name: "Dlamini", country_code: "RSA", category: "category_1" }),
+        makeJudge({ id: 2, first_name: "Elena", last_name: "Petrova", country_code: "BUL", category: null }),
       ]),
     ),
   );
@@ -18,7 +18,7 @@ test("lists judges", async () => {
   expect(await screen.findByText("Naledi")).toBeInTheDocument();
   // Scope to the table: country codes also appear as <option>s in the country filter.
   const table = within(screen.getByRole("table"));
-  expect(table.getByText("Cat I")).toBeInTheDocument();
+  expect(table.getByText("Category 1")).toBeInTheDocument();
   expect(table.getByText("BUL")).toBeInTheDocument();
 });
 
@@ -57,7 +57,7 @@ test("creates a judge, sending nulls for blank optional fields", async () => {
       first_name: "Ana",
       last_name: "Meyer",
       country_code: null,
-      brevet: null,
+      category: null,
     }),
   );
 });
@@ -115,11 +115,10 @@ test("PATCHes only the changed field", async () => {
   );
   renderApp("/admin/judges");
   await userEvent.click(await screen.findByRole("button", { name: "Edit Naledi Dlamini" }));
-  const brevet = screen.getByLabelText("Brevet");
-  await userEvent.clear(brevet);
-  await userEvent.type(brevet, "Cat II");
+  const category = screen.getByLabelText("Category level");
+  await userEvent.selectOptions(category, "category_2");
   await userEvent.click(screen.getByRole("button", { name: "Save" }));
-  await waitFor(() => expect(patched).toEqual({ brevet: "Cat II" }));
+  await waitFor(() => expect(patched).toEqual({ category: "category_2" }));
 });
 
 test("keeps the dialog open and shows the detail on a duplicate-identity 409", async () => {
@@ -231,4 +230,32 @@ test("name fields are capped at the length the schema enforces", async () => {
   await userEvent.click(await screen.findByRole("button", { name: "New judge" }));
   expect(screen.getByLabelText("First name")).toHaveAttribute("maxLength", "100");
   expect(screen.getByLabelText("Last name")).toHaveAttribute("maxLength", "100");
+});
+
+test("renders the FIG category as a readable label, not the raw enum value", async () => {
+  server.use(
+    http.get(api("/judges/"), () =>
+      HttpResponse.json([
+        makeJudge({ id: 1, first_name: "Naledi", last_name: "Dlamini", category: "category_1" }),
+        makeJudge({ id: 2, first_name: "Carla", last_name: "Mendes", category: null }),
+      ]),
+    ),
+  );
+  renderApp("/admin/judges");
+  const table = within(await screen.findByRole("table"));
+  expect(table.getByText("Category 1")).toBeInTheDocument();
+  expect(table.queryByText("category_1")).not.toBeInTheDocument();
+  // NULL is meaningful: the FIG scale only covers brevet holders.
+  expect(table.getByText("—")).toBeInTheDocument();
+});
+
+test("offers exactly the four FIG categories plus an unset option", async () => {
+  server.use(http.get(api("/judges/"), () => HttpResponse.json([])));
+  renderApp("/admin/judges");
+  await userEvent.click(await screen.findByRole("button", { name: "New judge" }));
+  const select = within(screen.getByLabelText("Category level"));
+  for (const n of [1, 2, 3, 4]) {
+    expect(select.getByRole("option", { name: `Category ${n}` })).toBeInTheDocument();
+  }
+  expect(select.getAllByRole("option")).toHaveLength(5); // 4 + "— none —"
 });

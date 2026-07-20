@@ -4007,6 +4007,16 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "JudgeCategory": {
+        "type": "string",
+        "enum": [
+          "category_1",
+          "category_2",
+          "category_3",
+          "category_4"
+        ],
+        "title": "JudgeCategory"
+      },
       "JudgeCreate": {
         "properties": {
           "first_name": {
@@ -4035,17 +4045,16 @@
             "title": "Country Code",
             "description": "The country code of the judge."
           },
-          "brevet": {
+          "category": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/JudgeCategory"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Brevet",
-            "description": "The brevet of the judge."
+            "description": "The judge's FIG judging category (1 highest, 4 lowest)."
           }
         },
         "type": "object",
@@ -4080,16 +4089,15 @@
             ],
             "title": "Country Code"
           },
-          "brevet": {
+          "category": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/JudgeCategory"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Brevet"
+            ]
           }
         },
         "type": "object",
@@ -4240,17 +4248,16 @@
             "title": "Country Code",
             "description": "The country code of the judge."
           },
-          "brevet": {
+          "category": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/JudgeCategory"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Brevet",
-            "description": "The brevet of the judge."
+            "description": "The judge's FIG judging category (1 highest, 4 lowest)."
           }
         },
         "type": "object",

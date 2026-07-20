@@ -1,4 +1,4 @@
-import type { AgeGroup, Apparatus, Level, MeetStatus } from "../api/types";
+import type { AgeGroup, Apparatus, JudgeCategory, Level, MeetStatus } from "../api/types";
 
 export const APPARATUS: Apparatus[] = [
   "rope", "hoop", "ball", "clubs", "ribbon", "freehand",
@@ -35,6 +35,26 @@ export const STATUS_ACTION_LABELS: Record<MeetStatus, string> = {
   completed: "Complete meet",
   cancelled: "Cancel meet",
 };
+
+/**
+ * FIG judging categories, highest (1) to lowest (4) — General Judges' Rules 2025-2028
+ * art. 2.6, mirrored by app.models.JudgeCategory. FIG writes these as arabic numerals
+ * ("Category 1", "Cat. 4"), never roman, so the labels follow suit rather than going
+ * through `labelize` (which would render "category 1", lowercase and unlabelled).
+ *
+ * A judge may legitimately have none: the scale only covers brevet holders, and the
+ * rules rank "national level" below Category 3.
+ */
+export const JUDGE_CATEGORIES: { value: JudgeCategory; label: string }[] = [
+  { value: "category_1", label: "Category 1" },
+  { value: "category_2", label: "Category 2" },
+  { value: "category_3", label: "Category 3" },
+  { value: "category_4", label: "Category 4" },
+];
+
+export function judgeCategoryLabel(value: JudgeCategory | null | undefined): string {
+  return JUDGE_CATEGORIES.find((c) => c.value === value)?.label ?? "—";
+}
 
 export function labelize(value: string): string {
   return value.replace(/_/g, " ");

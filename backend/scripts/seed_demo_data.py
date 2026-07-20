@@ -49,6 +49,7 @@ from app.models import (
     Group,
     Gymnast,
     Judge,
+    JudgeCategory,
     JudgeScore,
     Level,
     Meet,
@@ -101,17 +102,18 @@ GYMNASTS = [
     ("Nomsa", "Mahlangu", 2014, None, None, Ethnicity.black, None),
 ]
 
-# (first, last, country, brevet). Brevet is free text by design (Phase 2b spec), so the
-# notation here is kept CONSISTENT rather than mirroring the drift seen in live data.
+# (first, last, country, category). Covers all four FIG categories plus None, which
+# is a real value: the FIG scale only covers brevet holders, so a nationally-graded
+# judge (Carla) has no category to record.
 JUDGES = [
-    ("Naledi", "Dlamini", "RSA", "Cat I"),
-    ("Elena", "Petrova", "BUL", "Cat I"),
-    ("Yuki", "Tanaka", "JPN", "Cat II"),
-    ("Sofia", "Rossi", "ITA", "Cat II"),
-    ("Annette", "Povlova", "RSA", "Cat III"),
-    ("Zoey", "Botha", "USA", "Cat III"),
+    ("Naledi", "Dlamini", "RSA", JudgeCategory.category_1),
+    ("Elena", "Petrova", "BUL", JudgeCategory.category_1),
+    ("Yuki", "Tanaka", "JPN", JudgeCategory.category_2),
+    ("Sofia", "Rossi", "ITA", JudgeCategory.category_2),
+    ("Annette", "Povlova", "RSA", JudgeCategory.category_3),
+    ("Zoey", "Botha", "USA", JudgeCategory.category_3),
     ("Carla", "Mendes", "ESP", None),
-    ("Oksana", "Bondar", "UKR", "Cat IV"),
+    ("Oksana", "Bondar", "UKR", JudgeCategory.category_4),
 ]
 
 
@@ -275,8 +277,8 @@ def run() -> None:
 
         # -- Judges --
         judges = [
-            Judge(first_name=first, last_name=last, country_code=country, brevet=brevet)
-            for first, last, country, brevet in JUDGES
+            Judge(first_name=first, last_name=last, country_code=country, category=category)
+            for first, last, country, category in JUDGES
         ]
         db.add_all(judges)
         db.flush()

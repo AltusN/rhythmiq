@@ -2,6 +2,7 @@
 Test for the judge router. Test POST / GET / PATCH / DELETE endpoints for judges.
 """
 
+from app.models import JudgeCategory
 from test.conftest import make_judge, make_judge_score
 
 
@@ -9,7 +10,12 @@ from test.conftest import make_judge, make_judge_score
 def test_create_judge_success(client):
     response = client.post(
         "/judges/",
-        json={"first_name": "Jane", "last_name": "Fig", "country_code": "usa", "brevet": "A"},
+        json={
+            "first_name": "Jane",
+            "last_name": "Fig",
+            "country_code": "usa",
+            "category": "category_1",
+        },
     )
 
     assert response.status_code == 201
@@ -17,7 +23,7 @@ def test_create_judge_success(client):
     assert body["first_name"] == "Jane"
     assert body["last_name"] == "Fig"
     assert body["country_code"] == "USA"  # stripped/uppercased by the schema validator
-    assert body["brevet"] == "A"
+    assert body["category"] == "category_1"
     assert "id" in body
 
 
@@ -27,7 +33,7 @@ def test_create_judge_without_optional_fields(client):
     assert response.status_code == 201
     body = response.json()
     assert body["country_code"] is None
-    assert body["brevet"] is None
+    assert body["category"] is None
 
 
 def test_create_judge_invalid_country_code_returns_422(client):
@@ -107,7 +113,7 @@ def test_get_judge_returns_one_judge(client, db_session):
         "first_name": "Read",
         "last_name": "Judge",
         "country_code": "ESP",
-        "brevet": None,
+        "category": None,
     }
 
 
@@ -118,18 +124,45 @@ def test_get_judge_not_found(client):
 
 ##-- PATCH /judges/{id} --##
 def test_update_judge_success(client, db_session):
-    judge = make_judge(db_session, first_name="Old", last_name="Name", brevet="B")
+    judge = make_judge(
+        db_session, first_name="Old", last_name="Name", category=JudgeCategory.category_2
+    )
 
     response = client.patch(
-        f"/judges/{judge.id}", json={"first_name": "New", "brevet": "International"}
+        f"/judges/{judge.id}", json={"first_name": "New", "category": "category_1"}
     )
 
     assert response.status_code == 200
     body = response.json()
     assert body["first_name"] == "New"
     assert body["last_name"] == "Name"  # unchanged
-    assert body["brevet"] == "International"
+    assert body["category"] == "category_1"
     assert body["id"] == judge.id
+
+
+def test_update_judge_rejects_a_category_outside_the_fig_scale(client, db_session):
+    """
+    The whole point of enumerating: free text let "Cat I", "level 3" and "1" all
+    coexist for the same category. FIG defines exactly four.
+    """
+    judge = make_judge(db_session, category=JudgeCategory.category_2)
+
+    response = client.patch(f"/judges/{judge.id}", json={"category": "International"})
+
+    assert response.status_code == 422
+
+
+def test_update_judge_can_clear_the_category(client, db_session):
+    """
+    NULL is meaningful, not just missing: the FIG scale only covers brevet holders,
+    so a nationally-graded judge has no category to record.
+    """
+    judge = make_judge(db_session, category=JudgeCategory.category_2)
+
+    response = client.patch(f"/judges/{judge.id}", json={"category": None})
+
+    assert response.status_code == 200
+    assert response.json()["category"] is None
 
 
 def test_update_judge_not_found(client):

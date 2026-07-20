@@ -5,6 +5,7 @@ export type MeetEntryRead = components["schemas"]["MeetEntryRead"];
 export type GymnastRead = components["schemas"]["GymnastRead"];
 export type GroupRead = components["schemas"]["GroupRead"];
 export type JudgeRead = components["schemas"]["JudgeRead"];
+export type JudgeCategory = components["schemas"]["JudgeCategory"];
 export type JudgeScoreRead = components["schemas"]["JudgeScoreRead"];
 export type RoutineRead = components["schemas"]["RoutineRead"];
 export type RoutineProfileRead = components["schemas"]["RoutineProfileRead"];

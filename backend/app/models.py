@@ -82,6 +82,24 @@ class Level(StrEnum):
     olympic = "olympic"
 
 
+class JudgeCategory(StrEnum):
+    # FIG General Judges' Rules 2025-2028 art. 2.6 (reproduced in the RG Specific
+    # Judges' Rules art. 2.5, both under spec/): exactly four categories, awarded on
+    # examination results. Category 1 is the HIGHEST (Difficulty excellent, Artistry
+    # and Execution very good) down to Category 4 (pass in all three). Declared
+    # highest-first so the Postgres enum sorts by seniority, not alphabetically.
+    #
+    # FIG writes these as arabic numerals ("Category 1", "Cat. 4") -- never roman.
+    #
+    # Note the terminology: a judge holds a *brevet* (the international licence) and
+    # is awarded a *category* (the grade within it) -- "A first time Brevet can
+    # achieve a maximum of Category 3". This column stores the category.
+    category_1 = "category_1"
+    category_2 = "category_2"
+    category_3 = "category_3"
+    category_4 = "category_4"
+
+
 class Panel(StrEnum):
     # Difficulty is split into two independently-judged subgroups per FIG's Code of
     # Points (DB: Difficulty of Body, DA: Difficulty of Apparatus) -- their scores are
@@ -125,7 +143,18 @@ class Judge(Base):
     """
     An individual accredited to score routines and/or assess penalties. Identity is
     scoped by (first_name, last_name, country_code) since FIG judges are drawn from a
-    national pool -- brevet is their FIG certification level.
+    national pool.
+
+    `category` is their FIG judging category (see JudgeCategory), nullable because the
+    FIG scale only covers brevet holders: the General Judges' Rules list "national
+    level" as a rank below Category 3, so a nationally-graded judge has no FIG
+    category to record. NULL therefore means "no FIG category", which covers both
+    national-only judges and simply-not-known.
+
+    Deliberately ONE column even though FIG examines individual (RGI) and group (RGG)
+    brevets separately, so a judge can hold different categories in each (RG Specific
+    Judges' Rules art. 1.1). Splitting it only pays off once group judging is scored
+    and selected separately; until then one column is the honest simplification.
     """
 
     __tablename__ = "judges"
@@ -134,7 +163,9 @@ class Judge(Base):
     first_name: Mapped[str] = mapped_column(String, index=True, nullable=False)
     last_name: Mapped[str] = mapped_column(String, index=True, nullable=False)
     country_code: Mapped[str | None] = mapped_column(String(3), index=True, nullable=True)
-    brevet: Mapped[str | None] = mapped_column(String, nullable=True)
+    category: Mapped[JudgeCategory | None] = mapped_column(
+        Enum(JudgeCategory, name="judgecategory"), nullable=True
+    )
 
     judge_scores: Mapped[list["JudgeScore"]] = relationship(
         "JudgeScore", back_populates="judge", passive_deletes=True

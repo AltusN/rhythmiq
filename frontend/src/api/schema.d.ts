@@ -884,6 +884,11 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /**
+         * JudgeCategory
+         * @enum {string}
+         */
+        JudgeCategory: "category_1" | "category_2" | "category_3" | "category_4";
         /** JudgeCreate */
         JudgeCreate: {
             /**
@@ -901,11 +906,8 @@ export interface components {
              * @description The country code of the judge.
              */
             country_code?: string | null;
-            /**
-             * Brevet
-             * @description The brevet of the judge.
-             */
-            brevet?: string | null;
+            /** @description The judge's FIG judging category (1 highest, 4 lowest). */
+            category?: components["schemas"]["JudgeCategory"] | null;
         };
         /** JudgeRead */
         JudgeRead: {
@@ -917,8 +919,7 @@ export interface components {
             last_name: string;
             /** Country Code */
             country_code?: string | null;
-            /** Brevet */
-            brevet?: string | null;
+            category?: components["schemas"]["JudgeCategory"] | null;
         };
         /** JudgeScoreCreate */
         JudgeScoreCreate: {
@@ -977,11 +978,8 @@ export interface components {
              * @description The country code of the judge.
              */
             country_code?: string | null;
-            /**
-             * Brevet
-             * @description The brevet of the judge.
-             */
-            brevet?: string | null;
+            /** @description The judge's FIG judging category (1 highest, 4 lowest). */
+            category?: components["schemas"]["JudgeCategory"] | null;
         };
         /**
          * Level

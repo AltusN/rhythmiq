@@ -63,3 +63,6 @@ Desktop.ini
 # --- Frontend ---
 node_modules/
 frontend/dist/
+
+# Windows download markers (alternate data streams)
+*:Zone.Identifier

@@ -148,6 +148,15 @@ Every resource router follows: `POST /`, `GET /`, `GET /{id}`, `PATCH /{id}`, `D
   (`_resync_routine_penalty`), so the aggregate and the itemized total can never drift
   apart. The first record added to a routine with a manually-set `penalty` overwrites
   it, rather than merging — itemization takes over, it doesn't add to what was there.
+- `Judge.category` is a `JudgeCategory` enum (`category_1`..`category_4`), **not** the
+  free-text `brevet` column it replaced. FIG defines exactly four categories, 1 highest
+  — General Judges' Rules 2025-2028 art. 2.6, reproduced in the RG Specific Judges' Rules
+  art. 2.5 (both under `spec/`); FIG writes them as arabic numerals, never roman.
+  Nullable is meaningful: the scale only covers brevet holders, and the rules rank
+  "national level" below Category 3, so a nationally-graded judge has no category.
+  Deliberately one column although FIG examines individual (RGI) and group (RGG) brevets
+  separately — a judge can hold different categories in each; split it only when group
+  judging is selected separately.
 - Every resource listed above (`District` through `PenaltyRecord`) now has a full
   model/schema/router. `Judge`, `JudgeScore`, and `PenaltyRecord` were the last three to
   get routers.

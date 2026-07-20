@@ -1,7 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import type { JudgeRead } from "../../../api/types";
+import type { JudgeCategory, JudgeRead } from "../../../api/types";
+import { JUDGE_CATEGORIES } from "../../../lib/domain";
 import { ErrorBanner } from "../../../components/ErrorBanner";
 
 /**
@@ -16,7 +17,9 @@ const judgeSchema = z.object({
     .string()
     .trim()
     .refine((v) => v === "" || /^[A-Za-z]{3}$/.test(v), "Must be 3 letters"),
-  brevet: z.string().trim(),
+  // "" is the unset option; the API takes null. Kept out of the JudgeCategory
+  // union here so the empty <option> stays selectable.
+  category: z.enum(["", "category_1", "category_2", "category_3", "category_4"]),
 });
 type JudgeFormValues = z.infer<typeof judgeSchema>;
 
@@ -24,7 +27,7 @@ export type JudgeBody = {
   first_name?: string;
   last_name?: string;
   country_code?: string | null;
-  brevet?: string | null;
+  category?: JudgeCategory | null;
 };
 
 const toText = (v: string): string | null => (v.trim() === "" ? null : v.trim());
@@ -48,7 +51,7 @@ export function JudgeForm({
       first_name: initial?.first_name ?? "",
       last_name: initial?.last_name ?? "",
       country_code: initial?.country_code ?? "",
-      brevet: initial?.brevet ?? "",
+      category: initial?.category ?? "",
     },
   });
   const { dirtyFields, errors } = formState;
@@ -58,7 +61,7 @@ export function JudgeForm({
       first_name: v.first_name,
       last_name: v.last_name,
       country_code: toText(v.country_code),
-      brevet: toText(v.brevet),
+      category: v.category === "" ? null : v.category,
     };
     if (!initial) return full;
     const body: JudgeBody = {};
@@ -97,8 +100,19 @@ export function JudgeForm({
         )}
       </label>
       <label className="text-sm">
-        Brevet
-        <input {...register("brevet")} aria-label="Brevet" className={fieldClass} />
+        Category level
+        <select {...register("category")} aria-label="Category level" className={fieldClass}>
+          <option value="">— none —</option>
+          {JUDGE_CATEGORIES.map((c) => (
+            <option key={c.value} value={c.value}>
+              {c.label}
+            </option>
+          ))}
+        </select>
+        <span className="mt-1 block text-xs text-gray-500">
+          FIG judging category, 1 (highest) to 4. Leave unset for judges without a FIG
+          brevet.
+        </span>
       </label>
       <div className="flex justify-end gap-2">
         <button
