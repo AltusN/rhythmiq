@@ -245,7 +245,10 @@ export function ScoreForm({
         {!eOnly && <span>D: <strong>{fmt(preview.d)}</strong></span>}
         {!eOnly && <span>A: <strong>{fmt(preview.a)}</strong></span>}
         <span>E: <strong>{fmt(preview.e)}</strong></span>
-        <span>Penalty: <strong>−{fmt(preview.penalty)}</strong></span>
+        {/* Only sign a penalty that exists -- "−0.00" reads as a negative zero. */}
+        <span>
+          Penalty: <strong>{preview.penalty === 0 ? fmt(0) : `−${fmt(preview.penalty)}`}</strong>
+        </span>
         <span className="ml-auto">Total: <strong>{fmt(preview.total)}</strong></span>
       </div>
       {!meetLocked && (

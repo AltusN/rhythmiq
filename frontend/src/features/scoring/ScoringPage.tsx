@@ -237,7 +237,10 @@ export function ScoringPage() {
             {!meetLocked &&
               missingRequiredSlots(panel, selectedEntry.level).length > 0 && (
                 <p className="mb-3 text-sm text-amber-700">
-                  Judge slots unassigned:{" "}
+                  {/* "Required" matters: E3/E4 are optional extra Execution judges, so
+                      this list is deliberately shorter than the full panel summary
+                      below it. Without the word, the two read as contradicting. */}
+                  Required judge slots unassigned:{" "}
                   {missingRequiredSlots(panel, selectedEntry.level).join(", ")}.{" "}
                   <button
                     onClick={() => setPanelOpen(true)}
@@ -260,8 +263,10 @@ export function ScoringPage() {
               onDirtyChange={setFormDirty}
             />
             <p className="mt-5 text-xs text-gray-500">
+              {/* E3/E4 are marked optional so this line does not read as contradicting
+                  the "Required judge slots unassigned" warning above, which lists fewer. */}
               Panel: D = {slotLabel(panel.D)} · E1 = {slotLabel(panel.E1)} · E2 ={" "}
-              {slotLabel(panel.E2)} · E3 = {slotLabel(panel.E3)} · E4 ={" "}
+              {slotLabel(panel.E2)} · E3 (optional) = {slotLabel(panel.E3)} · E4 (optional) ={" "}
               {slotLabel(panel.E4)} · A = {slotLabel(panel.A)}{" "}
               <button
                 onClick={() => setPanelOpen(true)}

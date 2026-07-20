@@ -422,3 +422,31 @@ test("a failed routines query surfaces an error instead of hanging on Loading", 
   expect(alert).toHaveTextContent("db down");
   expect(screen.queryByText("Loading…")).toBeNull();
 });
+
+test("the unassigned warning says REQUIRED, and the panel line marks E3/E4 optional", async () => {
+  // beforeEach assigns only D and E1, so A and E2 are the outstanding REQUIRED slots.
+  // E3/E4 are optional extra Execution judges and must NOT appear in the warning --
+  // without the word "Required" that list reads as contradicting the panel summary
+  // below it, which lists all six slots.
+  mockBase();
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+
+  const warning = await screen.findByText(/Required judge slots unassigned/);
+  expect(warning).toHaveTextContent("Required judge slots unassigned: A, E2.");
+  expect(warning).not.toHaveTextContent("E3");
+  expect(warning).not.toHaveTextContent("E4");
+
+  expect(screen.getByText(/^Panel:/)).toHaveTextContent("E3 (optional)");
+  expect(screen.getByText(/^Panel:/)).toHaveTextContent("E4 (optional)");
+});
+
+test("a zero penalty renders unsigned, not as negative zero", async () => {
+  mockBase();
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /12 ·/ }));
+
+  const summary = await screen.findByText(/^Penalty:/);
+  expect(summary).toHaveTextContent("Penalty: 0.00");
+  expect(summary).not.toHaveTextContent("−0.00");
+});
