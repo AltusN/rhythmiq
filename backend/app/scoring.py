@@ -89,17 +89,29 @@ BAND_8_PLUS = ScoringProfile(
 
 _BAND_1_3_LEVELS = (Level.level_1, Level.level_2, Level.level_3)
 _BAND_4_7_LEVELS = (Level.level_4, Level.level_5, Level.level_6, Level.level_7)
+_BAND_8_PLUS_LEVELS = (
+    Level.level_8,
+    Level.level_9,
+    Level.level_10,
+    Level.high_performance_1,
+    Level.high_performance_2,
+    Level.high_performance_3,
+    Level.high_performance_4,
+    Level.pre_junior,
+    Level.junior,
+    Level.senior,
+    Level.olympic,
+)
 
-# Built exhaustively over Level rather than with a `.get(level, BAND_8_PLUS)` default:
-# a level added to the enum without a band assignment should fail loudly in the tests,
-# not silently acquire the full FIG panel.
+# Every band is listed explicitly rather than one being the complement of the others.
+# A complement silently absorbs any Level added later, which is exactly the "new level
+# quietly acquires the full FIG panel" failure this map exists to prevent -- and it
+# makes the coverage test below unfalsifiable. With three explicit tuples, an unbanded
+# level is simply absent: profile_for_level raises KeyError and the test fails.
 _PROFILE_BY_LEVEL: dict[Level, ScoringProfile] = {
     **dict.fromkeys(_BAND_1_3_LEVELS, BAND_1_3),
     **dict.fromkeys(_BAND_4_7_LEVELS, BAND_4_7),
-    **dict.fromkeys(
-        (level for level in Level if level not in (*_BAND_1_3_LEVELS, *_BAND_4_7_LEVELS)),
-        BAND_8_PLUS,
-    ),
+    **dict.fromkeys(_BAND_8_PLUS_LEVELS, BAND_8_PLUS),
 }
 
 

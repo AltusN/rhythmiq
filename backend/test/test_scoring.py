@@ -15,6 +15,7 @@ import pytest
 
 from app.models import Level, Panel
 from app.scoring import (
+    _PROFILE_BY_LEVEL,
     BAND_1_3,
     BAND_4_7,
     BAND_8_PLUS,
@@ -25,7 +26,6 @@ from app.scoring import (
     compute_routine_score,
     is_panel_valid_for_level,
     medal_for_total,
-    profile_for_level,
     rank_all_around,
     rank_apparatus,
     trimmed_mean,
@@ -235,11 +235,11 @@ def test_is_panel_valid_for_level(level, valid_panels, panel):
     assert is_panel_valid_for_level(level, panel) == (panel in valid_panels)
 
 
-@pytest.mark.parametrize("level", list(Level))
-def test_every_level_has_a_scoring_profile(level):
-    # The map is built exhaustively rather than with a default, so a Level added to the
-    # enum without a band assignment fails here instead of silently scoring as 8+.
-    assert profile_for_level(level) in (BAND_1_3, BAND_4_7, BAND_8_PLUS)
+def test_every_level_is_explicitly_banded():
+    # Set equality, not per-level lookup: no band is built as the complement of the
+    # others, so a Level added to the enum without a band assignment is simply missing
+    # here and this fails -- which is the whole point of the map being explicit.
+    assert set(_PROFILE_BY_LEVEL) == set(Level)
 
 
 def test_band_profiles_match_the_spec():
