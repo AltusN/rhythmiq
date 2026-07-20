@@ -56,3 +56,19 @@ test("clicking inside the dialog panel does not close it", async () => {
   await userEvent.click(screen.getByText("Body content"));
   expect(onClose).not.toHaveBeenCalled();
 });
+
+// Guard only, not a behavioural test. jsdom has no layout engine, so it cannot be
+// asked whether an over-tall panel puts Save out of reach — the actual bug this
+// prevents (observed on the gymnast edit form at ~700px viewport height, where the
+// title and both buttons overflowed off the ends of a non-scrolling fixed overlay).
+// Asserting the classes at least fails loudly if someone strips them while restyling.
+test("panel is height-capped and scrolls internally", () => {
+  render(
+    <FormDialog open title="Edit thing" onClose={vi.fn()}>
+      <p>Body</p>
+    </FormDialog>,
+  );
+  const dialog = screen.getByRole("dialog", { name: "Edit thing" });
+  expect(dialog).toHaveClass("max-h-[90vh]");
+  expect(dialog).toHaveClass("overflow-y-auto");
+});
