@@ -18,9 +18,17 @@ covered rather than just a couple of rows. Specifically it guarantees:
 - meets with and without medal cutoffs
 - routines fully scored (completed meet), partially scored (in progress) and unscored
 
-Scoring note: `scoring.py` uses TRIM_THRESHOLD = 4 -- `trimmed_mean` discards the highest
-and lowest mark, so a panel with fewer than 4 judges contributes ZERO. Every scored panel
-here therefore gets exactly 4 marks, or the totals would read 0.00 and look like a bug.
+Scoring note: `scoring.py` uses TRIM_THRESHOLD = 4 -- with 4 or more marks `trimmed_mean`
+discards the highest and lowest; with fewer it returns the plain average, and only an
+empty panel yields 0. (Note scoring.py's own docstring wrongly claims it returns 0 below
+the threshold -- the code does not.) Every scored panel here gets 4 marks so the trimming
+path itself is exercised.
+
+Caveat worth knowing: the app's judge panel UI models a SMALL panel -- one D judge
+covering both difficulty subgroups, four E judges, one A judge -- so in real use D-Body,
+D-App and artistry each receive a single mark and take the plain-average path. This seed
+deliberately populates 4 marks per panel to exercise trimming, which means it is not a
+faithful reproduction of what the panel UI can produce.
 
 Randomness is seeded with a fixed value, so repeated runs against a fresh database produce
 identical data.
