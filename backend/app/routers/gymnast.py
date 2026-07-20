@@ -8,6 +8,9 @@ Design notes:
   If the update contains a non-None club_id, we verify that club exists
   before applying. Setting club_id=None makes the gymnast independent.
 - DELETE: cascades to MeetEntry/Routine via the ORM. No RESTRICT concern.
+- 409s: two different unique constraints can fire (identity and gsa_number), so
+  _conflict_detail inspects the IntegrityError to report the right one. The
+  frontend renders `detail` verbatim, so a wrong message is user-visible.
 """
 
 from typing import Annotated
@@ -21,6 +24,13 @@ from app.models import Club, Group, Gymnast
 from app.schemas.gymnast import GymnastCreate, GymnastRead, GymnastUpdate
 
 router = APIRouter(prefix="/gymnasts", tags=["Gymnasts"])
+
+
+def _conflict_detail(exc: IntegrityError, payload: GymnastCreate | GymnastUpdate) -> str:
+    """Name the constraint the write actually violated, not just the identity one."""
+    if "uq_gymnast_gsa_number" in str(exc.orig):
+        return f"A gymnast with GSA number '{payload.gsa_number}' already exists"
+    return f"Gymnast with name '{payload.first_name} {payload.last_name}' already exists"
 
 
 @router.post("/", response_model=GymnastRead, status_code=status.HTTP_201_CREATED)
@@ -53,11 +63,11 @@ def create_gymnast(payload: GymnastCreate, db: Annotated[Session, Depends(get_db
         db.flush()  # Flush to check for integrity errors before commit
         db.commit()
         db.refresh(gymnast)
-    except IntegrityError:
+    except IntegrityError as exc:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Gymnast with name '{payload.first_name} {payload.last_name}' already exists",
+            detail=_conflict_detail(exc, payload),
         ) from None
     return gymnast
 
@@ -127,11 +137,11 @@ def update_gymnast(
         db.flush()  # Flush to check for integrity errors before commit
         db.commit()
         db.refresh(gymnast)
-    except IntegrityError:
+    except IntegrityError as exc:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Gymnast with name '{payload.first_name} {payload.last_name}' already exists",
+            detail=_conflict_detail(exc, payload),
         ) from None
     return gymnast
 
