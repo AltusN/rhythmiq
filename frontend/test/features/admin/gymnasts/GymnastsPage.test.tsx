@@ -608,3 +608,68 @@ test("does not show ethnicity in the roster table", async () => {
     screen.queryByRole("columnheader", { name: /ethnicity/i }),
   ).not.toBeInTheDocument();
 });
+
+test("edit prefills ethnicity and GSA number from the existing gymnast", async () => {
+  mockBase([
+    makeGymnast({
+      id: 10,
+      first_name: "Anna",
+      last_name: "Botha",
+      ethnicity: "indian",
+      gsa_number: "GSA-777",
+    }),
+  ]);
+  renderApp("/admin/gymnasts");
+  await userEvent.click(await screen.findByRole("button", { name: "Edit Anna Botha" }));
+  expect((screen.getByLabelText("Ethnicity") as HTMLSelectElement).value).toBe("indian");
+  expect((screen.getByLabelText("GSA number") as HTMLInputElement).value).toBe("GSA-777");
+});
+
+test("edit: clearing ethnicity and GSA number sends explicit nulls", async () => {
+  mockBase([
+    makeGymnast({
+      id: 10,
+      first_name: "Anna",
+      last_name: "Botha",
+      ethnicity: "indian",
+      gsa_number: "GSA-777",
+    }),
+  ]);
+  let patched: Record<string, unknown> | null = null;
+  server.use(
+    http.patch(api("/gymnasts/:gymnastId"), async ({ request }) => {
+      patched = (await request.json()) as Record<string, unknown>;
+      return HttpResponse.json(makeGymnast({ id: 10 }));
+    }),
+  );
+  renderApp("/admin/gymnasts");
+  await userEvent.click(await screen.findByRole("button", { name: "Edit Anna Botha" }));
+  await userEvent.selectOptions(screen.getByLabelText("Ethnicity"), "");
+  await userEvent.clear(screen.getByLabelText("GSA number"));
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(patched).toEqual({ ethnicity: null, gsa_number: null }));
+});
+
+test("edit: changing only ethnicity sends only that field in the PATCH body", async () => {
+  mockBase([
+    makeGymnast({
+      id: 10,
+      first_name: "Anna",
+      last_name: "Botha",
+      ethnicity: "indian",
+      gsa_number: "GSA-777",
+    }),
+  ]);
+  let patched: Record<string, unknown> | null = null;
+  server.use(
+    http.patch(api("/gymnasts/:gymnastId"), async ({ request }) => {
+      patched = (await request.json()) as Record<string, unknown>;
+      return HttpResponse.json(makeGymnast({ id: 10 }));
+    }),
+  );
+  renderApp("/admin/gymnasts");
+  await userEvent.click(await screen.findByRole("button", { name: "Edit Anna Botha" }));
+  await userEvent.selectOptions(screen.getByLabelText("Ethnicity"), "black");
+  await userEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(patched).toEqual({ ethnicity: "black" }));
+});

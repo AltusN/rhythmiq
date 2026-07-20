@@ -591,3 +591,28 @@ def test_create_gymnast_duplicate_gsa_number_returns_409(client, db_session):
 
     assert response.status_code == 409
     assert "GSA" in response.json()["detail"]
+
+
+def test_update_gymnast_duplicate_gsa_number_returns_409(client, db_session):
+    # Stands alone: the router-test fixture shares one transaction per test, so a
+    # 409's db.rollback() here would undo any commits made earlier in the same test.
+    owner = client.post(
+        "/gymnasts",
+        json={"first_name": "Owner", "last_name": "OfNumber", "gsa_number": "GSA-PATCH-DUP"},
+    )
+    assert owner.status_code == 201
+
+    other = client.post(
+        "/gymnasts",
+        json={"first_name": "Other", "last_name": "Gymnast", "gsa_number": "GSA-OWN-2"},
+    )
+    assert other.status_code == 201
+    other_id = other.json()["id"]
+
+    response = client.patch(
+        f"/gymnasts/{other_id}",
+        json={"gsa_number": "GSA-PATCH-DUP"},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "A gymnast with GSA number 'GSA-PATCH-DUP' already exists"
