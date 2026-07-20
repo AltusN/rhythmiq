@@ -7,6 +7,7 @@ import { ErrorBanner } from "../../components/ErrorBanner";
 import {
   labelize,
   MEET_STATUS_TRANSITIONS,
+  meetStatusBadgeClass,
   STATUS_ACTION_LABELS,
 } from "../../lib/domain";
 import { FormDialog } from "../admin/components/FormDialog";
@@ -103,7 +104,7 @@ export function MeetShell() {
           <h1 className="text-2xl font-bold">{meet.name}</h1>
           <p className="text-sm text-gray-500">
             {meet.location} · {meet.start_date} – {meet.end_date} ·{" "}
-            <span className="rounded bg-gray-100 px-2 py-0.5">
+            <span className={`rounded px-2 py-0.5 ${meetStatusBadgeClass(meet.status)}`}>
               {labelize(meet.status)}
             </span>
           </p>

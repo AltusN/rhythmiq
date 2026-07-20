@@ -138,18 +138,58 @@ test("keeps the dialog open and shows the detail on a duplicate-identity 409", a
   expect(screen.getByLabelText("First name")).toBeInTheDocument();
 });
 
-test("filters by country as a server round trip", async () => {
-  const seen: (string | null)[] = [];
+test("offers a country that is not in any hardcoded list", async () => {
+  // Judge.country_code is free text, so the filter must not assume a fixed set.
   server.use(
-    http.get(api("/judges/"), ({ request }) => {
-      seen.push(new URL(request.url).searchParams.get("country_code"));
-      return HttpResponse.json([makeJudge({ id: 1, first_name: "Naledi", last_name: "Dlamini" })]);
+    http.get(api("/judges/"), () =>
+      HttpResponse.json([
+        makeJudge({ id: 1, first_name: "Chloé", last_name: "Martin", country_code: "FRA" }),
+      ]),
+    ),
+  );
+  renderApp("/admin/judges");
+  expect(await screen.findByText("Chloé")).toBeInTheDocument();
+  const filter = within(screen.getByLabelText("Country"));
+  expect(filter.getByRole("option", { name: "FRA" })).toBeInTheDocument();
+});
+
+test("filters by country client-side without refetching", async () => {
+  let calls = 0;
+  server.use(
+    http.get(api("/judges/"), () => {
+      calls += 1;
+      return HttpResponse.json([
+        makeJudge({ id: 1, first_name: "Naledi", last_name: "Dlamini", country_code: "RSA" }),
+        makeJudge({ id: 2, first_name: "Chloé", last_name: "Martin", country_code: "FRA" }),
+      ]);
     }),
   );
   renderApp("/admin/judges");
   expect(await screen.findByText("Naledi")).toBeInTheDocument();
-  await userEvent.selectOptions(screen.getByLabelText("Country"), "BUL");
-  await waitFor(() => expect(seen).toContain("BUL"));
+  const before = calls;
+  await userEvent.selectOptions(screen.getByLabelText("Country"), "FRA");
+  await waitFor(() => expect(screen.queryByText("Naledi")).not.toBeInTheDocument());
+  expect(screen.getByText("Chloé")).toBeInTheDocument();
+  expect(calls).toBe(before);
+});
+
+test("keeps every country selectable after filtering to one", async () => {
+  // Regression guard: deriving options from the *filtered* rows would collapse the
+  // dropdown to the selected country and strand the user on it.
+  server.use(
+    http.get(api("/judges/"), () =>
+      HttpResponse.json([
+        makeJudge({ id: 1, first_name: "Naledi", last_name: "Dlamini", country_code: "RSA" }),
+        makeJudge({ id: 2, first_name: "Chloé", last_name: "Martin", country_code: "FRA" }),
+      ]),
+    ),
+  );
+  renderApp("/admin/judges");
+  expect(await screen.findByText("Naledi")).toBeInTheDocument();
+  await userEvent.selectOptions(screen.getByLabelText("Country"), "FRA");
+  await waitFor(() => expect(screen.queryByText("Naledi")).not.toBeInTheDocument());
+  const filter = within(screen.getByLabelText("Country"));
+  expect(filter.getByRole("option", { name: "RSA" })).toBeInTheDocument();
 });
 
 test("search filters rows client-side without refetching", async () => {
@@ -170,4 +210,25 @@ test("search filters rows client-side without refetching", async () => {
   await waitFor(() => expect(screen.queryByText("Naledi")).not.toBeInTheDocument());
   expect(screen.getByText("Elena")).toBeInTheDocument();
   expect(calls).toBe(before);
+});
+
+test("country code shows its expected format without silently truncating", async () => {
+  // The 3-letter rule was validated but invisible until submit, so the field shows a
+  // hint. It deliberately has NO maxLength: capping at 3 would turn a pasted
+  // "South Africa" into "Sou", which passes /^[A-Za-z]{3}$/ and saves a wrong country.
+  // A loud error beats silent corruption on a coded field.
+  server.use(http.get(api("/judges/"), () => HttpResponse.json([])));
+  renderApp("/admin/judges");
+  await userEvent.click(await screen.findByRole("button", { name: "New judge" }));
+  const country = screen.getByLabelText("Country code");
+  expect(country).toHaveAttribute("placeholder", "RSA");
+  expect(country).not.toHaveAttribute("maxLength");
+});
+
+test("name fields are capped at the length the schema enforces", async () => {
+  server.use(http.get(api("/judges/"), () => HttpResponse.json([])));
+  renderApp("/admin/judges");
+  await userEvent.click(await screen.findByRole("button", { name: "New judge" }));
+  expect(screen.getByLabelText("First name")).toHaveAttribute("maxLength", "100");
+  expect(screen.getByLabelText("Last name")).toHaveAttribute("maxLength", "100");
 });

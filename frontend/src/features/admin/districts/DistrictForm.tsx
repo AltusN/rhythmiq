@@ -55,6 +55,7 @@ export function DistrictForm({
         <input
           {...register("name")}
           aria-label="Name"
+          maxLength={100}
           className="mt-1 block w-full rounded border border-gray-300 p-1"
         />
         {formState.errors.name && (

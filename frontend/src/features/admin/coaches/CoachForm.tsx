@@ -72,14 +72,14 @@ export function CoachForm({
       <ErrorBanner message={error} />
       <label className="text-sm">
         First name
-        <input {...register("first_name")} aria-label="First name" className={fieldClass} />
+        <input {...register("first_name")} aria-label="First name" maxLength={100} className={fieldClass} />
         {errors.first_name && (
           <span className="text-xs text-red-700">{errors.first_name.message}</span>
         )}
       </label>
       <label className="text-sm">
         Last name
-        <input {...register("last_name")} aria-label="Last name" className={fieldClass} />
+        <input {...register("last_name")} aria-label="Last name" maxLength={100} className={fieldClass} />
         {errors.last_name && (
           <span className="text-xs text-red-700">{errors.last_name.message}</span>
         )}

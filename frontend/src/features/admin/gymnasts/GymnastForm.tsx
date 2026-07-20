@@ -191,6 +191,7 @@ export function GymnastForm({
         <input
           {...register("country_code")}
           aria-label="Country code"
+          placeholder="RSA"
           className={fieldClass}
         />
         {errors.country_code && (
@@ -210,7 +211,7 @@ export function GymnastForm({
       </label>
       <label className="text-sm">
         GSA number
-        <input {...register("gsa_number")} aria-label="GSA number" className={fieldClass} />
+        <input {...register("gsa_number")} aria-label="GSA number" maxLength={32} className={fieldClass} />
         {errors.gsa_number && (
           <span className="text-xs text-red-700">{errors.gsa_number.message}</span>
         )}

@@ -67,12 +67,16 @@ export function ClubForm({
       <ErrorBanner message={error} />
       <label className="text-sm">
         Name
-        <input {...register("name")} aria-label="Name" className={fieldClass} />
+        <input {...register("name")} aria-label="Name" maxLength={100} className={fieldClass} />
         {errors.name && <span className="text-xs text-red-700">{errors.name.message}</span>}
       </label>
       <label className="text-sm">
         Abbreviation
-        <input {...register("abbreviation")} aria-label="Abbreviation" className={fieldClass} />
+        <input
+          {...register("abbreviation")}
+          aria-label="Abbreviation"
+          className={fieldClass}
+        />
         {errors.abbreviation && (
           <span className="text-xs text-red-700">{errors.abbreviation.message}</span>
         )}

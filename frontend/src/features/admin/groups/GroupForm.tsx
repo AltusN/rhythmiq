@@ -56,7 +56,7 @@ export function GroupForm({
       <ErrorBanner message={error} />
       <label className="text-sm">
         Name
-        <input {...register("name")} aria-label="Name" className={fieldClass} />
+        <input {...register("name")} aria-label="Name" maxLength={100} className={fieldClass} />
         {errors.name && <span className="text-xs text-red-700">{errors.name.message}</span>}
       </label>
       <div>

@@ -161,7 +161,26 @@ export function RoutineProfilesPage() {
             { header: "Owner", render: (p) => nameFor(p) },
             { header: "Apparatus", render: (p) => labelize(p.apparatus) },
             { header: "Level", render: (p) => labelize(p.level) },
-            { header: "Music URL", render: (p) => p.music_url ?? "—" },
+            {
+              header: "Music URL",
+              // Capped and truncated: the column is `table-layout: auto`, so an
+              // unbounded URL wraps and crushes the neighbouring columns rather than
+              // overflowing the page. `title` keeps the full value reachable.
+              render: (p) =>
+                p.music_url ? (
+                  <a
+                    href={p.music_url}
+                    title={p.music_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block max-w-[18rem] truncate text-blue-700 hover:underline"
+                  >
+                    {p.music_url}
+                  </a>
+                ) : (
+                  "—"
+                ),
+            },
           ]}
           rowLabel={(p) => `${nameFor(p)} ${labelize(p.apparatus)}`}
           onEdit={(p) => {

@@ -77,21 +77,21 @@ export function JudgeForm({
       <ErrorBanner message={error} />
       <label className="text-sm">
         First name
-        <input {...register("first_name")} aria-label="First name" className={fieldClass} />
+        <input {...register("first_name")} aria-label="First name" maxLength={100} className={fieldClass} />
         {errors.first_name && (
           <span className="text-xs text-red-700">{errors.first_name.message}</span>
         )}
       </label>
       <label className="text-sm">
         Last name
-        <input {...register("last_name")} aria-label="Last name" className={fieldClass} />
+        <input {...register("last_name")} aria-label="Last name" maxLength={100} className={fieldClass} />
         {errors.last_name && (
           <span className="text-xs text-red-700">{errors.last_name.message}</span>
         )}
       </label>
       <label className="text-sm">
         Country code
-        <input {...register("country_code")} aria-label="Country code" className={fieldClass} />
+        <input {...register("country_code")} aria-label="Country code" placeholder="RSA" className={fieldClass} />
         {errors.country_code && (
           <span className="text-xs text-red-700">{errors.country_code.message}</span>
         )}

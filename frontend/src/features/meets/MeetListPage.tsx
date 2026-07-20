@@ -5,7 +5,7 @@ import { apiDetail, client } from "../../api/client";
 import type { components } from "../../api/schema";
 import type { DistrictRead, MeetRead } from "../../api/types";
 import { ErrorBanner } from "../../components/ErrorBanner";
-import { labelize } from "../../lib/domain";
+import { labelize, meetStatusBadgeClass } from "../../lib/domain";
 import { FormDialog } from "../admin/components/FormDialog";
 import { useResourceDelete } from "../admin/hooks/useResourceDelete";
 import { MeetForm, type MeetBody } from "./MeetForm";
@@ -136,7 +136,9 @@ export function MeetListPage() {
                 </span>
               </span>
             </Link>
-            <span className="ml-3 rounded bg-gray-100 px-2 py-1 text-xs">
+            <span
+              className={`ml-3 rounded px-2 py-1 text-xs ${meetStatusBadgeClass(meet.status)}`}
+            >
               {labelize(meet.status)}
             </span>
             <button

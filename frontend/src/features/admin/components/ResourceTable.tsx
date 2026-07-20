@@ -24,22 +24,22 @@ export function ResourceTable<T extends { id: number }>({
       <thead>
         <tr className="border-b border-gray-300 text-left">
           {columns.map((c) => (
-            <th key={c.header} className="py-1">
+            <th key={c.header} className="px-2 py-1">
               {c.header}
             </th>
           ))}
-          <th className="py-1" />
+          <th className="px-2 py-1" />
         </tr>
       </thead>
       <tbody>
         {rows.map((row) => (
           <tr key={row.id} className="border-b border-gray-200">
             {columns.map((c) => (
-              <td key={c.header} className="py-1">
+              <td key={c.header} className="px-2 py-1">
                 {c.render(row)}
               </td>
             ))}
-            <td className="py-1 text-right">
+            <td className="whitespace-nowrap px-2 py-1 text-right">
               <button
                 type="button"
                 aria-label={`Edit ${rowLabel(row)}`}

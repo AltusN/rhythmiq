@@ -336,3 +336,31 @@ test("clearing the music URL sends null", async () => {
   await userEvent.click(screen.getByRole("button", { name: "Save" }));
   await waitFor(() => expect(patched).toEqual({ music_url: null }));
 });
+
+test("renders the music URL as a link carrying the full value in a title", async () => {
+  // Long URLs are truncated on screen, so the untruncated value has to stay reachable.
+  const url = "https://music.example.com/library/2026/ana-meyer-ribbon-senior-final-mix.mp3";
+  seedOwners();
+  server.use(
+    http.get(api("/routine-profiles/"), () =>
+      HttpResponse.json([makeRoutineProfile({ id: 1, gymnast_id: 1, music_url: url })]),
+    ),
+  );
+  renderApp("/admin/routine-profiles");
+  const link = await screen.findByRole("link", { name: url });
+  expect(link).toHaveAttribute("href", url);
+  expect(link).toHaveAttribute("title", url);
+});
+
+test("renders an em dash, not a link, when there is no music URL", async () => {
+  seedOwners();
+  server.use(
+    http.get(api("/routine-profiles/"), () =>
+      HttpResponse.json([makeRoutineProfile({ id: 1, gymnast_id: 1, music_url: null })]),
+    ),
+  );
+  renderApp("/admin/routine-profiles");
+  expect(await screen.findByText("Ana Meyer")).toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: /music/i })).not.toBeInTheDocument();
+  expect(within(screen.getByRole("table")).getByText("—")).toBeInTheDocument();
+});

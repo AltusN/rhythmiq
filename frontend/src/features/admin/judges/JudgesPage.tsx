@@ -9,8 +9,16 @@ import { useResourceDelete } from "../hooks/useResourceDelete";
 import { useResourceList } from "../hooks/useResourceList";
 import { JudgeForm, type JudgeBody } from "./JudgeForm";
 
-/** Countries offered by the filter. Judges are few; a free-text filter would be worse. */
-const COUNTRIES = ["RSA", "BUL", "RUS", "ESP", "ITA", "JPN", "UKR", "USA"];
+/**
+ * Countries offered by the filter, derived from the loaded judges rather than a fixed
+ * list — `Judge.country_code` is free text, so any hardcoded set silently hides the
+ * first judge from a country not on it. Derived from the *unfiltered* rows so that
+ * selecting a country cannot narrow away the other options.
+ */
+function countryOptions(judges: JudgeRead[]): string[] {
+  const seen = new Set(judges.map((j) => j.country_code).filter((c): c is string => !!c));
+  return [...seen].sort();
+}
 
 export function JudgesPage() {
   const queryClient = useQueryClient();
@@ -19,18 +27,19 @@ export function JudgesPage() {
   const [dialog, setDialog] = useState<{ row: JudgeRead | null } | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Country filters client-side, like search: judges are few and unpaginated, so one
+  // fetch serves every filter combination and the dropdown can be built from the data.
   const list = useResourceList<JudgeRead>({
-    queryKey: ["judges", country],
+    queryKey: ["judges"],
     fetchRows: async () => {
-      const { data, error } = await client.GET("/judges/", {
-        params: { query: country === "" ? {} : { country_code: country } },
-      });
+      const { data, error } = await client.GET("/judges/", { params: { query: {} } });
       if (error) throw new Error(apiDetail(error));
       return data;
     },
     search,
     searchText: (j) => `${j.first_name} ${j.last_name} ${j.brevet ?? ""}`,
   });
+  const rows = country === "" ? list.rows : list.rows.filter((j) => j.country_code === country);
 
   const saveMutation = useMutation({
     mutationFn: async (body: JudgeBody) => {
@@ -113,7 +122,7 @@ export function JudgesPage() {
             className="ml-2 rounded border border-gray-300 p-1"
           >
             <option value="">— all —</option>
-            {COUNTRIES.map((c) => (
+            {countryOptions(list.allRows).map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
@@ -124,7 +133,7 @@ export function JudgesPage() {
       <ErrorBanner message={list.error ?? deleteError} />
       {list.loaded && (
         <ResourceTable
-          rows={list.rows}
+          rows={rows}
           columns={[
             { header: "First name", render: (j) => j.first_name },
             { header: "Last name", render: (j) => j.last_name },

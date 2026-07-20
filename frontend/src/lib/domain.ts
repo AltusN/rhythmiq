@@ -40,6 +40,23 @@ export function labelize(value: string): string {
   return value.replace(/_/g, " ");
 }
 
+/**
+ * Badge colour per meet status. Colour reinforces the text label, never replaces it,
+ * so nothing here is load-bearing for accessibility. `in_progress` gets the loudest
+ * colour: on meet day the live meet is the one you need to find at a glance.
+ */
+const MEET_STATUS_BADGE_CLASSES: Record<MeetStatus, string> = {
+  draft: "bg-gray-100 text-gray-700",
+  scheduled: "bg-blue-100 text-blue-800",
+  in_progress: "bg-green-100 text-green-800",
+  completed: "bg-slate-200 text-slate-700",
+  cancelled: "bg-red-100 text-red-800 line-through",
+};
+
+export function meetStatusBadgeClass(status: MeetStatus): string {
+  return MEET_STATUS_BADGE_CLASSES[status];
+}
+
 export function isMeetLocked(status: MeetStatus): boolean {
   return status === "completed" || status === "cancelled";
 }
