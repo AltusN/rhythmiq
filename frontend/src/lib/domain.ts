@@ -4,7 +4,12 @@ export const APPARATUS: Apparatus[] = [
   "rope", "hoop", "ball", "clubs", "ribbon", "freehand",
 ];
 
-export const AGE_GROUPS: AgeGroup[] = ["u8", "u10", "u12", "u14", "o14"];
+// Age order, matching the AgeGroup enum's declaration order in app/models.py and the
+// Postgres enum's sort order. Two bandings coexist: u7-o11 alongside the older
+// u12/u14/o14, which stay selectable because they are in live data.
+export const AGE_GROUPS: AgeGroup[] = [
+  "u7", "u8", "u9", "u10", "u11", "o11", "u12", "u14", "o14",
+];
 
 export const LEVELS: Level[] = [
   "level_1", "level_2", "level_3", "level_4", "level_5", "level_6", "level_7",

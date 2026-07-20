@@ -45,8 +45,17 @@ class Apparatus(StrEnum):
 
 
 class AgeGroup(StrEnum):
+    # Two banding schemes coexist by design: u7-o11 alongside the older
+    # u12/u14/o14, which stay because they are in live data and remain
+    # selectable. Members are declared in age order because Postgres sorts an
+    # enum by DEFINITION order, not alphabetically -- the migration positions the
+    # added values with BEFORE/AFTER to match this, so keep the two in step.
+    under_7 = "u7"
     under_8 = "u8"
+    under_9 = "u9"
     under_10 = "u10"
+    under_11 = "u11"
+    over_11 = "o11"
     under_12 = "u12"
     under_14 = "u14"
     over_14 = "o14"

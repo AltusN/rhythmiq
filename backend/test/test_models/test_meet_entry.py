@@ -8,6 +8,7 @@ Tests for the MeetEntry model, including:
 """
 
 import pytest
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
 from app.models import AgeGroup, Level, MeetEntry
@@ -171,3 +172,48 @@ def test_level_no_longer_has_retired_elite_members():
     assert "elite_2" not in Level.__members__
     assert "junior_elite" not in Level.__members__
     assert len(Level.__members__) == 18
+
+
+NEW_AGE_GROUPS = [AgeGroup.under_7, AgeGroup.under_9, AgeGroup.under_11, AgeGroup.over_11]
+
+
+@pytest.mark.parametrize("age_group", NEW_AGE_GROUPS)
+def test_meet_entry_accepts_the_new_age_groups(db_session, age_group):
+    meet = make_meet(db_session)
+    gymnast = make_gymnast(db_session)
+    entry = make_meet_entry(db_session, meet, gymnast, age_group=age_group)
+    db_session.commit()
+
+    assert db_session.query(MeetEntry).filter_by(id=entry.id).one().age_group is age_group
+
+
+def test_age_group_enum_order_matches_the_database(db_session):
+    """
+    Postgres sorts an enum by DEFINITION order, not alphabetically, so the order
+    the migration built with BEFORE/AFTER must match AgeGroup's declaration order.
+    Appending instead of positioning would put u7/u9/u11/o11 after o14 and make any
+    ORDER BY on this column meaningless -- nothing else in the suite would notice.
+    """
+    stored = [
+        row[0]
+        for row in db_session.execute(
+            text(
+                "SELECT enumlabel FROM pg_enum e "
+                "JOIN pg_type t ON t.oid = e.enumtypid "
+                "WHERE t.typname = 'agegroup' ORDER BY enumsortorder"
+            )
+        )
+    ]
+
+    assert stored == [member.name for member in AgeGroup]
+    assert stored == [
+        "under_7",
+        "under_8",
+        "under_9",
+        "under_10",
+        "under_11",
+        "over_11",
+        "under_12",
+        "under_14",
+        "over_14",
+    ]

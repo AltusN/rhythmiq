@@ -569,7 +569,7 @@ export interface components {
          * AgeGroup
          * @enum {string}
          */
-        AgeGroup: "u8" | "u10" | "u12" | "u14" | "o14";
+        AgeGroup: "u7" | "u8" | "u9" | "u10" | "u11" | "o11" | "u12" | "u14" | "o14";
         /** AllAroundStandingRow */
         AllAroundStandingRow: {
             /**
