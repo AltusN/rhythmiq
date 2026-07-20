@@ -606,7 +606,7 @@ it("rejects a deduction above 10", async () => {
   expect(await screen.findByText("Max 10")).toBeInTheDocument();
 });
 
-it("accepts a final mark up to 13", async () => {
+it("rejects a final mark above 13", async () => {
   const user = userEvent.setup();
   await renderScoringPageWithEntry({ level: "level_1" });
 
@@ -614,4 +614,16 @@ it("accepts a final mark up to 13", async () => {
   await user.click(screen.getByRole("button", { name: "Save" }));
 
   expect(await screen.findByText("Max 13")).toBeInTheDocument();
+});
+
+it("accepts a final mark of exactly 13", async () => {
+  const user = userEvent.setup();
+  captureJudgeScorePosts();
+  await renderScoringPageWithEntry({ level: "level_1" });
+
+  await user.type(await screen.findByLabelText("Final"), "13.00");
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  // 13.00 is exactly at the Panel.final ceiling — no validation rejection.
+  expect(screen.queryByText("Max 13")).toBeNull();
 });
