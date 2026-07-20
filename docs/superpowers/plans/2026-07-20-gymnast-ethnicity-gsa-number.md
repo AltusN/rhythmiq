@@ -289,19 +289,44 @@ Add to **`GymnastCreate`**, after `country_code`:
 Add the identical two field declarations to **`GymnastUpdate`** and to **`GymnastRead`**
 (on `GymnastRead` the comments are unnecessary — just the two annotated fields).
 
-Add this validator to **both** `GymnastCreate` and `GymnastUpdate`:
+The normalisation is shared by `GymnastCreate` and `GymnastUpdate` via a mixin, NOT
+copied into both classes. Define it above `GymnastCreate`:
 
 ```python
+class _GsaNumberNormalizer:
+    """
+    Shared by GymnastCreate and GymnastUpdate.
+
+    "" would otherwise be stored literally and collide with the next blank entry
+    under uq_gymnast_gsa_number, so empty input becomes NULL.
+    """
+
     @field_validator("gsa_number", mode="before")
     @classmethod
     def normalize_gsa_number(cls, v: str | None) -> str | None:
-        # "" would otherwise be stored literally and collide with the next blank
-        # entry under uq_gymnast_gsa_number, so empty input becomes NULL.
         if isinstance(v, str):
             v = v.strip()
             return v or None
         return v
 ```
+
+Then change both class declarations, mixin first in the MRO:
+
+```python
+class GymnastCreate(_GsaNumberNormalizer, BaseModel):
+class GymnastUpdate(_GsaNumberNormalizer, BaseModel):
+```
+
+`GymnastRead` does NOT get the mixin — it reads already-normalised values out of the
+database.
+
+This idiom is verified working on the repo's Pydantic 2.13.4: a plain (non-`BaseModel`)
+mixin holding a decorated `field_validator` is collected during model construction.
+
+Note this deliberately departs from the surrounding `strip_whitespace` /
+`validate_country_code` validators, which ARE duplicated across Create and Update. Do not
+"fix" those to match, and do not fold them into the mixin — that refactor is out of scope
+for this feature. See the DECISION line in the progress ledger.
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
