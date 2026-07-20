@@ -329,6 +329,7 @@ class TestRoutineScoreRead:
             "d_score": "5.30",
             "a_score": "9.25",
             "e_score": "8.65",
+            "final_score": "0.00",
             "penalty": "0.30",
             "total": "22.90",
         }
@@ -337,6 +338,7 @@ class TestRoutineScoreRead:
         assert score.d_score == Decimal("5.30")
         assert score.a_score == Decimal("9.25")
         assert score.e_score == Decimal("8.65")
+        assert score.final_score == Decimal("0.00")
         assert score.penalty == Decimal("0.30")
         assert score.total == Decimal("22.90")
 

@@ -2366,7 +2366,7 @@
           "Judge Scores"
         ],
         "summary": "Create Judge Score",
-        "description": "Create a new judge score.\n\nDesign notes:\n- Levels 1-7 are Execution-only (see app.scoring.E_ONLY_LEVELS) -- a difficulty_body/\n  difficulty_apparatus/artistry mark against a routine at one of those levels is\n  rejected with a 422, since the payload is invalid for that routine's level, not\n  merely in conflict with existing data.\n- Known limitation: this level/panel gate only runs at this HTTP API boundary, since\n  it needs a cross-table join (routine -> entry -> level) that a Postgres CHECK\n  constraint can't express. Direct ORM writes (test factories, future seed/admin\n  scripts) bypass it entirely, unlike ck_judge_score_panel_value_cap which is a real\n  DB constraint enforced everywhere.",
+        "description": "Create a new judge score.\n\nDesign notes:\n- Which panels are legal depends on the routine's level band (see\n  app.scoring.profile_for_level): levels 1-3 accept only `final`, levels 4-7 accept\n  `difficulty_body` and `execution`, levels 8+ accept the full D/A/E set. A mark on\n  a panel outside that set is rejected with a 422, since the payload is invalid for\n  that routine's level, not merely in conflict with existing data.\n- Known limitation: this level/panel gate only runs at this HTTP API boundary, since\n  it needs a cross-table join (routine -> entry -> level) that a Postgres CHECK\n  constraint can't express. Direct ORM writes (test factories, future seed/admin\n  scripts) bypass it entirely, unlike ck_judge_score_panel_value_cap which is a real\n  DB constraint enforced everywhere.",
         "operationId": "create_judge_score_judge_scores__post",
         "requestBody": {
           "required": true,
@@ -3265,6 +3265,12 @@
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "E Score"
           },
+          "final_score": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Final Score",
+            "description": "Levels 1-3 only: the single pre-aggregated mark out of 13. 0 at every other level, where the score is built from the D/A/E panels instead."
+          },
           "penalty": {
             "type": "string",
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
@@ -3306,6 +3312,7 @@
           "d_score",
           "a_score",
           "e_score",
+          "final_score",
           "penalty",
           "total"
         ],
@@ -5183,6 +5190,12 @@
             "title": "E Score",
             "description": "Execution score (trimmed mean of execution marks)."
           },
+          "final_score": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Final Score",
+            "description": "Levels 1-3 only: the single pre-aggregated mark out of 13. 0 at every other level, where the score is built from the D/A/E panels instead."
+          },
           "penalty": {
             "type": "string",
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
@@ -5202,6 +5215,7 @@
           "d_score",
           "a_score",
           "e_score",
+          "final_score",
           "penalty",
           "total"
         ],

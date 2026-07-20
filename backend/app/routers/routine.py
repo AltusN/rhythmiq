@@ -113,6 +113,7 @@ def get_routine_score(routine_id: int, db: Annotated[Session, Depends(get_db)]) 
         d_score=result.d_score,
         a_score=result.a_score,
         e_score=result.e_score,
+        final_score=result.final_score,
         penalty=result.penalty,
         total=result.total,
     )

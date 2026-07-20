@@ -468,6 +468,29 @@ def test_compute_routine_score_level_4_7_averages_the_two_db_marks():
     assert result.total == Decimal("11.10")
 
 
+def test_compute_routine_score_level_4_7_ignores_marks_on_out_of_band_panels():
+    # Same protection band 1-3 gets: the API's panel gate is HTTP-only, so a stale
+    # artistry or difficulty_apparatus mark can reach a level 4-7 routine via a direct
+    # ORM write. Scoring it would inflate the total.
+    routine = _routine(
+        [
+            _mark(Panel.difficulty_body, "2.40"),
+            _mark(Panel.difficulty_body, "2.60"),
+            _mark(Panel.execution, "8.50"),
+            _mark(Panel.execution, "8.70"),
+            _mark(Panel.difficulty_apparatus, "3.00"),
+            _mark(Panel.artistry, "9.00"),
+        ],
+        level=Level.level_5,
+    )
+
+    result = compute_routine_score(routine)
+
+    assert result.d_score == Decimal("2.50")
+    assert result.a_score == Decimal("0")
+    assert result.total == Decimal("11.10")
+
+
 def test_compute_routine_score_8_plus_is_unchanged_and_has_zero_final():
     routine = _routine(
         [
@@ -481,6 +504,31 @@ def test_compute_routine_score_8_plus_is_unchanged_and_has_zero_final():
     result = compute_routine_score(routine)
 
     assert result.final_score == Decimal("0")
+    assert result.total == Decimal("25.00")
+
+
+def test_compute_routine_score_8_plus_ignores_marks_on_final_panel():
+    # Companion to the band 1-3 and 4-7 out-of-band guards: Panel.final is illegal at
+    # level 8+ (there is no pre-aggregated judge at this band), so a stray final mark
+    # left by a direct ORM write must not be added into the total.
+    routine = _routine(
+        [
+            _mark(Panel.difficulty_body, "5.00"),
+            _mark(Panel.difficulty_apparatus, "3.00"),
+            _mark(Panel.artistry, "8.00"),
+            _mark(Panel.execution, "9.00"),
+            _mark(Panel.final, "11.00"),
+        ]
+    )
+
+    result = compute_routine_score(routine)
+
+    # d_score = difficulty_body (5.00) + difficulty_apparatus (3.00) = 8.00
+    # a_score = trimmed_mean([8.00]) = 8.00 (single mark, no trimming below TRIM_THRESHOLD)
+    # e_score = trimmed_mean([9.00]) = 9.00
+    # total = 8.00 + 8.00 + 9.00 - 0 penalty = 25.00 -- identical to the total without the
+    # stray final mark, proving the illegal 11.00 mark contributed nothing.
+    assert result.final_score == Decimal("0.00")
     assert result.total == Decimal("25.00")
 
 

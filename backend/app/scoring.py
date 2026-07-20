@@ -195,8 +195,15 @@ def compute_routine_score(routine) -> RoutineScoreResult:
     penalty = routine.penalty
     profile = profile_for_level(routine.entry.level)
 
+    # Only panels legal for this band contribute. The API's panel gate is enforced at
+    # the HTTP boundary only (see routers/judge_score.py), so a direct ORM write can
+    # leave a mark on a panel this band does not use -- scoring it would silently
+    # inflate the total. Deriving the guard from profile.panels keeps it correct for
+    # every band automatically, rather than hand-zeroing one band at a time.
+    by_panel = {panel: marks for panel, marks in by_panel.items() if panel in profile.panels}
+
     if profile is BAND_1_3:
-        final_score = rounded(by_panel[Panel.final])
+        final_score = rounded(by_panel.get(Panel.final, []))
         return RoutineScoreResult(
             d_score=Decimal("0.00"),
             a_score=Decimal("0.00"),
@@ -206,11 +213,11 @@ def compute_routine_score(routine) -> RoutineScoreResult:
             total=quantized(final_score - penalty),
         )
 
-    db_score = rounded(by_panel[Panel.difficulty_body])
-    da_score = rounded(by_panel[Panel.difficulty_apparatus])
+    db_score = rounded(by_panel.get(Panel.difficulty_body, []))
+    da_score = rounded(by_panel.get(Panel.difficulty_apparatus, []))
     d_score = db_score + da_score
-    a_score = rounded(by_panel[Panel.artistry])
-    e_score = rounded(by_panel[Panel.execution])
+    a_score = rounded(by_panel.get(Panel.artistry, []))
+    e_score = rounded(by_panel.get(Panel.execution, []))
 
     return RoutineScoreResult(
         d_score=d_score,

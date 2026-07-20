@@ -72,5 +72,12 @@ class RoutineScoreRead(BaseModel):
     )
     a_score: Decimal = Field(..., description="Artistry score (trimmed mean of artistry marks).")
     e_score: Decimal = Field(..., description="Execution score (trimmed mean of execution marks).")
+    final_score: Decimal = Field(
+        ...,
+        description=(
+            "Levels 1-3 only: the single pre-aggregated mark out of 13. 0 at every "
+            "other level, where the score is built from the D/A/E panels instead."
+        ),
+    )
     penalty: Decimal = Field(..., description="Deduction applied to this routine's final score.")
     total: Decimal = Field(..., description="d_score + a_score + e_score - penalty.")

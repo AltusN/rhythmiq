@@ -98,6 +98,7 @@ def get_apparatus_standings(
                 d_score=standing.score.d_score,
                 a_score=standing.score.a_score,
                 e_score=standing.score.e_score,
+                final_score=standing.score.final_score,
                 penalty=standing.score.penalty,
                 total=standing.score.total,
                 medal=medal_for_total(

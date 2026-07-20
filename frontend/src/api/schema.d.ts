@@ -434,10 +434,11 @@ export interface paths {
          * @description Create a new judge score.
          *
          *     Design notes:
-         *     - Levels 1-7 are Execution-only (see app.scoring.E_ONLY_LEVELS) -- a difficulty_body/
-         *       difficulty_apparatus/artistry mark against a routine at one of those levels is
-         *       rejected with a 422, since the payload is invalid for that routine's level, not
-         *       merely in conflict with existing data.
+         *     - Which panels are legal depends on the routine's level band (see
+         *       app.scoring.profile_for_level): levels 1-3 accept only `final`, levels 4-7 accept
+         *       `difficulty_body` and `execution`, levels 8+ accept the full D/A/E set. A mark on
+         *       a panel outside that set is rejected with a 422, since the payload is invalid for
+         *       that routine's level, not merely in conflict with existing data.
          *     - Known limitation: this level/panel gate only runs at this HTTP API boundary, since
          *       it needs a cross-table join (routine -> entry -> level) that a Postgres CHECK
          *       constraint can't express. Direct ORM writes (test factories, future seed/admin
@@ -675,6 +676,11 @@ export interface components {
             a_score: string;
             /** E Score */
             e_score: string;
+            /**
+             * Final Score
+             * @description Levels 1-3 only: the single pre-aggregated mark out of 13. 0 at every other level, where the score is built from the D/A/E panels instead.
+             */
+            final_score: string;
             /** Penalty */
             penalty: string;
             /** Total */
@@ -1337,6 +1343,11 @@ export interface components {
              * @description Execution score (trimmed mean of execution marks).
              */
             e_score: string;
+            /**
+             * Final Score
+             * @description Levels 1-3 only: the single pre-aggregated mark out of 13. 0 at every other level, where the score is built from the D/A/E panels instead.
+             */
+            final_score: string;
             /**
              * Penalty
              * @description Deduction applied to this routine's final score.
