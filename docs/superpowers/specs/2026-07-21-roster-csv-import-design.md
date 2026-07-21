@@ -203,15 +203,15 @@ the difference report becomes routinely long, that is the signal to add an opt-i
 ## Output
 
 ```
-Districts:  3 (0 created, 3 existing)
-Clubs:      6 (2 created, 4 existing)
-Gymnasts:  90 (88 created, 2 existing)
+Districts:   3 (0 created, 3 existing)
+Clubs:       6 (2 created, 4 existing)
+Gymnasts:   90 (88 created, 2 existing)
 
 2 existing gymnasts differ from the CSV (nothing changed):
-  Lia Hamman (GSA 31392)  club: Fynbos Gymnastics Club → Van Der Stel
-  Pippa Benade (GSA 54251)  ethnicity: NULL → white
+  Lia Hamman (GSA 31392)  club: Fynbos Gymnastics Club -> Van Der Stel
+  Pippa Benade (GSA 54251)  ethnicity: NULL -> white
 
-DRY RUN — nothing written. Re-run with --commit to apply.
+DRY RUN -- nothing written. Re-run with --commit to apply.
 ```
 
 With `--commit`, the final line becomes a confirmation that the transaction committed.
