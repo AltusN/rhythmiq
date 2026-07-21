@@ -3,6 +3,11 @@ Tests for scripts/import_roster.py.
 
 Split to mirror the script's own phases: parsing/validation and cross-row consistency
 are pure and need no database; import_roster gets the db_session fixture.
+
+fixtures/roster_sample.csv is entirely FABRICATED -- invented names, dates of birth and
+GSA numbers. Never copy rows out of a real roster in `bulkupload/`: those are minors, and
+anything committed here is public the moment the repo is. The fixture only needs to carry
+the shapes the tests care about (an accented name, a blank ethnicity, all 13 columns).
 """
 
 import sys
@@ -55,8 +60,8 @@ def test_parses_a_valid_csv():
 
     assert errors == []
     assert len(rows) == 3
-    assert rows[0].first_name == "Ané"  # UTF-8 survives the round trip
-    assert rows[0].date_of_birth == date(2015, 7, 15)
+    assert rows[0].first_name == "Zoë"  # UTF-8 survives the round trip
+    assert rows[0].date_of_birth == date(2014, 3, 5)
     assert rows[0].ethnicity is Ethnicity.white
     assert rows[0].level is Level.level_3
     assert rows[0].age_group is AgeGroup.under_11
@@ -67,7 +72,7 @@ def test_blank_ethnicity_parses_as_none_not_prefer_not_to_say():
     rows, errors = parse_csv(FIXTURES / "roster_sample.csv")
 
     assert errors == []
-    assert rows[1].first_name == "Pippa"
+    assert rows[1].first_name == "Thandi"
     assert rows[1].ethnicity is None
 
 

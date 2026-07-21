@@ -70,3 +70,7 @@ frontend/dist/
 # Claude Code local session config (not part of the project)
 .claude/settings.json
 .claude/settings.local.json
+
+# Real gymnast rosters -- names, dates of birth and GSA numbers of minors.
+# Never commit these; scripts/import_roster.py reads them from the working tree.
+bulkupload/
