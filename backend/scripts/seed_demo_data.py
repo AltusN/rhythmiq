@@ -61,6 +61,7 @@ from app.models import (
     Routine,
     RoutineProfile,
 )
+from app.scoring import profile_for_level
 
 SEED = 20260720
 
@@ -125,17 +126,34 @@ def _mark(rng: random.Random, low: str, high: str) -> Decimal:
 
 def _score_routine(db, rng: random.Random, routine: Routine, judges: list[Judge]) -> None:
     """
-    Give a routine a full set of marks: 4 per panel, which is what TRIM_THRESHOLD needs.
+    Give a routine marks that are legal for its scoring band (see app/scoring.py). The
+    seed writes JudgeScores via the ORM, which bypasses the API's panel-vs-level gate, so
+    it must respect the bands itself: a mark on a panel the band doesn't use would be
+    silently discarded by compute_routine_score and produce a misleading total.
 
-    Difficulty is uncapped; execution and artistry are capped at 10 by
+    - Levels 1-3: one pre-aggregated `final` mark out of 13, from a single judge.
+    - Levels 4-7: two `difficulty_body` judges + two `execution` judges (no DA, no
+      artistry); D is out of 3, so avg(DB) + E lands under the 13 cap.
+    - Levels 8+: the full D/A/E panel, 4 marks each (what TRIM_THRESHOLD needs to trim).
+
+    Difficulty is uncapped; execution/artistry are capped at 10 and `final` at 13 by
     ck_judge_score_panel_value_cap.
     """
-    panels = [
-        (Panel.difficulty_body, judges[0:4], "2.50", "6.00"),
-        (Panel.difficulty_apparatus, judges[0:4], "2.00", "5.50"),
-        (Panel.execution, judges[4:8], "6.00", "9.50"),
-        (Panel.artistry, judges[4:8], "6.50", "9.50"),
-    ]
+    band = profile_for_level(routine.entry.level).band
+    if band == "1-3":
+        panels = [(Panel.final, judges[0:1], "10.00", "13.00")]
+    elif band == "4-7":
+        panels = [
+            (Panel.difficulty_body, judges[0:2], "2.00", "3.00"),
+            (Panel.execution, judges[4:6], "7.00", "9.50"),
+        ]
+    else:  # 8+
+        panels = [
+            (Panel.difficulty_body, judges[0:4], "2.50", "6.00"),
+            (Panel.difficulty_apparatus, judges[0:4], "2.00", "5.50"),
+            (Panel.execution, judges[4:8], "6.00", "9.50"),
+            (Panel.artistry, judges[4:8], "6.50", "9.50"),
+        ]
     for panel, panel_judges, low, high in panels:
         for judge in panel_judges:
             db.add(
@@ -291,8 +309,11 @@ def run() -> None:
             start_date=date(2026, 4, 18),
             end_date=date(2026, 4, 19),
             status=MeetStatus.completed,
-            # Medal cutoffs exercise medal_for_total in scoring.py. Both or neither, and
-            # gold must exceed silver (ck_meet_medal_cutoffs_valid).
+            # Medal cutoffs apply ONLY to levels 1-3, and against the ALL-AROUND total
+            # (those bands compete on 2 apparatus at up to 13 each, so the scale is 0-26
+            # and a 24.00 gold cutoff is normal, not unreachable). Levels 4+ award medals
+            # by placement (assign_placement_medals) and ignore these fields entirely.
+            # Both or neither, and gold must exceed silver (ck_meet_medal_cutoffs_valid).
             medal_gold_min=Decimal("24.00"),
             medal_silver_min=Decimal("21.00"),
         )

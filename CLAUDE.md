@@ -101,7 +101,9 @@ and dropped with the table.
   Form + Zod mirroring DB constraints; `src/lib/score-math.ts` mirrors `app/scoring.py`
   (keep their worked-example tests in sync). Judge panel slot→judge mapping lives in
   localStorage per meet (`rhythmiq.panel.<meetId>`) — v1 only, becomes a backend
-  model with auth later. Frontend tests (Vitest + Testing Library + MSW) live in
+  model with auth later. Slots are band-dependent: `F` (levels 1–3), `DB1`/`DB2`
+  (4–7), `D`/`A1`/`A2` (8+), and `E1`–`E4`; a stored legacy `A` is read as `A1`.
+  Frontend tests (Vitest + Testing Library + MSW) live in
   `frontend/test/`, mirroring `frontend/src/`.
 
 ### Router conventions (mirrored across every resource)
@@ -157,6 +159,24 @@ Every resource router follows: `POST /`, `GET /`, `GET /{id}`, `PATCH /{id}`, `D
   Deliberately one column although FIG examines individual (RGI) and group (RGG) brevets
   separately — a judge can hold different categories in each; split it only when group
   judging is selected separately.
+- **Scoring bands** (`app/scoring.py`, mirrored in `frontend/src/lib/score-math.ts`):
+  one declarative band→profile table drives panel validity, D combination, tie-breaking
+  and medal mode. Levels 1–3 record a single pre-aggregated mark on `Panel.final`
+  (max 13, no averaging, no tie-break); levels 4–7 use two `difficulty_body` judges plus
+  two `execution` judges, `avg(DB) + E`, max 13; levels 8+ use the full FIG panel with
+  the Execution tie-break. The additive `DB + DA` formula covers 4–7 unchanged, since
+  `trimmed_mean([])` is 0. Adding a level to the `Level` enum without assigning it a
+  band fails `test_every_level_has_a_scoring_profile` — the backend map is exhaustive by
+  construction; the frontend deliberately falls back to 8+ instead of throwing.
+- **Two medal systems.** Levels 1–3 use `Meet.medal_gold_min`/`medal_silver_min` score
+  cutoffs against the **all-around** (2 apparatus, max 26). Levels 4+ use placement:
+  the first three **distinct ranks**, ties sharing a medal (`assign_placement_medals`) —
+  never `rank <= 3`, which denies bronze when two competitors tie for silver. Ranks
+  themselves stay competition-ranked (1,2,2,4); medal assignment is a separate pass.
+- **Execution is always a score out of 10 in the database**, at every level, so the
+  highest-E tie-break orders correctly. The score form speaks **deductions** and converts
+  at its own boundary in both directions (`deductionToScore` / `scoreToDeduction` in
+  `score-math.ts`). Levels 1–3 are not deductions and are stored exactly as entered.
 - Every resource listed above (`District` through `PenaltyRecord`) now has a full
   model/schema/router. `Judge`, `JudgeScore`, and `PenaltyRecord` were the last three to
   get routers.
@@ -165,9 +185,9 @@ Every resource router follows: `POST /`, `GET /`, `GET /{id}`, `PATCH /{id}`, `D
   apparatus) slice; `GET /meets/{id}/all-around?...` sums each entry's routine totals
   across apparatus within one (level, age_group) slice and ranks those sums. Both are
   computed live via `rank_apparatus`/`rank_all_around` (`app/scoring.py`) — never
-  snapshotted, same philosophy as `Routine.music_url`. Ties break by highest total
-  Execution (FIG Technical Regulations), then share a rank (competition ranking:
-  1,2,2,4). `provisional` is `true` unless `meet.status == completed`. All-around sums
+  snapshotted, same philosophy as `Routine.music_url`. Ties break per band (see
+  **Scoring bands** above), then share a rank (competition ranking: 1,2,2,4).
+  `provisional` is `true` unless `meet.status == completed`. All-around sums
   are not required to be complete — a competitor missing an apparatus is still ranked on
   their partial total, with `routines_counted` surfacing that it's partial. Deferred:
   district/club team scores, CSV export, and any snapshotted official-results record.

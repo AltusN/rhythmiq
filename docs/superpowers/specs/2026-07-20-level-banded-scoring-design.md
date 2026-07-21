@@ -1,7 +1,7 @@
 # Level-banded scoring — design
 
 **Date:** 2026-07-20
-**Status:** design agreed and complete — no open questions
+**Status:** implemented 2026-07-21 — see `docs/superpowers/plans/2026-07-20-level-banded-scoring.md`
 **Supersedes:** the `E_ONLY_LEVELS` rule shipped in `app/scoring.py`
 
 ## Why

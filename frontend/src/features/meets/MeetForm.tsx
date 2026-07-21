@@ -145,29 +145,38 @@ export function MeetForm({
         options={districts.map((d) => ({ id: d.id, label: d.name }))}
         {...register("district_id")}
       />
-      <label className="text-sm">
-        Gold minimum
-        <input
-          type="number"
-          step="0.01"
-          {...register("medal_gold_min")}
-          aria-label="Gold minimum"
-          className={fieldClass}
-        />
-        {errors.medal_gold_min && (
-          <span className="text-xs text-red-700">{errors.medal_gold_min.message}</span>
-        )}
-      </label>
-      <label className="text-sm">
-        Silver minimum
-        <input
-          type="number"
-          step="0.01"
-          {...register("medal_silver_min")}
-          aria-label="Silver minimum"
-          className={fieldClass}
-        />
-      </label>
+      <fieldset className="text-sm">
+        <legend className="font-semibold">Medal cutoffs (levels 1–3 only)</legend>
+        <p className="mb-2 text-xs text-gray-500">
+          Minimum <strong>all-around</strong> totals, not per-routine scores. Levels 1–3
+          compete on 2 apparatus at up to 13 each, so the scale is 0–26 — a gold cutoff
+          around 24 is typical. Levels 4 and above award medals by placement and ignore
+          these fields.
+        </p>
+        <label className="block text-sm">
+          Gold minimum
+          <input
+            type="number"
+            step="0.01"
+            {...register("medal_gold_min")}
+            aria-label="Gold minimum"
+            className={fieldClass}
+          />
+          {errors.medal_gold_min && (
+            <span className="text-xs text-red-700">{errors.medal_gold_min.message}</span>
+          )}
+        </label>
+        <label className="block text-sm">
+          Silver minimum
+          <input
+            type="number"
+            step="0.01"
+            {...register("medal_silver_min")}
+            aria-label="Silver minimum"
+            className={fieldClass}
+          />
+        </label>
+      </fieldset>
       <div className="flex justify-end gap-2">
         <button
           type="button"
