@@ -394,11 +394,59 @@ def test_report_lists_differences_and_says_nothing_changed(db_session):
 
     text = format_report(report, committed=False)
 
-    assert "1 existing gymnast differs from the CSV (nothing changed):" in text
+    assert "1 difference found (nothing changed):" in text
     assert "ethnicity: NULL -> white" in text
 
 
 def test_report_omits_the_difference_section_when_there_are_none(db_session):
     report = import_roster([make_row()], db_session)
 
-    assert "differs from the CSV" not in format_report(report, committed=False)
+    assert "nothing changed" not in format_report(report, committed=False)
+
+
+def test_difference_count_follows_difference_lines_not_matched_gymnasts(db_session):
+    # Two distinct gymnasts match on re-import (both land in gymnasts_existing), but only
+    # one of them actually differs. The header must count the difference below, not the
+    # two matched gymnasts -- this is exactly what len(report.gymnasts_existing) gets wrong.
+    row_a = make_row(
+        gsa_number="10001",
+        first_name="Anna",
+        last_name="Petrov",
+        date_of_birth=date(2016, 10, 1),
+        ethnicity=Ethnicity.white,
+    )
+    row_b = make_row(
+        gsa_number="10002",
+        first_name="Boipelo",
+        last_name="Khumalo",
+        date_of_birth=date(2015, 5, 5),
+        ethnicity=Ethnicity.black,
+    )
+    import_roster([row_a, row_b], db_session)
+    row_b_changed = make_row(
+        gsa_number="10002",
+        first_name="Boipelo",
+        last_name="Khumalo",
+        date_of_birth=date(2015, 5, 5),
+        ethnicity=None,
+    )
+
+    report = import_roster([row_a, row_b_changed], db_session)
+
+    assert len(report.gymnasts_existing) == 2
+    text = format_report(report, committed=False)
+    assert "1 difference found (nothing changed):" in text
+
+
+def test_difference_count_uses_plural_wording_for_more_than_one(db_session):
+    # A district abbreviation mismatch and a club abbreviation mismatch are both
+    # non-gymnast differences -- two lines from a single row, proving the count is over
+    # report.differences, not any per-entity list.
+    district = make_district(db_session, name="Eden", abbreviation="EDN")  # table says EDEN
+    make_club(db_session, district=district, name="Zest", abbreviation="ZST")  # table says ZEST
+
+    report = import_roster([make_row()], db_session)
+
+    assert len(report.differences) == 2
+    text = format_report(report, committed=False)
+    assert "2 differences found (nothing changed):" in text

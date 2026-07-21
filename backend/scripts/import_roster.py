@@ -445,10 +445,13 @@ def format_report(report: ImportReport, *, committed: bool) -> str:
     ]
 
     if report.differences:
-        count = len(report.gymnasts_existing)
-        noun = "gymnast differs" if count == 1 else "gymnasts differ"
+        # Counts the lines below, not matched gymnasts: report.differences also carries
+        # district- and club-level abbreviation mismatches, and one gymnast can
+        # contribute several lines.
+        count = len(report.differences)
+        noun = "difference" if count == 1 else "differences"
         lines.append("")
-        lines.append(f"{count} existing {noun} from the CSV (nothing changed):")
+        lines.append(f"{count} {noun} found (nothing changed):")
         lines.extend(report.differences)
 
     lines.append("")
@@ -484,11 +487,13 @@ def main() -> int:
     session = SessionLocal()
     try:
         report = import_roster(rows, session)
-        print(format_report(report, committed=args.commit))
+        # Commit before printing: the report's closing line asserts what happened to the
+        # database, so it must not be written until the database agrees.
         if args.commit:
             session.commit()
         else:
             session.rollback()
+        print(format_report(report, committed=args.commit))
     except Exception:
         session.rollback()
         raise
