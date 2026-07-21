@@ -52,8 +52,10 @@ entry_fee_paid, raw_event
 ```
 
 Pass 1 persists only `first_name`, `last_name`, `date_of_birth`, `gsa_number`,
-`ethnicity`, and the `club_name`/`district_name` it resolves to a `club_id`. The
-remaining columns are **read for validation but not written** — they are pass-2 input and
+`ethnicity`, and the `club_name`/`district_name` it resolves to a `club_id`. Of the rest,
+`level` and `age_group` are **validated but not written**, while `apparatus`,
+`needs_manual_split`, `entry_fee_paid` and `raw_event` are **ignored entirely** — they are
+not in `REQUIRED_COLUMNS` and are never read. All six are pass-2 input and
 must stay in the file.
 
 Profile of the current file:
@@ -221,17 +223,31 @@ With `--commit`, the final line becomes a confirmation that the transaction comm
 ```
 backend/scripts/import_roster.py
     DISTRICT_ABBREVIATIONS, CLUB_ABBREVIATIONS
-    parse_csv(path) -> list[RosterRow]          # I/O + per-row validation
-    check_consistency(rows) -> list[str]        # cross-row rules
-    import_roster(rows, session) -> ImportReport  # pure; no I/O, no commit
-    main()                                      # argparse, SessionLocal, commit/rollback
+    RosterRow                                          # frozen; .identity, .match_key
+    ImportReport                                       # seven list[str] fields
+    parse_csv(path) -> tuple[list[RosterRow], list[str]]   # I/O + per-row validation
+    check_consistency(rows) -> list[str]                   # cross-row rules
+    import_roster(rows, session) -> ImportReport           # flushes; never commits
+    format_report(report, *, committed) -> str             # the printed summary
+    main() -> int                                          # argparse, SessionLocal,
+                                                           # commit/rollback, exit code
 ```
+
+`parse_csv` returns rows *and* errors; the rows are only meaningful when the error list
+is empty, and `main()` aborts before opening a session if it is not.
 
 `import_roster` takes already-parsed rows and a session and returns a report without
 committing, so tests drive it through the existing `db_session` fixture with small
-synthetic row lists. `main()` owns the `try` / `commit` / `except` / `rollback` /
-`finally close` shape that `seed_demo_data.py` established, and skips the commit entirely
-on a dry run.
+synthetic row lists. Never committing is the load-bearing property: it is what lets
+`main()` run the real inserts and then roll back, making the dry run a genuine
+transaction rather than a simulation.
+
+`ImportReport` holds only strings, never ORM objects, so `format_report` is safe to call
+*after* the commit or rollback has expired every instance — which is the order `main()`
+uses, so the closing "Committed." line can never be printed before the database agrees.
+
+`main()` owns the `try` / `commit` / `except` / `rollback` / `finally close` shape that
+`seed_demo_data.py` established, and rolls back instead of committing on a dry run.
 
 ## Testing
 

@@ -7,9 +7,10 @@ data with its own lifecycle -- gymnasts compete in many meets and the list is la
 static year to year -- so this script deliberately stops at Gymnast. Meet entries and
 routines are pass 2, and are blocked on a separate bib-number source.
 
-The CSV's `level`, `age_group`, `apparatus`, `needs_manual_split`, `entry_fee_paid` and
-`raw_event` columns are validated but NOT persisted: they are pass-2 input and must stay
-in the file.
+Of the CSV's pass-2 columns, `level` and `age_group` are validated but NOT persisted;
+`apparatus`, `needs_manual_split`, `entry_fee_paid` and `raw_event` are ignored entirely
+(they are not in REQUIRED_COLUMNS and are never read). All six are pass-2 input and must
+stay in the file.
 
 Dry run is the default; --commit is required to write. A dry run is not a simulation --
 it performs the real inserts inside a transaction and rolls back, so constraint
@@ -99,11 +100,12 @@ class RosterRow:
 
 
 def _parse_row(number: int, raw: dict[str, str], errors: list[str]) -> RosterRow | None:
-    def field(name: str) -> str:
+    # Named `cell`, not `field`, so it does not shadow dataclasses.field at module scope.
+    def cell(name: str) -> str:
         return (raw.get(name) or "").strip()
 
-    first_name = field("first_name")
-    last_name = field("last_name")
+    first_name = cell("first_name")
+    last_name = cell("last_name")
     # Mirrors ck_gymnast_first_name_nonempty, so a bad row is reported here rather than
     # blowing up as an IntegrityError halfway through the insert loop.
     if len(first_name) <= 2:
@@ -111,41 +113,45 @@ def _parse_row(number: int, raw: dict[str, str], errors: list[str]) -> RosterRow
     if not last_name:
         errors.append(f"row {number}: last_name is blank")
 
+    # Mirrors Gymnast.gsa_number's String(32), for the same reason: an over-long value
+    # would otherwise surface as a DataError mid-insert instead of a row-numbered error.
+    gsa_number = cell("gsa_number")
+    if len(gsa_number) > 32:
+        errors.append(f"row {number}: gsa_number {gsa_number!r} exceeds 32 characters")
+
     date_of_birth = None
     try:
-        date_of_birth = datetime.strptime(field("date_of_birth"), "%Y-%m-%d").date()
+        date_of_birth = datetime.strptime(cell("date_of_birth"), "%Y-%m-%d").date()
         if date_of_birth > date.today():
             errors.append(f"row {number}: date_of_birth {date_of_birth} is in the future")
     except ValueError:
         errors.append(
-            f"row {number}: date_of_birth {field('date_of_birth')!r} is not ISO YYYY-MM-DD"
+            f"row {number}: date_of_birth {cell('date_of_birth')!r} is not ISO YYYY-MM-DD"
         )
 
     # A blank cell means the question was never asked -> NULL. It is NOT
     # prefer_not_to_say, which means the gymnast was asked and declined.
     ethnicity = None
-    if field("ethnicity"):
+    if cell("ethnicity"):
         try:
-            ethnicity = Ethnicity(field("ethnicity"))
+            ethnicity = Ethnicity(cell("ethnicity"))
         except ValueError:
-            errors.append(
-                f"row {number}: ethnicity {field('ethnicity')!r} is not a valid Ethnicity"
-            )
+            errors.append(f"row {number}: ethnicity {cell('ethnicity')!r} is not a valid Ethnicity")
 
     level = None
     try:
-        level = Level(field("level"))
+        level = Level(cell("level"))
     except ValueError:
-        errors.append(f"row {number}: level {field('level')!r} is not a valid Level")
+        errors.append(f"row {number}: level {cell('level')!r} is not a valid Level")
 
     age_group = None
     try:
-        age_group = AgeGroup(field("age_group"))
+        age_group = AgeGroup(cell("age_group"))
     except ValueError:
-        errors.append(f"row {number}: age_group {field('age_group')!r} is not a valid AgeGroup")
+        errors.append(f"row {number}: age_group {cell('age_group')!r} is not a valid AgeGroup")
 
-    district_name = field("district_name")
-    club_name = field("club_name")
+    district_name = cell("district_name")
+    club_name = cell("club_name")
     if district_name not in DISTRICT_ABBREVIATIONS:
         errors.append(
             f"row {number}: unknown district {district_name!r}\n"
@@ -168,7 +174,7 @@ def _parse_row(number: int, raw: dict[str, str], errors: list[str]) -> RosterRow
         first_name=first_name,
         last_name=last_name,
         date_of_birth=date_of_birth,
-        gsa_number=field("gsa_number") or None,
+        gsa_number=gsa_number or None,
         ethnicity=ethnicity,
         district_name=district_name,
         club_name=club_name,
@@ -191,7 +197,10 @@ def parse_csv(path: Path | str) -> tuple[list[RosterRow], list[str]]:
     errors: list[str] = []
     rows: list[RosterRow] = []
 
-    with Path(path).open(encoding="utf-8", newline="") as handle:
+    # utf-8-sig, not utf-8: Excel's "CSV UTF-8" export writes a BOM, which would make the
+    # first field name read as "﻿first_name" and produce a baffling "missing required
+    # column(s): first_name" on a file that visibly has it. Identical to utf-8 with no BOM.
+    with Path(path).open(encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
         missing = [c for c in REQUIRED_COLUMNS if c not in (reader.fieldnames or [])]
         if missing:

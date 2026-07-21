@@ -5,6 +5,7 @@ Split to mirror the script's own phases: parsing/validation and cross-row consis
 are pure and need no database; import_roster gets the db_session fixture.
 """
 
+import sys
 from datetime import date
 from pathlib import Path
 
@@ -14,6 +15,7 @@ from scripts.import_roster import (
     check_consistency,
     format_report,
     import_roster,
+    main,
     parse_csv,
 )
 from test.conftest import make_club, make_district
@@ -357,11 +359,14 @@ def test_blank_ethnicity_is_stored_as_null(db_session):
 def test_import_does_not_commit(db_session):
     import_roster([make_row()], db_session)
 
-    # The fixture binds the Session to a connection that already has a transaction open,
-    # so SQLAlchemy runs the Session on a SAVEPOINT. A rollback here therefore undoes
-    # only what import_roster did, leaving the fixture's outer transaction healthy. Had
-    # import_roster committed, the savepoint would already be released and the row would
-    # survive this rollback.
+    # There is no SAVEPOINT here (verified: SessionTransaction.nested is False and the
+    # connection is not in a nested transaction). The fixture opens an outer transaction
+    # on the connection and binds the Session to it, which conditional_savepoint resolves
+    # to a rollback-only join: session.commit() never reaches the database, but it does
+    # end the SessionTransaction and leave the flushed row in the identity map, where a
+    # later rollback() can no longer discard it. So had import_roster committed, the row
+    # would still be visible below and this assertion would fail. Without a commit, the
+    # rollback discards the flush and the count is 0.
     db_session.rollback()
     assert db_session.query(Gymnast).count() == 0
 
@@ -450,3 +455,109 @@ def test_difference_count_uses_plural_wording_for_more_than_one(db_session):
     assert len(report.differences) == 2
     text = format_report(report, committed=False)
     assert "2 differences found (nothing changed):" in text
+
+
+def test_an_over_long_gsa_number_is_reported(tmp_path):
+    path = write_csv(
+        tmp_path,
+        f"Anna,Petrov,2016-10-01,{'9' * 33},white,Zest,Eden,level_1,u9\n",
+    )
+
+    rows, errors = parse_csv(path)
+
+    assert len(errors) == 1
+    assert "gsa_number" in errors[0]
+    assert "exceeds 32 characters" in errors[0]
+
+
+def test_a_byte_order_mark_does_not_break_the_header(tmp_path):
+    # Excel's "CSV UTF-8" export writes a BOM. Without utf-8-sig the first field name
+    # reads as "﻿first_name" and the run dies claiming first_name is missing.
+    header = (
+        "first_name,last_name,date_of_birth,gsa_number,ethnicity,"
+        "club_name,district_name,level,age_group\n"
+    )
+    path = tmp_path / "bom.csv"
+    path.write_text(
+        header + "Anna,Petrov,2016-10-01,10001,white,Zest,Eden,level_1,u9\n",
+        encoding="utf-8-sig",
+    )
+    assert path.read_bytes().startswith(b"\xef\xbb\xbf")  # the fixture really has a BOM
+
+    rows, errors = parse_csv(path)
+
+    assert errors == []
+    assert rows[0].first_name == "Anna"
+
+
+class RecordingSession:
+    """
+    Wraps the test session so main()'s commit/rollback/close are observable without
+    actually ending the db_session fixture's transaction. Every other attribute
+    delegates, so import_roster runs its real queries against the real session.
+    """
+
+    def __init__(self, inner):
+        self._inner = inner
+        self.calls: list[str] = []
+
+    def __getattr__(self, name):
+        return getattr(self._inner, name)
+
+    def commit(self):
+        self.calls.append("commit")
+
+    def rollback(self):
+        self.calls.append("rollback")
+
+    def close(self):
+        self.calls.append("close")
+
+
+VALID_ROW = "Anna,Petrov,2016-10-01,10001,white,Zest,Eden,level_1,u9\n"
+
+
+def test_main_dry_run_rolls_back_and_never_commits(db_session, monkeypatch, tmp_path, capsys):
+    # The dry-run default is this tool's whole safety property: a one-token inversion
+    # here would silently write to real data.
+    recorder = RecordingSession(db_session)
+    monkeypatch.setattr("scripts.import_roster.SessionLocal", lambda: recorder)
+    path = write_csv(tmp_path, VALID_ROW)
+    monkeypatch.setattr(sys, "argv", ["import_roster", str(path)])
+
+    assert main() == 0
+
+    assert recorder.calls == ["rollback", "close"]
+    output = capsys.readouterr().out
+    assert "DRY RUN -- nothing written. Re-run with --commit to apply." in output
+    assert "Committed." not in output
+
+
+def test_main_with_commit_flag_commits(db_session, monkeypatch, tmp_path, capsys):
+    recorder = RecordingSession(db_session)
+    monkeypatch.setattr("scripts.import_roster.SessionLocal", lambda: recorder)
+    path = write_csv(tmp_path, VALID_ROW)
+    monkeypatch.setattr(sys, "argv", ["import_roster", str(path), "--commit"])
+
+    assert main() == 0
+
+    assert recorder.calls == ["commit", "close"]
+    output = capsys.readouterr().out
+    assert "Committed." in output
+    assert "DRY RUN" not in output
+
+
+def test_main_returns_1_and_never_opens_a_session_on_a_validation_error(
+    monkeypatch, tmp_path, capsys
+):
+    opened: list[str] = []
+    monkeypatch.setattr("scripts.import_roster.SessionLocal", lambda: opened.append("opened"))
+    path = write_csv(tmp_path, "Jo,Smith,2016-01-01,1,white,Zest,Eden,level_1,u9\n")
+    monkeypatch.setattr(sys, "argv", ["import_roster", str(path)])
+
+    assert main() == 1
+
+    assert opened == []  # the database is never touched on the error path
+    output = capsys.readouterr().out
+    assert "1 problem(s) found -- nothing written:" in output
+    assert "first_name 'Jo' must be longer than 2 characters" in output
