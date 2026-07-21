@@ -16,6 +16,9 @@ const BAND_HEADINGS: Record<Band, string> = {
 
 const BANDS: Band[] = ["1-3", "4-7", "8+"];
 
+// Keyed by the FIRST slot of each SLOT_CONFLICT_GROUPS group (DB1, A1, E1) -- the error
+// message below looks the group's label up via `group[0]`. If a group's slot order ever
+// changes, add the new leading slot here (a missing key would render "two undefined slots").
 const CONFLICT_LABELS: Record<string, string> = {
   DB1: "Difficulty (Body)",
   A1: "Artistry",

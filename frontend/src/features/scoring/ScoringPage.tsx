@@ -266,18 +266,22 @@ export function ScoringPage() {
               onDirtyChange={setFormDirty}
             />
             <p className="mt-5 text-xs text-gray-500">
-              {/* Lists every slot this competitor's band uses (not just the required
-                  ones), so it doesn't read as contradicting the "Required judge slots
-                  unassigned" warning above, which lists fewer. */}
+              {/* Lists every slot this competitor's band uses, marking the ones that are
+                  optional (E3/E4, and A2 at 8+) so this doesn't read as contradicting the
+                  "Required judge slots unassigned" warning above, which lists only the
+                  required slots. */}
               Panel:{" "}
-              {SLOTS_BY_BAND[profileForLevel(selectedEntry.level).band].map(
-                (slot, i) => (
+              {(() => {
+                const band = profileForLevel(selectedEntry.level).band;
+                const required = new Set<string>(REQUIRED_SLOTS[band]);
+                return SLOTS_BY_BAND[band].map((slot, i) => (
                   <span key={slot}>
                     {i > 0 && " · "}
-                    {slot} = {slotLabel(panel[slot])}
+                    {slot}
+                    {required.has(slot) ? "" : " (optional)"} = {slotLabel(panel[slot])}
                   </span>
-                ),
-              )}{" "}
+                ));
+              })()}{" "}
               <button
                 onClick={() => setPanelOpen(true)}
                 className="text-blue-700 underline"

@@ -385,6 +385,17 @@ test("names the 4-7 band's own missing slots (DB2, E2), not D/A", async () => {
   expect(warning).toHaveTextContent("Required judge slots unassigned: DB2, E2.");
 });
 
+test("no hint when the 4-7 band's minimum viable panel (DB1, DB2, E1, E2) is assigned", async () => {
+  // Positive companion to the 1-3 and 8+ minimum-viable-panel tests above.
+  savePanel(5, { DB1: 1, DB2: 2, E1: 3, E2: 4 });
+  const level5Entry = makeEntry({ id: 24, meet_id: 5, gymnast_id: 7, group_id: null, level: "level_5", bib_number: "15" });
+  mockBase({ entries: [level5Entry] });
+  renderApp("/meets/5/scoring");
+  await userEvent.click(await screen.findByRole("button", { name: /15 ·/ }));
+  await screen.findByLabelText("D-Body 1");
+  expect(screen.queryByRole("button", { name: "Assign judges…" })).toBeNull();
+});
+
 test("switching competitors with unsaved edits prompts; declining keeps the form", async () => {
   const second = makeEntry({ id: 22, meet_id: 5, gymnast_id: 7, group_id: null, level: "senior", bib_number: "13" });
   mockBase({ entries: [seniorEntry, second] });
@@ -517,8 +528,10 @@ test("the unassigned warning says REQUIRED, and the panel summary still lists ev
   expect(warning).not.toHaveTextContent("E4");
 
   const summary = screen.getByText(/^Panel:/);
-  expect(summary).toHaveTextContent("E3 = unassigned");
-  expect(summary).toHaveTextContent("E4 = unassigned");
+  // E3/E4 are still listed, marked "(optional)" so the summary doesn't read as
+  // contradicting the required-slots warning above (which omits them).
+  expect(summary).toHaveTextContent("E3 (optional) = unassigned");
+  expect(summary).toHaveTextContent("E4 (optional) = unassigned");
 });
 
 test("a zero penalty renders unsigned, not as negative zero", async () => {
@@ -601,6 +614,18 @@ it("rejects a deduction above 10", async () => {
   await renderScoringPageWithEntry({ level: "level_8" });
 
   await user.type(await screen.findByLabelText("E1"), "11");
+  await user.click(screen.getByRole("button", { name: "Save" }));
+
+  expect(await screen.findByText("Max 10")).toBeInTheDocument();
+});
+
+it("rejects an artistry mark above 10", async () => {
+  // Artistry shares Execution's 10 ceiling (both `<= 10` in ck_judge_score_panel_value_cap);
+  // this locks the A boxes to the same BOX_MAX path the E boxes are tested on.
+  const user = userEvent.setup();
+  await renderScoringPageWithEntry({ level: "level_8" });
+
+  await user.type(await screen.findByLabelText("Artistry 1"), "10.5");
   await user.click(screen.getByRole("button", { name: "Save" }));
 
   expect(await screen.findByText("Max 10")).toBeInTheDocument();
