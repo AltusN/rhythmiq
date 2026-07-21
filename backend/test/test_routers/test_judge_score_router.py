@@ -580,55 +580,10 @@ def test_delete_judge_score_after_meet_completion_rejected(client, db_session):
 
 
 ##-- Level-band panel gate (app.scoring.profile_for_level) --##
-def test_create_judge_score_rejects_execution_at_level_1(client, db_session):
-    # Levels 1-3 record ONE pre-aggregated mark on Panel.final. An execution mark is
-    # now invalid there -- this is the band that changed most from the old rule.
-    entry = make_meet_entry(
-        db_session,
-        meet=make_meet(db_session),
-        gymnast=make_gymnast(db_session),
-        level=Level.level_1,
-    )
-    routine = make_routine(db_session, meet_entry=entry)
-    judge = make_judge(db_session)
-    db_session.commit()
-
-    response = client.post(
-        "/judge-scores/",
-        json={
-            "routine_id": routine.id,
-            "judge_id": judge.id,
-            "panel": "execution",
-            "value": "9.00",
-        },
-    )
-
-    assert response.status_code == 422
-    assert "final" in response.json()["detail"]
-
-
-def test_create_judge_score_accepts_final_at_level_1(client, db_session):
-    entry = make_meet_entry(
-        db_session,
-        meet=make_meet(db_session),
-        gymnast=make_gymnast(db_session),
-        level=Level.level_1,
-    )
-    routine = make_routine(db_session, meet_entry=entry)
-    judge = make_judge(db_session)
-    db_session.commit()
-
-    response = client.post(
-        "/judge-scores/",
-        json={
-            "routine_id": routine.id,
-            "judge_id": judge.id,
-            "panel": "final",
-            "value": "11.50",
-        },
-    )
-
-    assert response.status_code == 201
+# Note: level-1 execution-rejected and final-allowed are covered above by
+# test_create_judge_score_execution_rejected_for_level_1 /
+# test_create_judge_score_final_allowed_for_level_1 (which use the _make_level_1_routine
+# helper); the remaining band-gate cases below cover levels 4 and 8.
 
 
 def test_create_judge_score_accepts_difficulty_body_at_level_4(client, db_session):

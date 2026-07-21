@@ -10,6 +10,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
 from enum import StrEnum
+from types import MappingProxyType
 from typing import Literal
 
 from app.models import Level, MeetEntry, Panel, Routine
@@ -54,7 +55,7 @@ class ScoringProfile:
 BAND_1_3 = ScoringProfile(
     band="1-3",
     panels=frozenset({Panel.final}),
-    judges_per_panel={Panel.final: 1},
+    judges_per_panel=MappingProxyType({Panel.final: 1}),
     medal_mode=MedalMode.cutoff,
     tie_break_on_execution=False,
 )
@@ -65,7 +66,7 @@ BAND_1_3 = ScoringProfile(
 BAND_4_7 = ScoringProfile(
     band="4-7",
     panels=frozenset({Panel.difficulty_body, Panel.execution}),
-    judges_per_panel={Panel.difficulty_body: 2, Panel.execution: 2},
+    judges_per_panel=MappingProxyType({Panel.difficulty_body: 2, Panel.execution: 2}),
     medal_mode=MedalMode.placement,
     tie_break_on_execution=False,
 )
@@ -77,12 +78,14 @@ BAND_8_PLUS = ScoringProfile(
     panels=frozenset(
         {Panel.difficulty_body, Panel.difficulty_apparatus, Panel.artistry, Panel.execution}
     ),
-    judges_per_panel={
-        Panel.difficulty_body: 1,
-        Panel.difficulty_apparatus: 1,
-        Panel.artistry: 2,
-        Panel.execution: 4,
-    },
+    judges_per_panel=MappingProxyType(
+        {
+            Panel.difficulty_body: 1,
+            Panel.difficulty_apparatus: 1,
+            Panel.artistry: 2,
+            Panel.execution: 4,
+        }
+    ),
     medal_mode=MedalMode.placement,
     tie_break_on_execution=True,
 )
