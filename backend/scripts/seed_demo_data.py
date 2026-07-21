@@ -10,7 +10,8 @@ covered rather than just a couple of rows. Specifically it guarantees:
 - every MeetStatus, including a cancelled meet and a meet with no district
 - every AgeGroup value, across both the u7-o11 and the older u12/u14/o14 bandings
 - every Apparatus
-- every Panel (difficulty_body, difficulty_apparatus, execution, artistry)
+- every Panel (difficulty_body, difficulty_apparatus, execution, artistry, final) —
+  each routine's marks match its scoring band (see _score_routine)
 - every PenaltyJudgeRole
 - every Ethnicity value, plus gymnasts with none recorded
 - gymnasts with and without a club, with and without a group, with and without a

@@ -166,7 +166,7 @@ Every resource router follows: `POST /`, `GET /`, `GET /{id}`, `PATCH /{id}`, `D
   two `execution` judges, `avg(DB) + E`, max 13; levels 8+ use the full FIG panel with
   the Execution tie-break. The additive `DB + DA` formula covers 4–7 unchanged, since
   `trimmed_mean([])` is 0. Adding a level to the `Level` enum without assigning it a
-  band fails `test_every_level_has_a_scoring_profile` — the backend map is exhaustive by
+  band fails `test_every_level_is_explicitly_banded` — the backend map is exhaustive by
   construction; the frontend deliberately falls back to 8+ instead of throwing.
 - **Two medal systems.** Levels 1–3 use `Meet.medal_gold_min`/`medal_silver_min` score
   cutoffs against the **all-around** (2 apparatus, max 26). Levels 4+ use placement:
