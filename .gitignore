@@ -66,3 +66,7 @@ frontend/dist/
 
 # Windows download markers (alternate data streams)
 *:Zone.Identifier
+
+# Claude Code local session config (not part of the project)
+.claude/settings.json
+.claude/settings.local.json
