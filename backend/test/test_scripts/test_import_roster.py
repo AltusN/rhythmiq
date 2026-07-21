@@ -9,7 +9,7 @@ from datetime import date
 from pathlib import Path
 
 from app.models import AgeGroup, Ethnicity, Level
-from scripts.import_roster import RosterRow, parse_csv
+from scripts.import_roster import RosterRow, check_consistency, parse_csv
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -134,3 +134,62 @@ def test_match_key_prefers_gsa_number_and_falls_back_to_identity():
         "identity",
         ("Anna", "Petrov", date(2016, 10, 1)),
     )
+
+
+def test_clean_rows_pass_consistency():
+    rows = [
+        make_row(row_number=2, first_name="Anna", gsa_number="1"),
+        make_row(row_number=3, first_name="Bella", gsa_number="2"),
+    ]
+
+    assert check_consistency(rows) == []
+
+
+def test_duplicate_rows_for_the_same_gymnast_are_consistent():
+    # The real file does this: one gymnast entered in two single-apparatus events.
+    rows = [make_row(row_number=2), make_row(row_number=3)]
+
+    assert check_consistency(rows) == []
+
+
+def test_club_under_two_districts_is_rejected():
+    rows = [
+        make_row(row_number=2, gsa_number="1", district_name="Eden", club_name="Zest"),
+        make_row(
+            row_number=3,
+            first_name="Bella",
+            gsa_number="2",
+            district_name="Cape Winelands",
+            club_name="Zest",
+        ),
+    ]
+
+    errors = check_consistency(rows)
+
+    assert len(errors) == 1
+    assert "club 'Zest' appears under multiple districts" in errors[0]
+
+
+def test_one_gsa_number_with_two_identities_is_rejected():
+    rows = [
+        make_row(row_number=2, first_name="Anna", gsa_number="1"),
+        make_row(row_number=3, first_name="Bella", gsa_number="1"),
+    ]
+
+    errors = check_consistency(rows)
+
+    assert len(errors) == 1
+    assert "gsa_number '1' is used by more than one gymnast" in errors[0]
+
+
+def test_one_identity_with_two_gsa_numbers_is_rejected():
+    rows = [
+        make_row(row_number=2, gsa_number="1"),
+        make_row(row_number=3, gsa_number="2"),
+    ]
+
+    errors = check_consistency(rows)
+
+    assert len(errors) == 1
+    assert "has more than one gsa_number" in errors[0]
+    assert "Anna Petrov" in errors[0]

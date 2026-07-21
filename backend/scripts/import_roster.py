@@ -201,3 +201,41 @@ def parse_csv(path: Path | str) -> tuple[list[RosterRow], list[str]]:
                 rows.append(row)
 
     return rows, errors
+
+
+def check_consistency(rows: list[RosterRow]) -> list[str]:
+    """
+    Cross-row rules that no single row can reveal.
+
+    Each of these would otherwise surface mid-insert as a confusing IntegrityError, or
+    worse, quietly attach gymnasts to the wrong club.
+    """
+    errors: list[str] = []
+    districts_by_club: dict[str, set[str]] = {}
+    identities_by_gsa: dict[str, set[tuple[str, str, date]]] = {}
+    gsas_by_identity: dict[tuple[str, str, date], set[str | None]] = {}
+
+    for row in rows:
+        districts_by_club.setdefault(row.club_name, set()).add(row.district_name)
+        if row.gsa_number:
+            identities_by_gsa.setdefault(row.gsa_number, set()).add(row.identity)
+        gsas_by_identity.setdefault(row.identity, set()).add(row.gsa_number)
+
+    for club_name, district_names in sorted(districts_by_club.items()):
+        if len(district_names) > 1:
+            errors.append(
+                f"club {club_name!r} appears under multiple districts: {sorted(district_names)}"
+            )
+
+    for gsa_number, identities in sorted(identities_by_gsa.items()):
+        if len(identities) > 1:
+            names = sorted(f"{first} {last} ({dob})" for first, last, dob in identities)
+            errors.append(f"gsa_number {gsa_number!r} is used by more than one gymnast: {names}")
+
+    for identity, gsa_numbers in sorted(gsas_by_identity.items()):
+        if len(gsa_numbers) > 1:
+            first, last, dob = identity
+            listed = sorted(g or "(blank)" for g in gsa_numbers)
+            errors.append(f"gymnast {first} {last} ({dob}) has more than one gsa_number: {listed}")
+
+    return errors
