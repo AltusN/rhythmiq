@@ -85,6 +85,13 @@ and dropped with the table.
   in sync with the app automatically. Generated migrations live under `migrations/versions/`.
 - `scripts/seed_demo_data.py` — populates a freshly migrated database with demo data across
   every table (`make seed`); not idempotent, pair with `make reset` to start over.
+- `scripts/import_roster.py` — imports a participant CSV (`bulkupload/`) into districts,
+  clubs and gymnasts. Dry run by default; `--commit` writes. Matches existing gymnasts on
+  `gsa_number` first and `(first_name, last_name, date_of_birth)` second, and *reports*
+  differences rather than applying them. District/club abbreviations are hardcoded tables
+  keyed by name and by `(district, club)` — an unknown name aborts the run with the line
+  to add. Meet entries and routines are deliberately out of scope (see
+  `docs/superpowers/specs/2026-07-21-roster-csv-import-design.md`).
 - `app/routers/<resource>.py` — one router per resource, all following the same CRUD shape.
 - `app/schemas/<resource>.py` — Pydantic `*Create` / `*Update` / `*Read` models per resource.
 - `test/conftest.py` — top-level `db_session` fixture (raw SQLAlchemy session, FKs pragma on)

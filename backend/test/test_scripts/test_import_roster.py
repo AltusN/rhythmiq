@@ -9,7 +9,13 @@ from datetime import date
 from pathlib import Path
 
 from app.models import AgeGroup, Club, District, Ethnicity, Gymnast, Level
-from scripts.import_roster import RosterRow, check_consistency, import_roster, parse_csv
+from scripts.import_roster import (
+    RosterRow,
+    check_consistency,
+    format_report,
+    import_roster,
+    parse_csv,
+)
 from test.conftest import make_club, make_district
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -358,3 +364,41 @@ def test_import_does_not_commit(db_session):
     # survive this rollback.
     db_session.rollback()
     assert db_session.query(Gymnast).count() == 0
+
+
+def test_report_counts_creations_and_marks_a_dry_run(db_session):
+    report = import_roster([make_row()], db_session)
+
+    text = format_report(report, committed=False)
+
+    # Exact spacing: label is left-padded to 11, total right-aligned in 3.
+    assert "Districts:   1 (1 created, 0 existing)" in text
+    assert "Clubs:       1 (1 created, 0 existing)" in text
+    assert "Gymnasts:    1 (1 created, 0 existing)" in text
+    assert "DRY RUN" in text
+    assert "--commit" in text
+
+
+def test_report_marks_a_committed_run(db_session):
+    report = import_roster([make_row()], db_session)
+
+    text = format_report(report, committed=True)
+
+    assert "DRY RUN" not in text
+    assert "Committed." in text
+
+
+def test_report_lists_differences_and_says_nothing_changed(db_session):
+    import_roster([make_row(ethnicity=None)], db_session)
+    report = import_roster([make_row(ethnicity=Ethnicity.white)], db_session)
+
+    text = format_report(report, committed=False)
+
+    assert "1 existing gymnast differs from the CSV (nothing changed):" in text
+    assert "ethnicity: NULL -> white" in text
+
+
+def test_report_omits_the_difference_section_when_there_are_none(db_session):
+    report = import_roster([make_row()], db_session)
+
+    assert "differs from the CSV" not in format_report(report, committed=False)

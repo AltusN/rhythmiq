@@ -21,6 +21,7 @@ Usage (from backend/):
     python -m scripts.import_roster ../bulkupload/rhythmiq_import_participants.csv --commit
 """
 
+import argparse
 import csv
 from dataclasses import dataclass, field
 from datetime import date, datetime
@@ -28,6 +29,7 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
+from app.db import SessionLocal
 from app.models import AgeGroup, Club, District, Ethnicity, Gymnast, Level
 
 # District.abbreviation and Club.abbreviation are NOT NULL and the CSV supplies neither,
@@ -429,3 +431,71 @@ def import_roster(rows: list[RosterRow], session: Session) -> ImportReport:
     _resolve_gymnasts(rows, session, clubs, report)
     session.flush()
     return report
+
+
+def format_report(report: ImportReport, *, committed: bool) -> str:
+    def line(label: str, created: list[str], existing: list[str]) -> str:
+        total = len(created) + len(existing)
+        return f"{label:<11}{total:>3} ({len(created)} created, {len(existing)} existing)"
+
+    lines = [
+        line("Districts:", report.districts_created, report.districts_existing),
+        line("Clubs:", report.clubs_created, report.clubs_existing),
+        line("Gymnasts:", report.gymnasts_created, report.gymnasts_existing),
+    ]
+
+    if report.differences:
+        count = len(report.gymnasts_existing)
+        noun = "gymnast differs" if count == 1 else "gymnasts differ"
+        lines.append("")
+        lines.append(f"{count} existing {noun} from the CSV (nothing changed):")
+        lines.extend(report.differences)
+
+    lines.append("")
+    if committed:
+        lines.append("Committed.")
+    else:
+        lines.append("DRY RUN -- nothing written. Re-run with --commit to apply.")
+
+    return "\n".join(lines)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
+    parser.add_argument("csv_path", type=Path, help="Path to the participant roster CSV")
+    parser.add_argument(
+        "--commit",
+        action="store_true",
+        help="Write to the database. Without it the run is a dry run and is rolled back.",
+    )
+    args = parser.parse_args()
+
+    rows, errors = parse_csv(args.csv_path)
+    # Only worth checking cross-row rules once every row parses -- consistency errors
+    # derived from half-read rows are noise on top of the real problem.
+    if not errors:
+        errors = check_consistency(rows)
+    if errors:
+        print(f"{len(errors)} problem(s) found -- nothing written:\n")
+        for error in errors:
+            print(f"  {error}")
+        return 1
+
+    session = SessionLocal()
+    try:
+        report = import_roster(rows, session)
+        print(format_report(report, committed=args.commit))
+        if args.commit:
+            session.commit()
+        else:
+            session.rollback()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
