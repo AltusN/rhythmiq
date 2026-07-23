@@ -108,9 +108,9 @@ and dropped with the table.
   Form + Zod mirroring DB constraints; `src/lib/score-math.ts` mirrors `app/scoring.py`
   (keep their worked-example tests in sync). Judge panel slot→judge mapping lives in
   localStorage per meet (`rhythmiq.panel.<meetId>`) — v1 only, becomes a backend
-  model with auth later. Slots are band-dependent: `F` (levels 1–3), `DB1`/`DB2`
-  (4–7), `D`/`A1`/`A2` (8+), and `E1`–`E4`; a stored legacy `A` is read as `A1`.
-  Frontend tests (Vitest + Testing Library + MSW) live in
+  model with auth later. Slots are band-dependent: `F1`–`F4` (levels 1–3), `DB1`/`DB2`
+  (4–7), `D`/`A1`/`A2` (8+), and `E1`–`E4`; a stored legacy `A` is read as `A1` and a
+  stored legacy `F` as `F1`. Frontend tests (Vitest + Testing Library + MSW) live in
   `frontend/test/`, mirroring `frontend/src/`.
 
 ### Router conventions (mirrored across every resource)
@@ -168,10 +168,12 @@ Every resource router follows: `POST /`, `GET /`, `GET /{id}`, `PATCH /{id}`, `D
   judging is selected separately.
 - **Scoring bands** (`app/scoring.py`, mirrored in `frontend/src/lib/score-math.ts`):
   one declarative band→profile table drives panel validity, D combination, tie-breaking
-  and medal mode. Levels 1–3 record a single pre-aggregated mark on `Panel.final`
-  (max 13, no averaging, no tie-break); levels 4–7 use two `difficulty_body` judges plus
-  two `execution` judges, `avg(DB) + E`, max 13; levels 8+ use the full FIG panel with
-  the Execution tie-break. The additive `DB + DA` formula covers 4–7 unchanged, since
+  and medal mode. Levels 1–3 are judged by a panel of up to four judges, each recording
+  one mark on `Panel.final` (max 13); the routine's score is the trimmed mean of those
+  marks (three plain-average, four trim to the middle two), still no tie-break; levels
+  4–7 use two `difficulty_body` judges plus two `execution` judges, `avg(DB) + E`, max
+  13; levels 8+ use the full FIG panel with the Execution tie-break. The additive
+  `DB + DA` formula covers 4–7 unchanged, since
   `trimmed_mean([])` is 0. Adding a level to the `Level` enum without assigning it a
   band fails `test_every_level_is_explicitly_banded` — the backend map is exhaustive by
   construction; the frontend deliberately falls back to 8+ instead of throwing.
