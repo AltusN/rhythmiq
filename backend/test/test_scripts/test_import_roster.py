@@ -618,3 +618,57 @@ def test_main_returns_1_and_never_opens_a_session_on_a_validation_error(
     output = capsys.readouterr().out
     assert "1 problem(s) found -- nothing written:" in output
     assert "first_name 'Jo' must be longer than 2 characters" in output
+
+
+def test_maties_resolves_to_maties_under_cape_winelands(tmp_path):
+    path = write_csv(
+        tmp_path,
+        "Marie,Fourie,2011-01-01,10010,white,Maties,Cape Winelands,level_5,u13\n",
+    )
+
+    rows, errors = parse_csv(path)
+
+    assert errors == []
+    assert rows[0].club_name == "Maties"
+    assert rows[0].district_name == "Cape Winelands"
+
+
+def test_blank_district_with_a_single_district_club_is_derived(tmp_path):
+    # Maties exists only under Cape Winelands, so a blank district is unambiguous.
+    path = write_csv(
+        tmp_path,
+        "Marie,Fourie,2011-01-01,10010,white,Maties,,level_5,u13\n",
+    )
+
+    rows, errors = parse_csv(path)
+
+    assert errors == []
+    assert rows[0].district_name == "Cape Winelands"
+
+
+def test_blank_district_with_an_ambiguous_club_is_an_error(tmp_path, monkeypatch):
+    from scripts import import_roster
+
+    # No club really spans two districts, so inject one for this test only.
+    monkeypatch.setitem(import_roster.DISTRICTS_BY_CLUB, "Shared", {"Eden", "Cape Winelands"})
+    path = write_csv(
+        tmp_path,
+        "Marie,Fourie,2011-01-01,10010,white,Shared,,level_5,u13\n",
+    )
+
+    rows, errors = parse_csv(path)
+
+    assert any("club 'Shared' is in multiple districts" in e for e in errors)
+    assert any("Cape Winelands" in e and "Eden" in e for e in errors)
+
+
+def test_blank_district_with_unknown_club_reports_club_not_empty_district(tmp_path):
+    path = write_csv(
+        tmp_path,
+        "Marie,Fourie,2011-01-01,10010,white,Boland Gym,,level_5,u13\n",
+    )
+
+    rows, errors = parse_csv(path)
+
+    assert any("unknown club 'Boland Gym'" in e for e in errors)
+    assert not any("unknown district" in e for e in errors)

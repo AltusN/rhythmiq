@@ -60,7 +60,15 @@ CLUB_ABBREVIATIONS: dict[tuple[str, str], str] = {
     ("Cape Winelands", "Ikaya Primary School"): "IKAYA",
     ("West Coast District", "Reach Rhythmic Gymnastics"): "REACH",
     ("Eden", "Zest"): "ZEST",
+    ("Cape Winelands", "Maties"): "MATIES",
 }
+
+# Blank district_name is derived from the club through this index, built FROM
+# CLUB_ABBREVIATIONS so the two can never disagree. A club under two districts is
+# ambiguous (club names are only unique per district) and is reported, not guessed.
+DISTRICTS_BY_CLUB: dict[str, set[str]] = {}
+for _district, _club in CLUB_ABBREVIATIONS:
+    DISTRICTS_BY_CLUB.setdefault(_club, set()).add(_district)
 
 REQUIRED_COLUMNS = (
     "first_name",
@@ -166,7 +174,23 @@ def _parse_row(number: int, raw: dict[str, str], errors: list[str]) -> RosterRow
 
     district_name = cell("district_name")
     club_name = cell("club_name")
-    if district_name not in DISTRICT_ABBREVIATIONS:
+
+    # A blank district is derived from the club: exactly one district -> use it; two or
+    # more -> ambiguous, report; unknown club -> leave blank and let the club check below
+    # report it (no redundant "unknown district ''").
+    if not district_name:
+        candidate_districts = DISTRICTS_BY_CLUB.get(club_name)
+        if candidate_districts is not None and len(candidate_districts) == 1:
+            district_name = next(iter(candidate_districts))
+        elif candidate_districts is not None:  # two or more
+            errors.append(
+                f"row {number}: club {club_name!r} is in multiple districts "
+                f"{sorted(candidate_districts)}; set district_name in the CSV"
+            )
+
+    # Only validate a district that is actually present -- a blank one has already been
+    # handled above, and re-reporting it as "unknown district ''" is noise.
+    if district_name and district_name not in DISTRICT_ABBREVIATIONS:
         errors.append(
             f"row {number}: unknown district {district_name!r}\n"
             f"  Add to DISTRICT_ABBREVIATIONS in scripts/import_roster.py:\n"
