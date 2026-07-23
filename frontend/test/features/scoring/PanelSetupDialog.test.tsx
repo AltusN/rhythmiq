@@ -126,7 +126,10 @@ it("groups the slots by scoring band", async () => {
   expect(screen.getByText(/Levels 1–3/)).toBeInTheDocument();
   expect(screen.getByText(/Levels 4–7/)).toBeInTheDocument();
   expect(screen.getByText(/Levels 8\+/)).toBeInTheDocument();
-  expect(screen.getByLabelText("F")).toBeInTheDocument();
+  expect(screen.getByLabelText("F1")).toBeInTheDocument();
+  expect(screen.getByLabelText("F2")).toBeInTheDocument();
+  expect(screen.getByLabelText("F3")).toBeInTheDocument();
+  expect(screen.getByLabelText("F4")).toBeInTheDocument();
   expect(screen.getByLabelText("DB1")).toBeInTheDocument();
   expect(screen.getByLabelText("A2")).toBeInTheDocument();
 });
@@ -151,6 +154,31 @@ it("rejects the same judge in two difficulty-body slots", async () => {
   expect(await screen.findByRole("alert")).toHaveTextContent(
     "The same judge can't sit in two Difficulty (Body) slots.",
   );
+  expect(onSave).not.toHaveBeenCalled();
+});
+
+it("rejects the same judge in two final slots", async () => {
+  const onSave = vi.fn();
+  const user = userEvent.setup();
+  render(
+    <PanelSetupDialog
+      open
+      value={{}}
+      judges={[judge(1, "Ann"), judge(2, "Bo")]}
+      onSave={onSave}
+      onClose={vi.fn()}
+    />,
+  );
+
+  await user.selectOptions(screen.getByLabelText("F1"), "1");
+  await user.selectOptions(screen.getByLabelText("F2"), "1");
+  await user.click(screen.getByRole("button", { name: "Save panel" }));
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent(
+    "The same judge can't sit in two Final slots.",
+  );
+  expect(alert).not.toHaveTextContent("undefined");
   expect(onSave).not.toHaveBeenCalled();
 });
 

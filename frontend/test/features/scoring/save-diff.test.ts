@@ -81,10 +81,10 @@ describe("reconcileBoxesWithHistory — occupied boxes take the judge who gave t
     // The Final box's current slot is judge 3, but the routine's only final mark belongs
     // to judge 1 (seeded data, or an F slot reassigned after scoring). The box must adopt
     // judge 1 so the mark loads and later updates in place.
-    const finalBoxes: BoxDef[] = [{ key: "final", panel: "final", judgeId: 3 }];
+    const finalBoxes: BoxDef[] = [{ key: "final1", panel: "final", judgeId: 3 }];
     const marks: ExistingScore[] = [{ id: 155, judge_id: 1, panel: "final", value: 10.1 }];
     expect(reconcileBoxesWithHistory(finalBoxes, marks)).toEqual([
-      { key: "final", panel: "final", judgeId: 1 },
+      { key: "final1", panel: "final", judgeId: 1 },
     ]);
   });
 
@@ -115,12 +115,12 @@ describe("reconcileBoxesWithHistory — occupied boxes take the judge who gave t
     // The end-to-end correctness guarantee: reconcile then computeSaveOps must UPDATE the
     // historical mark, not POST a second mark on the same panel (which would shift the
     // trimmed-mean total).
-    const finalBoxes: BoxDef[] = [{ key: "final", panel: "final", judgeId: 3 }];
+    const finalBoxes: BoxDef[] = [{ key: "final1", panel: "final", judgeId: 3 }];
     const marks: ExistingScore[] = [{ id: 155, judge_id: 1, panel: "final", value: 10.1 }];
     const reconciled = reconcileBoxesWithHistory(finalBoxes, marks);
-    const ops = computeSaveOps(reconciled, marks, { final: 11.0 });
+    const ops = computeSaveOps(reconciled, marks, { final1: 11.0 });
     expect(ops.creates).toEqual([]);
-    expect(ops.updates).toEqual([{ boxKey: "final", id: 155, value: 11.0 }]);
+    expect(ops.updates).toEqual([{ boxKey: "final1", id: 155, value: 11.0 }]);
     expect(ops.deletes).toEqual([]);
   });
 

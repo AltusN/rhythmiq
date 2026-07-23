@@ -678,7 +678,7 @@ export interface components {
             e_score: string;
             /**
              * Final Score
-             * @description Levels 1-3 only: the single pre-aggregated mark out of 13. 0 at every other level, where the score is built from the D/A/E panels instead.
+             * @description Levels 1-3 only: the trimmed mean of the panel's final marks (each out of 13). 0 at every other level, where the score is built from the D/A/E panels instead.
              */
             final_score: string;
             /** Penalty */
@@ -1345,7 +1345,7 @@ export interface components {
             e_score: string;
             /**
              * Final Score
-             * @description Levels 1-3 only: the single pre-aggregated mark out of 13. 0 at every other level, where the score is built from the D/A/E panels instead.
+             * @description Levels 1-3 only: the trimmed mean of the panel's final marks (each out of 13). 0 at every other level, where the score is built from the D/A/E panels instead.
              */
             final_score: string;
             /**

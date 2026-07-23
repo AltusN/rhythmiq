@@ -120,6 +120,10 @@ Consequences:
 - Standings and results are unaffected: `e_score` is and remains a score.
 - **Levels 1–3 are not deductions.** That band's single final mark is a straight
   score out of 13 and is stored as entered, with no conversion in either direction.
+  > **SUPERSEDED 2026-07-23:** levels 1–3 ARE deductions (off 13), and are a four-judge
+  > panel. The form converts off base 13 (`finalDeductionToScore`/`finalScoreToDeduction`)
+  > and the DB stores the score. See CLAUDE.md and
+  > `2026-07-23-level-1-3-four-judge-panel-design.md`.
 
 **Why:** ranking breaks ties on highest E (`scoring.py:182`, per FIG Technical
 Regulations). Storing raw deductions would invert that — highest deduction is the

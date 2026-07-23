@@ -9,17 +9,18 @@ import {
 } from "./panel-storage";
 
 const BAND_HEADINGS: Record<Band, string> = {
-  "1-3": "Levels 1–3 — one final mark out of 13",
+  "1-3": "Levels 1–3 — four-judge panel, one final mark each out of 13",
   "4-7": "Levels 4–7 — two Difficulty (Body) judges, two Execution",
   "8+": "Levels 8+ — full FIG panel",
 };
 
 const BANDS: Band[] = ["1-3", "4-7", "8+"];
 
-// Keyed by the FIRST slot of each SLOT_CONFLICT_GROUPS group (DB1, A1, E1) -- the error
+// Keyed by the FIRST slot of each SLOT_CONFLICT_GROUPS group (F1, DB1, A1, E1) -- the error
 // message below looks the group's label up via `group[0]`. If a group's slot order ever
 // changes, add the new leading slot here (a missing key would render "two undefined slots").
 const CONFLICT_LABELS: Record<string, string> = {
+  F1: "Final",
   DB1: "Difficulty (Body)",
   A1: "Artistry",
   E1: "Execution",

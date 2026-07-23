@@ -11,6 +11,8 @@ import type {
 import {
   computePreview,
   deductionToScore,
+  finalDeductionToScore,
+  finalScoreToDeduction,
   profileForLevel,
   scoreToDeduction,
   type Band,
@@ -25,7 +27,10 @@ import {
 import { saveScores, type SaveScoresResult } from "./save-scores";
 
 const BOX_LABELS: Record<BoxKey, string> = {
-  final: "Final",
+  final1: "Final 1",
+  final2: "Final 2",
+  final3: "Final 3",
+  final4: "Final 4",
   dBody1: "D-Body 1",
   dBody2: "D-Body 2",
   dApp: "D-App",
@@ -39,9 +44,16 @@ const BOX_LABELS: Record<BoxKey, string> = {
 
 export const E_BOX_KEYS: BoxKey[] = ["e1", "e2", "e3", "e4"];
 
+// Levels 1-3 boxes speak deductions off 13, converted at the same three boundaries as
+// the E boxes (load/preview/save) but via finalDeductionToScore / finalScoreToDeduction.
+export const FINAL_BOX_KEYS: BoxKey[] = ["final1", "final2", "final3", "final4"];
+
 /** Per-box ceiling; undefined = uncapped, mirroring ck_judge_score_panel_value_cap. */
 const BOX_MAX: Partial<Record<BoxKey | "penalty", number>> = {
-  final: 13,
+  final1: 13,
+  final2: 13,
+  final3: 13,
+  final4: 13,
   a1: 10,
   a2: 10,
   e1: 10,
@@ -53,7 +65,10 @@ const BOX_MAX: Partial<Record<BoxKey | "penalty", number>> = {
 type FormValues = Record<BoxKey | "penalty", string>;
 
 const EMPTY_VALUES: FormValues = {
-  final: "",
+  final1: "",
+  final2: "",
+  final3: "",
+  final4: "",
   dBody1: "",
   dBody2: "",
   dApp: "",
@@ -73,7 +88,12 @@ const EMPTY_VALUES: FormValues = {
  */
 export function boxesFor(panel: PanelAssignment, band: Band): BoxDef[] {
   if (band === "1-3") {
-    return [{ key: "final", panel: "final" as Panel, judgeId: panel.F }];
+    return [
+      { key: "final1", panel: "final" as Panel, judgeId: panel.F1 },
+      { key: "final2", panel: "final" as Panel, judgeId: panel.F2 },
+      { key: "final3", panel: "final" as Panel, judgeId: panel.F3 },
+      { key: "final4", panel: "final" as Panel, judgeId: panel.F4 },
+    ];
   }
   if (band === "4-7") {
     return [
@@ -164,12 +184,15 @@ export function ScoreForm({
       const existing = findBoxScore(box, existingScores);
       if (!existing) continue;
       const stored = toNum(existing.value);
-      // Load direction of the E round trip: the API stores an execution score, the
-      // judge typed a deduction. Without this inversion they would reopen a routine and
-      // see 8.50 in the box where they entered 1.50.
+      // Load direction of the deduction round trip: the API stores a score, the judge
+      // typed a deduction. Without this inversion they would reopen a routine and see the
+      // stored score where they entered a deduction. E boxes invert off 10; the levels
+      // 1-3 final boxes off 13; every other box stores exactly what was entered.
       values[box.key] = E_BOX_KEYS.includes(box.key)
         ? scoreToDeduction(stored).toFixed(2)
-        : stored.toFixed(2);
+        : FINAL_BOX_KEYS.includes(box.key)
+          ? finalScoreToDeduction(stored).toFixed(2)
+          : stored.toFixed(2);
     }
     return values;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -224,7 +247,16 @@ export function ScoreForm({
     eScores: E_BOX_KEYS.map((k) => parseBox(watched[k]))
       .filter((v): v is number => v !== undefined)
       .map(deductionToScore),
-    finalScore: parseBox(watched.final),
+    // Like eScores: the boxes hold deductions, but the summary shows the SCORE the
+    // trimmed mean produces — off 13 here, not 10.
+    finalScores: [
+      parseBox(watched.final1),
+      parseBox(watched.final2),
+      parseBox(watched.final3),
+      parseBox(watched.final4),
+    ]
+      .filter((v): v is number => v !== undefined)
+      .map(finalDeductionToScore),
     penalty: parseBox(watched.penalty),
   });
 
@@ -246,12 +278,17 @@ export function ScoreForm({
           values: Object.fromEntries(
             boxes.map((b) => {
               const raw = parseBox(values[b.key]);
-              // Save direction of the E round trip: the judge types a deduction, the
-              // API only ever receives an execution score.
+              // Save direction of the deduction round trip: the judge types a deduction,
+              // the API only ever receives a score. E boxes convert off 10, the levels
+              // 1-3 final boxes off 13; every other box saves exactly what was entered.
               const value =
-                raw !== undefined && E_BOX_KEYS.includes(b.key)
-                  ? deductionToScore(raw)
-                  : raw;
+                raw === undefined
+                  ? raw
+                  : E_BOX_KEYS.includes(b.key)
+                    ? deductionToScore(raw)
+                    : FINAL_BOX_KEYS.includes(b.key)
+                      ? finalDeductionToScore(raw)
+                      : raw;
               return [b.key, value];
             }),
           ),

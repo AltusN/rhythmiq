@@ -2,6 +2,8 @@ import { describe, expect, it, test } from "vitest";
 import {
   computePreview,
   deductionToScore,
+  finalDeductionToScore,
+  finalScoreToDeduction,
   profileForLevel,
   scoreToDeduction,
   trimmedMean,
@@ -71,6 +73,31 @@ describe("E deduction round trip", () => {
   });
 });
 
+describe("levels 1-3 deduction round trip", () => {
+  // Same round trip as Execution, but the base is 13 not 10: a judge enters a
+  // deduction, the API stores the resulting score out of 13.
+  it("converts a deduction to a stored final score out of 13", () => {
+    expect(finalDeductionToScore(1.2)).toBe(11.8);
+    expect(finalDeductionToScore(0)).toBe(13);
+    expect(finalDeductionToScore(13)).toBe(0);
+  });
+
+  it("converts a stored final score back to a deduction", () => {
+    expect(finalScoreToDeduction(11.8)).toBe(1.2);
+    expect(finalScoreToDeduction(13)).toBe(0);
+  });
+
+  it("round-trips on 0.05 increments without drift", () => {
+    for (let step = 0; step <= 260; step += 1) {
+      const deduction = step * 0.05;
+      expect(finalScoreToDeduction(finalDeductionToScore(deduction))).toBeCloseTo(
+        deduction,
+        10,
+      );
+    }
+  });
+});
+
 describe("band boundary at level_7/level_8", () => {
   test("levels 1-7 fall below the 8+ band, level_8 and up are 8+", () => {
     expect(profileForLevel("level_1").band).not.toBe("8+");
@@ -81,8 +108,9 @@ describe("band boundary at level_7/level_8", () => {
 });
 
 describe("computePreview", () => {
-  it("records the final mark at levels 1-3", () => {
-    expect(computePreview({ band: "1-3", finalScore: 11.75 })).toEqual({
+  it("records the trimmed final mark at levels 1-3", () => {
+    // One mark returns itself.
+    expect(computePreview({ band: "1-3", finalScores: [11.75] })).toEqual({
       d: 0,
       a: 0,
       e: 0,
@@ -92,11 +120,22 @@ describe("computePreview", () => {
     });
   });
 
-  it("subtracts penalty from the final mark at levels 1-3", () => {
-    expect(computePreview({ band: "1-3", finalScore: 12, penalty: 0.3 }).total).toBeCloseTo(
-      11.7,
-      10,
+  it("trims four final marks to the middle two at levels 1-3", () => {
+    // [10, 11, 12, 13] -> drop 10 and 13 -> mean(11, 12) = 11.5
+    expect(computePreview({ band: "1-3", finalScores: [10, 11, 12, 13] }).final).toBeCloseTo(
+      11.5,
     );
+  });
+
+  it("plain-averages three final marks at levels 1-3", () => {
+    // [10, 11, 12] -> 11 (below TRIM_THRESHOLD, no trim)
+    expect(computePreview({ band: "1-3", finalScores: [10, 11, 12] }).final).toBeCloseTo(11);
+  });
+
+  it("subtracts penalty from the final mark at levels 1-3", () => {
+    expect(
+      computePreview({ band: "1-3", finalScores: [12], penalty: 0.3 }).total,
+    ).toBeCloseTo(11.7);
   });
 
   it("averages the two DB marks at levels 4-7", () => {

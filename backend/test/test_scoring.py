@@ -252,7 +252,7 @@ def test_every_level_is_explicitly_banded():
 def test_band_profiles_match_the_spec():
     assert BAND_1_3.medal_mode is MedalMode.cutoff
     assert BAND_1_3.tie_break_on_execution is False
-    assert BAND_1_3.judges_per_panel == {Panel.final: 1}
+    assert BAND_1_3.judges_per_panel == {Panel.final: 4}
 
     assert BAND_4_7.medal_mode is MedalMode.placement
     assert BAND_4_7.tie_break_on_execution is False
@@ -446,6 +446,42 @@ def test_compute_routine_score_level_1_3_ignores_marks_on_other_panels():
 
     assert result.e_score == Decimal("0")
     assert result.total == Decimal("10.00")
+
+
+def test_band_1_3_trims_four_final_marks_to_the_middle_two():
+    # [10, 11, 12, 13] -> drop 10 and 13 -> mean(11, 12) = 11.50
+    routine = _routine(
+        [
+            _mark(Panel.final, "10"),
+            _mark(Panel.final, "11"),
+            _mark(Panel.final, "12"),
+            _mark(Panel.final, "13"),
+        ],
+        level=Level.level_1,
+    )
+
+    result = compute_routine_score(routine)
+
+    assert result.final_score == Decimal("11.50")
+    assert result.total == Decimal("11.50")
+
+
+def test_band_1_3_plain_averages_three_final_marks():
+    # Three marks is a complete (minimum viable) panel: plain average, no trim.
+    # [10, 11, 12] -> mean = 11.00
+    routine = _routine(
+        [_mark(Panel.final, "10"), _mark(Panel.final, "11"), _mark(Panel.final, "12")],
+        level=Level.level_1,
+    )
+
+    assert compute_routine_score(routine).final_score == Decimal("11.00")
+
+
+def test_band_1_3_single_final_mark_is_that_mark():
+    # Backwards compatible: one mark still yields that mark.
+    routine = _routine([_mark(Panel.final, "12.5")], level=Level.level_1)
+
+    assert compute_routine_score(routine).final_score == Decimal("12.50")
 
 
 def test_compute_routine_score_level_4_7_averages_the_two_db_marks():

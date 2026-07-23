@@ -49,13 +49,15 @@ class ScoringProfile:
     tie_break_on_execution: bool
 
 
-# Levels 1-3: the judges compute D+E on paper and hand the scorer one finished mark out
-# of 13. From the scorer's point of view there is exactly ONE judge, so nothing is
-# averaged -- the entered mark IS the routine's total.
+# Levels 1-3 are judged by a PANEL OF FOUR judges, each handing the scorer one finished
+# mark out of 13 (they fold D and E together on paper). The routine's score is the
+# trimmed mean of those four marks -- the same aggregation the 4-7 and 8+ bands apply to
+# their panels. A minimum viable panel is three marks (plain-averaged, since
+# TRIM_THRESHOLD is 4); a fourth mark is optional and switches to the trimmed mean.
 BAND_1_3 = ScoringProfile(
     band="1-3",
     panels=frozenset({Panel.final}),
-    judges_per_panel=MappingProxyType({Panel.final: 1}),
+    judges_per_panel=MappingProxyType({Panel.final: 4}),
     medal_mode=MedalMode.cutoff,
     tie_break_on_execution=False,
 )
@@ -176,9 +178,10 @@ def compute_routine_score(routine) -> RoutineScoreResult:
         2 decimal places to match the Numeric(6, 2) DB columns.
 
     Bands:
-    - Levels 1-3 are pre-aggregated: one `final` mark out of 13 IS the routine score,
-      less penalty. D/A/E are forced to 0 so a stale mark on another panel (direct ORM
-      writes bypass the API's panel gate) cannot leak into the total.
+    - Levels 1-3: a panel of up to four `final` marks (each out of 13) is combined by
+      `trimmed_mean` -- one mark returns itself, three plain-average, four trim to the
+      middle two -- less penalty. D/A/E are forced to 0 so a stale mark on another panel
+      (direct ORM writes bypass the API's panel gate) cannot leak into the total.
     - Levels 4-7 and 8+ share one formula. Per FIG's Code of Points, D is the *sum* of
       two independently-judged subgroups (difficulty_body + difficulty_apparatus), not a
       trimmed mean of a single pool like artistry/execution. At 4-7 there is no DA, so
