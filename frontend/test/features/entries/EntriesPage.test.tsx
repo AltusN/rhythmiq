@@ -40,7 +40,8 @@ test("creates a gymnast entry and refreshes the list", async () => {
   renderApp("/meets/5/entries");
   await screen.findByRole("button", { name: "Add entry" });
   await userEvent.click(screen.getByRole("button", { name: "Add entry" }));
-  await userEvent.selectOptions(screen.getByLabelText("Competitor"), "7");
+  await userEvent.type(screen.getByLabelText("Competitor"), "Lin");
+  await userEvent.click(await screen.findByText("Lindiwe Nkosi"));
   await userEvent.type(screen.getByLabelText("Bib number"), "31");
   await userEvent.selectOptions(screen.getByLabelText("Level"), "senior");
   await userEvent.selectOptions(screen.getByLabelText("Age group"), "o14");
@@ -66,7 +67,8 @@ test("shows the API detail on a bib conflict", async () => {
   );
   renderApp("/meets/5/entries");
   await userEvent.click(await screen.findByRole("button", { name: "Add entry" }));
-  await userEvent.selectOptions(screen.getByLabelText("Competitor"), "7");
+  await userEvent.type(screen.getByLabelText("Competitor"), "Lin");
+  await userEvent.click(await screen.findByText("Lindiwe Nkosi"));
   await userEvent.type(screen.getByLabelText("Bib number"), "12");
   await userEvent.selectOptions(screen.getByLabelText("Level"), "senior");
   await userEvent.selectOptions(screen.getByLabelText("Age group"), "o14");
@@ -121,6 +123,19 @@ test("completed meet hides entry management", async () => {
   await screen.findByText("Lindiwe Nkosi");
   expect(screen.queryByRole("button", { name: "Add entry" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
+});
+
+test("switching to Group clears a chosen gymnast", async () => {
+  mockBase();
+  renderApp("/meets/5/entries");
+  await userEvent.click(await screen.findByRole("button", { name: "Add entry" }));
+
+  await userEvent.type(screen.getByLabelText("Competitor"), "Lin");
+  await userEvent.click(await screen.findByText("Lindiwe Nkosi"));
+  expect(screen.getByLabelText("Competitor")).toHaveValue("Lindiwe Nkosi");
+
+  await userEvent.click(screen.getByLabelText("Group"));
+  expect(screen.getByLabelText("Competitor")).toHaveValue("");
 });
 
 test("age group select offers both bandings in age order", async () => {
