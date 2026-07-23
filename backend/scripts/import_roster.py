@@ -269,8 +269,8 @@ def check_consistency(rows: list[RosterRow]) -> list[str]:
     """
     errors: list[str] = []
     districts_by_club: dict[str, set[str]] = {}
-    identities_by_gsa: dict[str, set[tuple[str, str, date]]] = {}
-    gsas_by_identity: dict[tuple[str, str, date], set[str | None]] = {}
+    identities_by_gsa: dict[str, set[tuple[str, str, date | None]]] = {}
+    gsas_by_identity: dict[tuple[str, str, date | None], set[str | None]] = {}
 
     for row in rows:
         districts_by_club.setdefault(row.club_name, set()).add(row.district_name)
@@ -289,7 +289,10 @@ def check_consistency(rows: list[RosterRow]) -> list[str]:
             names = sorted(f"{first} {last} ({dob})" for first, last, dob in identities)
             errors.append(f"gsa_number {gsa_number!r} is used by more than one gymnast: {names}")
 
-    for identity, gsa_numbers in sorted(gsas_by_identity.items()):
+    for identity, gsa_numbers in sorted(
+        gsas_by_identity.items(),
+        key=lambda kv: (kv[0][0], kv[0][1], kv[0][2] is None, str(kv[0][2])),
+    ):
         if len(gsa_numbers) > 1:
             first, last, dob = identity
             listed = sorted(g or "(blank)" for g in gsa_numbers)

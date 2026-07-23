@@ -209,6 +209,21 @@ def test_one_identity_with_two_gsa_numbers_is_rejected():
     assert "Anna Petrov" in errors[0]
 
 
+def test_consistency_handles_a_none_dob_alongside_a_dated_same_name_row():
+    # A blank-DOB row and a dated row for the same name must not crash the sort.
+    rows = [
+        make_row(first_name="Sam", last_name="Naidoo", date_of_birth=None, gsa_number="1"),
+        make_row(
+            first_name="Sam", last_name="Naidoo", date_of_birth=date(2015, 4, 2), gsa_number="2"
+        ),
+    ]
+
+    # Must not raise TypeError on the identity-tuple sort.
+    errors = check_consistency(rows)
+
+    assert isinstance(errors, list)
+
+
 def test_cold_start_creates_district_club_and_gymnast(db_session):
     report = import_roster([make_row()], db_session)
 
