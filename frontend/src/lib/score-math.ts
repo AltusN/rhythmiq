@@ -76,8 +76,8 @@ function round2(value: number): number {
  * both directions are required, or a judge reopening a routine sees 8.50 in the box
  * where they typed 1.50.
  *
- * Levels 1-3 are NOT deductions: that band's single mark is a straight score out of 13
- * and is neither converted nor inverted.
+ * Levels 1-3 use the SAME round trip, but off a base of 13 not 10 — see
+ * finalDeductionToScore / finalScoreToDeduction below.
  */
 export function deductionToScore(deduction: number): number {
   return round2(E_MAX - deduction);
@@ -86,6 +86,24 @@ export function deductionToScore(deduction: number): number {
 /** Load direction of the E round trip. See deductionToScore. */
 export function scoreToDeduction(score: number): number {
   return round2(E_MAX - score);
+}
+
+/** Levels 1-3 max: a judge's mark is a deduction off 13, stored as a score out of 13. */
+export const FINAL_MAX = 13;
+
+/**
+ * Save direction of the levels 1-3 round trip: a judge enters a deduction off 13, the API
+ * stores the resulting score out of 13. Identical to the E round trip (deductionToScore)
+ * except the base is 13 not 10 — so the DB holds scores at every band and standings need
+ * no 1-3 special case.
+ */
+export function finalDeductionToScore(deduction: number): number {
+  return round2(FINAL_MAX - deduction);
+}
+
+/** Load direction of the levels 1-3 round trip. See finalDeductionToScore. */
+export function finalScoreToDeduction(score: number): number {
+  return round2(FINAL_MAX - score);
 }
 
 /** Below TRIM_THRESHOLD scores: plain average. At/above: drop high+low, average rest. */

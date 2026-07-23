@@ -2,6 +2,8 @@ import { describe, expect, it, test } from "vitest";
 import {
   computePreview,
   deductionToScore,
+  finalDeductionToScore,
+  finalScoreToDeduction,
   profileForLevel,
   scoreToDeduction,
   trimmedMean,
@@ -67,6 +69,31 @@ describe("E deduction round trip", () => {
     for (let step = 0; step <= 200; step += 1) {
       const deduction = step * 0.05;
       expect(scoreToDeduction(deductionToScore(deduction))).toBeCloseTo(deduction, 10);
+    }
+  });
+});
+
+describe("levels 1-3 deduction round trip", () => {
+  // Same round trip as Execution, but the base is 13 not 10: a judge enters a
+  // deduction, the API stores the resulting score out of 13.
+  it("converts a deduction to a stored final score out of 13", () => {
+    expect(finalDeductionToScore(1.2)).toBe(11.8);
+    expect(finalDeductionToScore(0)).toBe(13);
+    expect(finalDeductionToScore(13)).toBe(0);
+  });
+
+  it("converts a stored final score back to a deduction", () => {
+    expect(finalScoreToDeduction(11.8)).toBe(1.2);
+    expect(finalScoreToDeduction(13)).toBe(0);
+  });
+
+  it("round-trips on 0.05 increments without drift", () => {
+    for (let step = 0; step <= 260; step += 1) {
+      const deduction = step * 0.05;
+      expect(finalScoreToDeduction(finalDeductionToScore(deduction))).toBeCloseTo(
+        deduction,
+        10,
+      );
     }
   });
 });

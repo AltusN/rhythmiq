@@ -185,7 +185,10 @@ Every resource router follows: `POST /`, `GET /`, `GET /{id}`, `PATCH /{id}`, `D
 - **Execution is always a score out of 10 in the database**, at every level, so the
   highest-E tie-break orders correctly. The score form speaks **deductions** and converts
   at its own boundary in both directions (`deductionToScore` / `scoreToDeduction` in
-  `score-math.ts`). Levels 1–3 are not deductions and are stored exactly as entered.
+  `score-math.ts`). Levels 1–3 work the same way but off a base of 13, not 10: judges
+  enter a deduction, the DB stores the resulting score out of 13 (`finalDeductionToScore`
+  / `finalScoreToDeduction`, `FINAL_MAX = 13`), so the DB holds scores at every band and
+  standings need no 1–3 special case.
 - Every resource listed above (`District` through `PenaltyRecord`) now has a full
   model/schema/router. `Judge`, `JudgeScore`, and `PenaltyRecord` were the last three to
   get routers.
