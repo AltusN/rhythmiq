@@ -45,11 +45,13 @@ class Apparatus(StrEnum):
 
 
 class AgeGroup(StrEnum):
-    # Two banding schemes coexist by design: u7-o11 alongside the older
-    # u12/u14/o14, which stay because they are in live data and remain
-    # selectable. Members are declared in age order because Postgres sorts an
-    # enum by DEFINITION order, not alphabetically -- the migration positions the
-    # added values with BEFORE/AFTER to match this, so keep the two in step.
+    # Multiple bands coexist by design and do NOT form one ladder: u7-o11 are the
+    # levels 1-3 bands, u12-o15 belong to the higher levels. o11 ("12 and over") and
+    # u12 ("under 12") are complementary halves of one split, not consecutive rungs --
+    # there is no correct total order, so the declaration order is deliberate but
+    # arbitrary. Members are declared in this order because Postgres sorts an enum by
+    # DEFINITION order, not alphabetically; each migration positions added values with
+    # BEFORE/AFTER to match, so keep the two in step.
     under_7 = "u7"
     under_8 = "u8"
     under_9 = "u9"
@@ -57,8 +59,11 @@ class AgeGroup(StrEnum):
     under_11 = "u11"
     over_11 = "o11"
     under_12 = "u12"
+    under_13 = "u13"
     under_14 = "u14"
+    under_15 = "u15"
     over_14 = "o14"
+    over_15 = "o15"
 
 
 class Level(StrEnum):

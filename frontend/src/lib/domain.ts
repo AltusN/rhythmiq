@@ -5,10 +5,11 @@ export const APPARATUS: Apparatus[] = [
 ];
 
 // Age order, matching the AgeGroup enum's declaration order in app/models.py and the
-// Postgres enum's sort order. Two bandings coexist: u7-o11 alongside the older
-// u12/u14/o14, which stay selectable because they are in live data.
+// Postgres enum's sort order. These bands do not form one ladder: u7-o11 are the
+// levels 1-3 bands, u12-o15 belong to the higher levels -- there is no single correct
+// order, so this order is deliberate but arbitrary.
 export const AGE_GROUPS: AgeGroup[] = [
-  "u7", "u8", "u9", "u10", "u11", "o11", "u12", "u14", "o14",
+  "u7", "u8", "u9", "u10", "u11", "o11", "u12", "u13", "u14", "u15", "o14", "o15",
 ];
 
 export const LEVELS: Level[] = [

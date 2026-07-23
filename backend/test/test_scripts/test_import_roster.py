@@ -209,6 +209,21 @@ def test_one_identity_with_two_gsa_numbers_is_rejected():
     assert "Anna Petrov" in errors[0]
 
 
+def test_consistency_handles_a_none_dob_alongside_a_dated_same_name_row():
+    # A blank-DOB row and a dated row for the same name must not crash the sort.
+    rows = [
+        make_row(first_name="Sam", last_name="Naidoo", date_of_birth=None, gsa_number="1"),
+        make_row(
+            first_name="Sam", last_name="Naidoo", date_of_birth=date(2015, 4, 2), gsa_number="2"
+        ),
+    ]
+
+    # Must not raise TypeError on the identity-tuple sort.
+    errors = check_consistency(rows)
+
+    assert isinstance(errors, list)
+
+
 def test_cold_start_creates_district_club_and_gymnast(db_session):
     report = import_roster([make_row()], db_session)
 
@@ -475,6 +490,58 @@ def test_an_over_long_gsa_number_is_reported(tmp_path):
     assert "exceeds 32 characters" in errors[0]
 
 
+def test_blank_date_of_birth_parses_as_none(tmp_path):
+    path = write_csv(
+        tmp_path,
+        "Carla,Smith,,10009,white,Zest,Eden,level_4,u13\n",
+    )
+
+    rows, errors = parse_csv(path)
+
+    assert errors == []
+    assert len(rows) == 1
+    assert rows[0].date_of_birth is None
+    assert rows[0].identity == ("Carla", "Smith", None)
+
+
+def test_present_but_unparseable_date_of_birth_is_an_error_and_drops_the_row(tmp_path):
+    path = write_csv(
+        tmp_path,
+        "Carla,Smith,31-12-2016,10009,white,Zest,Eden,level_4,u13\n",
+    )
+
+    rows, errors = parse_csv(path)
+
+    assert rows == []  # unparseable DOB drops the row
+    assert len(errors) == 1
+    assert "date_of_birth '31-12-2016' is not ISO YYYY-MM-DD" in errors[0]
+
+
+def test_blank_dob_gymnast_is_created_and_matched_by_gsa_on_reimport(db_session):
+    row = make_row(gsa_number="10009", date_of_birth=None)
+    import_roster([row], db_session)
+
+    report = import_roster([row], db_session)
+
+    assert report.gymnasts_created == []
+    assert len(report.gymnasts_existing) == 1
+    assert db_session.query(Gymnast).filter_by(gsa_number="10009").one().date_of_birth is None
+
+
+def test_report_notes_gymnasts_with_no_date_of_birth(db_session):
+    report = import_roster([make_row(date_of_birth=None)], db_session)
+
+    text = format_report(report, committed=False)
+
+    assert "1 gymnast has no date of birth (matched by GSA number only)" in text
+
+
+def test_report_omits_the_no_dob_line_when_all_have_a_date(db_session):
+    report = import_roster([make_row()], db_session)
+
+    assert "no date of birth" not in format_report(report, committed=False)
+
+
 def test_a_byte_order_mark_does_not_break_the_header(tmp_path):
     # Excel's "CSV UTF-8" export writes a BOM. Without utf-8-sig the first field name
     # reads as "﻿first_name" and the run dies claiming first_name is missing.
@@ -566,3 +633,58 @@ def test_main_returns_1_and_never_opens_a_session_on_a_validation_error(
     output = capsys.readouterr().out
     assert "1 problem(s) found -- nothing written:" in output
     assert "first_name 'Jo' must be longer than 2 characters" in output
+
+
+def test_maties_resolves_to_maties_under_cape_winelands(tmp_path):
+    path = write_csv(
+        tmp_path,
+        "Marie,Fourie,2011-01-01,10010,white,Maties,Cape Winelands,level_5,u13\n",
+    )
+
+    rows, errors = parse_csv(path)
+
+    assert errors == []
+    assert rows[0].club_name == "Maties"
+    assert rows[0].district_name == "Cape Winelands"
+
+
+def test_blank_district_with_a_single_district_club_is_derived(tmp_path):
+    # Maties exists only under Cape Winelands, so a blank district is unambiguous.
+    path = write_csv(
+        tmp_path,
+        "Marie,Fourie,2011-01-01,10010,white,Maties,,level_5,u13\n",
+    )
+
+    rows, errors = parse_csv(path)
+
+    assert errors == []
+    assert rows[0].district_name == "Cape Winelands"
+
+
+def test_blank_district_with_an_ambiguous_club_is_an_error(tmp_path, monkeypatch):
+    from scripts import import_roster
+
+    # No club really spans two districts, so inject one for this test only.
+    monkeypatch.setitem(import_roster.DISTRICTS_BY_CLUB, "Shared", {"Eden", "Cape Winelands"})
+    path = write_csv(
+        tmp_path,
+        "Marie,Fourie,2011-01-01,10010,white,Shared,,level_5,u13\n",
+    )
+
+    rows, errors = parse_csv(path)
+
+    assert any("club 'Shared' is in multiple districts" in e for e in errors)
+    assert any("Cape Winelands" in e and "Eden" in e for e in errors)
+    assert not any("unknown club" in e for e in errors)
+
+
+def test_blank_district_with_unknown_club_reports_club_not_empty_district(tmp_path):
+    path = write_csv(
+        tmp_path,
+        "Marie,Fourie,2011-01-01,10010,white,Boland Gym,,level_5,u13\n",
+    )
+
+    rows, errors = parse_csv(path)
+
+    assert any("unknown club 'Boland Gym'" in e for e in errors)
+    assert not any("unknown district" in e for e in errors)

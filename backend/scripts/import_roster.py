@@ -12,6 +12,13 @@ Of the CSV's pass-2 columns, `level` and `age_group` are validated but NOT persi
 (they are not in REQUIRED_COLUMNS and are never read). All six are pass-2 input and must
 stay in the file.
 
+A blank date_of_birth is valid and stored as NULL. Consequence: uq_gymnast_identity
+(first_name, last_name, date_of_birth) stops constraining, because Postgres treats
+NULLs as distinct in a unique index -- unlimited (name, name, NULL) rows are legal.
+The GSA number is then the ONLY thing preventing duplicate people. The level-4-up
+roster supplies a unique GSA on every row, so it is safe; the exposure is a future
+hand-entered gymnast with neither a DOB nor a GSA number.
+
 Dry run is the default; --commit is required to write. A dry run is not a simulation --
 it performs the real inserts inside a transaction and rolls back, so constraint
 violations surface before you commit.
@@ -53,7 +60,15 @@ CLUB_ABBREVIATIONS: dict[tuple[str, str], str] = {
     ("Cape Winelands", "Ikaya Primary School"): "IKAYA",
     ("West Coast District", "Reach Rhythmic Gymnastics"): "REACH",
     ("Eden", "Zest"): "ZEST",
+    ("Cape Winelands", "Maties"): "MATIES",
 }
+
+# Blank district_name is derived from the club through this index, built FROM
+# CLUB_ABBREVIATIONS so the two can never disagree. A club under two districts is
+# ambiguous (club names are only unique per district) and is reported, not guessed.
+DISTRICTS_BY_CLUB: dict[str, set[str]] = {}
+for _district, _club in CLUB_ABBREVIATIONS:
+    DISTRICTS_BY_CLUB.setdefault(_club, set()).add(_district)
 
 REQUIRED_COLUMNS = (
     "first_name",
@@ -75,7 +90,7 @@ class RosterRow:
     row_number: int
     first_name: str
     last_name: str
-    date_of_birth: date
+    date_of_birth: date | None
     gsa_number: str | None
     ethnicity: Ethnicity | None
     district_name: str
@@ -84,8 +99,10 @@ class RosterRow:
     age_group: AgeGroup
 
     @property
-    def identity(self) -> tuple[str, str, date]:
-        """The uq_gymnast_identity tuple."""
+    def identity(self) -> tuple[str, str, date | None]:
+        """The uq_gymnast_identity tuple. A NULL DOB is legal but stops the identity
+        index constraining (Postgres treats NULLs as distinct), so GSA number is then
+        the only dedup key -- see the module docstring."""
         return (self.first_name, self.last_name, self.date_of_birth)
 
     @property
@@ -119,15 +136,20 @@ def _parse_row(number: int, raw: dict[str, str], errors: list[str]) -> RosterRow
     if len(gsa_number) > 32:
         errors.append(f"row {number}: gsa_number {gsa_number!r} exceeds 32 characters")
 
+    # Blank is valid and means "not recorded" -> None. A non-blank value that will
+    # not parse is an error AND drops the row; dob_unparseable keeps that case
+    # distinct from a legitimately blank (None) date, which must NOT drop the row.
     date_of_birth = None
-    try:
-        date_of_birth = datetime.strptime(cell("date_of_birth"), "%Y-%m-%d").date()
-        if date_of_birth > date.today():
-            errors.append(f"row {number}: date_of_birth {date_of_birth} is in the future")
-    except ValueError:
-        errors.append(
-            f"row {number}: date_of_birth {cell('date_of_birth')!r} is not ISO YYYY-MM-DD"
-        )
+    dob_unparseable = False
+    dob_cell = cell("date_of_birth")
+    if dob_cell:
+        try:
+            date_of_birth = datetime.strptime(dob_cell, "%Y-%m-%d").date()
+            if date_of_birth > date.today():
+                errors.append(f"row {number}: date_of_birth {date_of_birth} is in the future")
+        except ValueError:
+            dob_unparseable = True
+            errors.append(f"row {number}: date_of_birth {dob_cell!r} is not ISO YYYY-MM-DD")
 
     # A blank cell means the question was never asked -> NULL. It is NOT
     # prefer_not_to_say, which means the gymnast was asked and declined.
@@ -152,21 +174,43 @@ def _parse_row(number: int, raw: dict[str, str], errors: list[str]) -> RosterRow
 
     district_name = cell("district_name")
     club_name = cell("club_name")
-    if district_name not in DISTRICT_ABBREVIATIONS:
+
+    # A blank district is derived from the club: exactly one district -> use it; two or
+    # more -> ambiguous, report; unknown club -> leave blank and let the club check below
+    # report it (no redundant "unknown district ''").
+    district_ambiguous = False
+    if not district_name:
+        candidate_districts = DISTRICTS_BY_CLUB.get(club_name)
+        if candidate_districts is not None and len(candidate_districts) == 1:
+            district_name = next(iter(candidate_districts))
+        elif candidate_districts is not None:  # two or more
+            district_ambiguous = True
+            errors.append(
+                f"row {number}: club {club_name!r} is in multiple districts "
+                f"{sorted(candidate_districts)}; set district_name in the CSV"
+            )
+
+    # Only validate a district that is actually present -- a blank one has already been
+    # handled above, and re-reporting it as "unknown district ''" is noise.
+    if district_name and district_name not in DISTRICT_ABBREVIATIONS:
         errors.append(
             f"row {number}: unknown district {district_name!r}\n"
             f"  Add to DISTRICT_ABBREVIATIONS in scripts/import_roster.py:\n"
             f'      "{district_name}": "ABBREV",'
         )
-    if (district_name, club_name) not in CLUB_ABBREVIATIONS:
+    # A club that fired the ambiguity branch above is a KNOWN club (it's in
+    # CLUB_ABBREVIATIONS under two districts) -- skip this check so an ambiguous
+    # district does not also produce a bogus "unknown club (district '')" error.
+    if not district_ambiguous and (district_name, club_name) not in CLUB_ABBREVIATIONS:
         errors.append(
             f"row {number}: unknown club {club_name!r} (district {district_name!r})\n"
             f"  Add to CLUB_ABBREVIATIONS in scripts/import_roster.py:\n"
             f'      ("{district_name}", "{club_name}"): "ABBREV",'
         )
 
-    # Without these three there is no row to build. Everything else is still reported.
-    if date_of_birth is None or level is None or age_group is None:
+    # Without a valid level, age group, or (if present) a parseable DOB there is no
+    # row to build. A legitimately blank DOB is fine. Everything else is still reported.
+    if dob_unparseable or level is None or age_group is None:
         return None
 
     return RosterRow(
@@ -225,8 +269,8 @@ def check_consistency(rows: list[RosterRow]) -> list[str]:
     """
     errors: list[str] = []
     districts_by_club: dict[str, set[str]] = {}
-    identities_by_gsa: dict[str, set[tuple[str, str, date]]] = {}
-    gsas_by_identity: dict[tuple[str, str, date], set[str | None]] = {}
+    identities_by_gsa: dict[str, set[tuple[str, str, date | None]]] = {}
+    gsas_by_identity: dict[tuple[str, str, date | None], set[str | None]] = {}
 
     for row in rows:
         districts_by_club.setdefault(row.club_name, set()).add(row.district_name)
@@ -245,7 +289,10 @@ def check_consistency(rows: list[RosterRow]) -> list[str]:
             names = sorted(f"{first} {last} ({dob})" for first, last, dob in identities)
             errors.append(f"gsa_number {gsa_number!r} is used by more than one gymnast: {names}")
 
-    for identity, gsa_numbers in sorted(gsas_by_identity.items()):
+    for identity, gsa_numbers in sorted(
+        gsas_by_identity.items(),
+        key=lambda kv: (kv[0][0], kv[0][1], kv[0][2] is None, str(kv[0][2])),
+    ):
         if len(gsa_numbers) > 1:
             first, last, dob = identity
             listed = sorted(g or "(blank)" for g in gsa_numbers)
@@ -264,6 +311,7 @@ class ImportReport:
     clubs_existing: list[str] = field(default_factory=list)
     gymnasts_created: list[str] = field(default_factory=list)
     gymnasts_existing: list[str] = field(default_factory=list)
+    gymnasts_without_dob: int = 0
     differences: list[str] = field(default_factory=list)
 
 
@@ -343,6 +391,8 @@ def _find_gymnast(session: Session, row: RosterRow) -> Gymnast | None:
         .filter(
             Gymnast.first_name == row.first_name,
             Gymnast.last_name == row.last_name,
+            # SQLAlchemy renders `== None` as `IS NULL`, not `= NULL`, so this keeps
+            # working for a null DOB. The equivalent raw SQL would silently match nothing.
             Gymnast.date_of_birth == row.date_of_birth,
         )
         .first()
@@ -406,6 +456,8 @@ def _resolve_gymnasts(
     for row in unique_rows.values():
         club = clubs[(row.district_name, row.club_name)]
         label = f"{row.first_name} {row.last_name}"
+        if row.date_of_birth is None:
+            report.gymnasts_without_dob += 1
         gymnast = _find_gymnast(session, row)
         if gymnast is None:
             session.add(
@@ -462,6 +514,12 @@ def format_report(report: ImportReport, *, committed: bool) -> str:
         lines.append("")
         lines.append(f"{count} {noun} found (nothing changed):")
         lines.extend(report.differences)
+
+    if report.gymnasts_without_dob:
+        n = report.gymnasts_without_dob
+        noun = "gymnast has" if n == 1 else "gymnasts have"
+        lines.append("")
+        lines.append(f"{n} {noun} no date of birth (matched by GSA number only)")
 
     lines.append("")
     if committed:

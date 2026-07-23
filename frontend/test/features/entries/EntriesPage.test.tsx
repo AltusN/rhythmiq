@@ -130,9 +130,9 @@ test("age group select offers both bandings in age order", async () => {
   await userEvent.click(screen.getByRole("button", { name: "Add entry" }));
 
   const select = screen.getByLabelText("Age group") as HTMLSelectElement;
-  // The new u7-o11 banding alongside the older u12/u14/o14, which stay selectable
-  // because they are in live data. Order matches the Postgres enum's sort order.
+  // These bands do not form one ladder: u7-o11 are the levels 1-3 bands, u12-o15
+  // belong to the higher levels. Order matches the Postgres enum's sort order.
   expect([...select.options].map((o) => o.value).filter(Boolean)).toEqual([
-    "u7", "u8", "u9", "u10", "u11", "o11", "u12", "u14", "o14",
+    "u7", "u8", "u9", "u10", "u11", "o11", "u12", "u13", "u14", "u15", "o14", "o15",
   ]);
 });

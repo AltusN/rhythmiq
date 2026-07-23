@@ -174,7 +174,15 @@ def test_level_no_longer_has_retired_elite_members():
     assert len(Level.__members__) == 18
 
 
-NEW_AGE_GROUPS = [AgeGroup.under_7, AgeGroup.under_9, AgeGroup.under_11, AgeGroup.over_11]
+NEW_AGE_GROUPS = [
+    AgeGroup.under_7,
+    AgeGroup.under_9,
+    AgeGroup.under_11,
+    AgeGroup.over_11,
+    AgeGroup.under_13,
+    AgeGroup.under_15,
+    AgeGroup.over_15,
+]
 
 
 @pytest.mark.parametrize("age_group", NEW_AGE_GROUPS)
@@ -214,6 +222,9 @@ def test_age_group_enum_order_matches_the_database(db_session):
         "under_11",
         "over_11",
         "under_12",
+        "under_13",
         "under_14",
+        "under_15",
         "over_14",
+        "over_15",
     ]
