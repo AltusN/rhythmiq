@@ -25,7 +25,10 @@ import {
 import { saveScores, type SaveScoresResult } from "./save-scores";
 
 const BOX_LABELS: Record<BoxKey, string> = {
-  final: "Final",
+  final1: "Final 1",
+  final2: "Final 2",
+  final3: "Final 3",
+  final4: "Final 4",
   dBody1: "D-Body 1",
   dBody2: "D-Body 2",
   dApp: "D-App",
@@ -41,7 +44,10 @@ export const E_BOX_KEYS: BoxKey[] = ["e1", "e2", "e3", "e4"];
 
 /** Per-box ceiling; undefined = uncapped, mirroring ck_judge_score_panel_value_cap. */
 const BOX_MAX: Partial<Record<BoxKey | "penalty", number>> = {
-  final: 13,
+  final1: 13,
+  final2: 13,
+  final3: 13,
+  final4: 13,
   a1: 10,
   a2: 10,
   e1: 10,
@@ -53,7 +59,10 @@ const BOX_MAX: Partial<Record<BoxKey | "penalty", number>> = {
 type FormValues = Record<BoxKey | "penalty", string>;
 
 const EMPTY_VALUES: FormValues = {
-  final: "",
+  final1: "",
+  final2: "",
+  final3: "",
+  final4: "",
   dBody1: "",
   dBody2: "",
   dApp: "",
@@ -73,7 +82,12 @@ const EMPTY_VALUES: FormValues = {
  */
 export function boxesFor(panel: PanelAssignment, band: Band): BoxDef[] {
   if (band === "1-3") {
-    return [{ key: "final", panel: "final" as Panel, judgeId: panel.F }];
+    return [
+      { key: "final1", panel: "final" as Panel, judgeId: panel.F1 },
+      { key: "final2", panel: "final" as Panel, judgeId: panel.F2 },
+      { key: "final3", panel: "final" as Panel, judgeId: panel.F3 },
+      { key: "final4", panel: "final" as Panel, judgeId: panel.F4 },
+    ];
   }
   if (band === "4-7") {
     return [
@@ -224,7 +238,12 @@ export function ScoreForm({
     eScores: E_BOX_KEYS.map((k) => parseBox(watched[k]))
       .filter((v): v is number => v !== undefined)
       .map(deductionToScore),
-    finalScore: parseBox(watched.final),
+    finalScores: [
+      parseBox(watched.final1),
+      parseBox(watched.final2),
+      parseBox(watched.final3),
+      parseBox(watched.final4),
+    ].filter((v): v is number => v !== undefined),
     penalty: parseBox(watched.penalty),
   });
 

@@ -32,7 +32,10 @@ async function renderScoringPageWithEntry({
   existingScores?: Pick<JudgeScoreRead, "id" | "judge_id" | "panel" | "value">[];
 }) {
   savePanel(5, {
-    F: 1,
+    F1: 1,
+    F2: 2,
+    F3: 4,
+    F4: 6,
     D: 1,
     DB1: 1,
     DB2: 2,
@@ -361,16 +364,19 @@ test("no hint when the minimum viable panel is assigned, even with E3/E4 empty",
 // Formerly "E-only levels do not warn about unassigned D/A slots", which asserted the
 // old two-band spec's premise (level_5 required only E1/E2). Under the level-banded
 // model level_5 is band 4-7 and requires DB1/DB2/E1/E2 -- there is no band that needs
-// only E1/E2 anymore. Replaced with the 1-3 band's actual minimum viable panel (the
-// single Final slot); the 4-7 band's own missing-slots case is covered by the next test.
-test("level 1-3 competitors need only the Final slot, not D/A/E3/E4", async () => {
-  savePanel(5, { F: 1 });
+// only E1/E2 anymore. Replaced with the 1-3 band's actual minimum viable panel (three of
+// the four Final slots); the 4-7 band's own missing-slots case is covered by the next test.
+test("level 1-3 competitors need only three Final slots, not D/A/E3/E4", async () => {
+  savePanel(5, { F1: 1, F2: 2, F3: 3 });
   const level1Entry = makeEntry({ id: 22, meet_id: 5, gymnast_id: 7, group_id: null, level: "level_1", bib_number: "13" });
   mockBase({ entries: [level1Entry] });
   renderApp("/meets/5/scoring");
   await userEvent.click(await screen.findByRole("button", { name: /13 ·/ }));
-  // Band 1-3 renders only the Final box -- no E1 to wait on.
-  await screen.findByLabelText("Final");
+  // Band 1-3 renders Final boxes -- no E1 to wait on.
+  await screen.findByLabelText("Final 1");
+  expect(screen.getByLabelText("Final 2")).toBeInTheDocument();
+  expect(screen.getByLabelText("Final 3")).toBeInTheDocument();
+  expect(screen.queryByLabelText("E1")).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Assign judges…" })).toBeNull();
 });
 
@@ -546,10 +552,13 @@ test("a zero penalty renders unsigned, not as negative zero", async () => {
 
 // --- Task 7: band-dependent boxes and the E deduction round trip ---
 
-it("shows one final box at levels 1-3", async () => {
+it("shows four final boxes at levels 1-3", async () => {
   await renderScoringPageWithEntry({ level: "level_1" });
 
-  expect(await screen.findByLabelText("Final")).toBeInTheDocument();
+  expect(await screen.findByLabelText("Final 1")).toBeInTheDocument();
+  expect(screen.getByLabelText("Final 2")).toBeInTheDocument();
+  expect(screen.getByLabelText("Final 3")).toBeInTheDocument();
+  expect(screen.getByLabelText("Final 4")).toBeInTheDocument();
   expect(screen.queryByLabelText("E1")).not.toBeInTheDocument();
   expect(screen.queryByLabelText("D-Body 1")).not.toBeInTheDocument();
 });
@@ -598,7 +607,7 @@ it("loads a level 1-3 final mark even when a different judge than the F slot ent
     existingScores: [{ id: 1, judge_id: 9, panel: "final", value: "10.10" }],
   });
 
-  expect(await screen.findByLabelText("Final")).toHaveValue("10.10");
+  expect(await screen.findByLabelText("Final 1")).toHaveValue("10.10");
 });
 
 it("loads an 8+ execution mark entered by a judge no longer in an E slot", async () => {
@@ -629,7 +638,7 @@ it("saves a level 1-3 final mark as entered, without conversion", async () => {
   const posted = captureJudgeScorePosts();
   await renderScoringPageWithEntry({ level: "level_1" });
 
-  await user.type(await screen.findByLabelText("Final"), "11.50");
+  await user.type(await screen.findByLabelText("Final 1"), "11.50");
   await user.click(screen.getByRole("button", { name: "Save" }));
 
   await waitFor(() => expect(posted()).toHaveLength(1));
@@ -662,7 +671,7 @@ it("rejects a final mark above 13", async () => {
   const user = userEvent.setup();
   await renderScoringPageWithEntry({ level: "level_1" });
 
-  await user.type(await screen.findByLabelText("Final"), "13.05");
+  await user.type(await screen.findByLabelText("Final 1"), "13.05");
   await user.click(screen.getByRole("button", { name: "Save" }));
 
   expect(await screen.findByText("Max 13")).toBeInTheDocument();
@@ -673,7 +682,7 @@ it("accepts a final mark of exactly 13", async () => {
   captureJudgeScorePosts();
   await renderScoringPageWithEntry({ level: "level_1" });
 
-  await user.type(await screen.findByLabelText("Final"), "13.00");
+  await user.type(await screen.findByLabelText("Final 1"), "13.00");
   await user.click(screen.getByRole("button", { name: "Save" }));
 
   // 13.00 is exactly at the Panel.final ceiling — no validation rejection.

@@ -81,8 +81,9 @@ describe("band boundary at level_7/level_8", () => {
 });
 
 describe("computePreview", () => {
-  it("records the final mark at levels 1-3", () => {
-    expect(computePreview({ band: "1-3", finalScore: 11.75 })).toEqual({
+  it("records the trimmed final mark at levels 1-3", () => {
+    // One mark returns itself.
+    expect(computePreview({ band: "1-3", finalScores: [11.75] })).toEqual({
       d: 0,
       a: 0,
       e: 0,
@@ -92,11 +93,22 @@ describe("computePreview", () => {
     });
   });
 
-  it("subtracts penalty from the final mark at levels 1-3", () => {
-    expect(computePreview({ band: "1-3", finalScore: 12, penalty: 0.3 }).total).toBeCloseTo(
-      11.7,
-      10,
+  it("trims four final marks to the middle two at levels 1-3", () => {
+    // [10, 11, 12, 13] -> drop 10 and 13 -> mean(11, 12) = 11.5
+    expect(computePreview({ band: "1-3", finalScores: [10, 11, 12, 13] }).final).toBeCloseTo(
+      11.5,
     );
+  });
+
+  it("plain-averages three final marks at levels 1-3", () => {
+    // [10, 11, 12] -> 11 (below TRIM_THRESHOLD, no trim)
+    expect(computePreview({ band: "1-3", finalScores: [10, 11, 12] }).final).toBeCloseTo(11);
+  });
+
+  it("subtracts penalty from the final mark at levels 1-3", () => {
+    expect(
+      computePreview({ band: "1-3", finalScores: [12], penalty: 0.3 }).total,
+    ).toBeCloseTo(11.7);
   });
 
   it("averages the two DB marks at levels 4-7", () => {

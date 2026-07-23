@@ -1,7 +1,10 @@
 import type { Panel } from "../../api/types";
 
 export type BoxKey =
-  | "final"
+  | "final1"
+  | "final2"
+  | "final3"
+  | "final4"
   | "dBody1"
   | "dBody2"
   | "dApp"

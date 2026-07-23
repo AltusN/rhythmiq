@@ -110,7 +110,7 @@ export interface PreviewInput {
   dAppScores?: number[];
   artistryScores?: number[];
   eScores?: number[];
-  finalScore?: number;
+  finalScores?: number[];
   penalty?: number;
 }
 
@@ -132,8 +132,10 @@ export function computePreview(input: PreviewInput): ScorePreview {
   const penalty = input.penalty ?? 0;
 
   if (input.band === "1-3") {
-    // Pre-aggregated: the entered mark IS the routine's score, less penalty.
-    const final = input.finalScore ?? 0;
+    // A panel of up to four marks (each out of 13), combined by the SAME trimmedMean the
+    // other bands use: one mark returns itself, three plain-average, four trim to the
+    // middle two. The result IS the routine's score, less penalty.
+    const final = trimmedMean(input.finalScores ?? []);
     return { d: 0, a: 0, e: 0, final, penalty, total: final - penalty };
   }
 

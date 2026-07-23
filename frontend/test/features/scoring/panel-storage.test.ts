@@ -4,6 +4,7 @@ import {
   PANEL_SLOTS,
   SLOTS_BY_BAND,
   REQUIRED_SLOTS,
+  SLOT_CONFLICT_GROUPS,
 } from "../../../src/features/scoring/panel-storage";
 
 test("round-trips a panel assignment per meet", () => {
@@ -28,18 +29,9 @@ test("drops wrong-shaped storage instead of passing junk to boxesFor", () => {
   expect(loadPanel(10)).toEqual({});
 });
 
-it("orders slots F, D, DB1, DB2, A1, A2, E1-E4", () => {
+it("orders slots F1-F4, D, DB1, DB2, A1, A2, E1-E4", () => {
   expect(PANEL_SLOTS).toEqual([
-    "F",
-    "D",
-    "DB1",
-    "DB2",
-    "A1",
-    "A2",
-    "E1",
-    "E2",
-    "E3",
-    "E4",
+    "F1", "F2", "F3", "F4", "D", "DB1", "DB2", "A1", "A2", "E1", "E2", "E3", "E4",
   ]);
 });
 
@@ -56,24 +48,38 @@ it("does not let a legacy A overwrite an explicit A1", () => {
   expect(loadPanel(7)).toEqual({ A1: 9 });
 });
 
+it("migrates a legacy F slot to F1", () => {
+  localStorage.setItem("rhythmiq.panel.8", JSON.stringify({ F: 9 }));
+  expect(loadPanel(8)).toEqual({ F1: 9 });
+});
+
+it("does not let a legacy F overwrite an explicit F1", () => {
+  localStorage.setItem("rhythmiq.panel.9", JSON.stringify({ F: 9, F1: 3 }));
+  expect(loadPanel(9)).toEqual({ F1: 3 });
+});
+
 it("keeps the new slots", () => {
   localStorage.setItem(
     "rhythmiq.panel.7",
     JSON.stringify({ F: 1, DB1: 2, DB2: 3, A1: 4, A2: 5 }),
   );
 
-  expect(loadPanel(7)).toEqual({ F: 1, DB1: 2, DB2: 3, A1: 4, A2: 5 });
+  expect(loadPanel(7)).toEqual({ F1: 1, DB1: 2, DB2: 3, A1: 4, A2: 5 });
 });
 
 it("maps each band to the slots that band actually uses", () => {
-  expect(SLOTS_BY_BAND["1-3"]).toEqual(["F"]);
+  expect(SLOTS_BY_BAND["1-3"]).toEqual(["F1", "F2", "F3", "F4"]);
   expect(SLOTS_BY_BAND["4-7"]).toEqual(["DB1", "DB2", "E1", "E2"]);
   expect(SLOTS_BY_BAND["8+"]).toEqual(["D", "A1", "A2", "E1", "E2", "E3", "E4"]);
 });
 
 it("requires the minimum viable panel per band", () => {
-  // E3/E4 and A2 legitimately stay empty on a small panel, as before.
-  expect(REQUIRED_SLOTS["1-3"]).toEqual(["F"]);
+  // F4/E3/E4 and A2 legitimately stay empty on a small panel, as before.
+  expect(REQUIRED_SLOTS["1-3"]).toEqual(["F1", "F2", "F3"]);
   expect(REQUIRED_SLOTS["4-7"]).toEqual(["DB1", "DB2", "E1", "E2"]);
   expect(REQUIRED_SLOTS["8+"]).toEqual(["D", "A1", "E1", "E2"]);
+});
+
+it("groups F1-F4 as conflicting (all write the final panel)", () => {
+  expect(SLOT_CONFLICT_GROUPS).toContainEqual(["F1", "F2", "F3", "F4"]);
 });

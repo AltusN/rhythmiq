@@ -126,7 +126,10 @@ it("groups the slots by scoring band", async () => {
   expect(screen.getByText(/Levels 1–3/)).toBeInTheDocument();
   expect(screen.getByText(/Levels 4–7/)).toBeInTheDocument();
   expect(screen.getByText(/Levels 8\+/)).toBeInTheDocument();
-  expect(screen.getByLabelText("F")).toBeInTheDocument();
+  expect(screen.getByLabelText("F1")).toBeInTheDocument();
+  expect(screen.getByLabelText("F2")).toBeInTheDocument();
+  expect(screen.getByLabelText("F3")).toBeInTheDocument();
+  expect(screen.getByLabelText("F4")).toBeInTheDocument();
   expect(screen.getByLabelText("DB1")).toBeInTheDocument();
   expect(screen.getByLabelText("A2")).toBeInTheDocument();
 });
