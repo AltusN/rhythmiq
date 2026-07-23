@@ -14,7 +14,7 @@
 - **No database migration.** Each judge's mark is still ≤ 13 (existing `Panel.final` per-mark CHECK holds); `JudgeScore` is unique on `(routine, judge, panel)`, so four judges writing `final` is already legal.
 - **`TRIM_THRESHOLD` stays 4** (backend `scoring.py`, frontend `score-math.ts`). It already means: 3 marks → plain average, 4 marks → drop high+low and average the middle two. The minimum viable panel is **three** judges (`F4` optional, like `E4`/`A2`). No threshold logic is added.
 - **Four per-judge slots `F1 F2 F3 F4`**, mirroring 4–7's `DB1/DB2/E1/E2`. A stored legacy `"F"` migrates to `"F1"` when `F1` is unset — mirror the existing `"A" → "A1"` migration in `loadPanel` exactly (legacy value read raw from storage, NOT kept in the live `PanelSlot` list).
-- **Levels 1–3 marks are straight scores out of 13, never deductions.** No `deductionToScore`/`scoreToDeduction` conversion touches them (they are excluded because their box keys are not in `E_BOX_KEYS`).
+- **Levels 1–3 marks are straight scores out of 13, never deductions.** No `deductionToScore`/`scoreToDeduction` conversion touches them (they are excluded because their box keys are not in `E_BOX_KEYS`). **[SUPERSEDED 2026-07-23 — see commit `c43d7fb`:** the user clarified 1–3 marks ARE deductions off 13; the form now converts via `finalDeductionToScore`/`finalScoreToDeduction` (`FINAL_MAX = 13`, `FINAL_BOX_KEYS`) and the DB stores the score out of 13.]
 - **Medals & tie-break unchanged:** levels 1–3 keep cutoff medals on the all-around; no E component, so `tie_break_on_execution`/`tieBreakOnExecution` stays `false`.
 - **Commit subjects must start with a type prefix** (`feat:`/`fix:`/`chore:`/`docs:`/`test:`).
 

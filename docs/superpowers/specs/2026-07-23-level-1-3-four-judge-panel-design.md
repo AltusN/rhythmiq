@@ -34,6 +34,10 @@ documentation** — the pieces that assumed a single judge.
   no E component, so `tie_break_on_execution` stays `false`.
 - **The E round trip**: untouched — levels 1–3 marks are straight scores, never
   deductions.
+  > **SUPERSEDED 2026-07-23:** the user later clarified that levels 1–3 judges DO enter
+  > deductions. Shipped: the form converts off a base of 13 (`finalDeductionToScore` /
+  > `finalScoreToDeduction`, `FINAL_MAX = 13`) and the DB stores the score out of 13 —
+  > the same round trip as E, base 13 not 10. See CLAUDE.md's scoring notes.
 
 ### Decisions
 
